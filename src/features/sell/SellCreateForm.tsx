@@ -6,6 +6,8 @@ import { useAuth } from '@/features/auth/auth-context';
 import { useUserMode } from '@/features/mode/mode-context';
 import { createRemoteSellListing } from '@/lib/sell-remote';
 import { inputClassName } from '@/features/auth/auth-errors';
+import { useSellerProfile } from '@/features/seller/use-seller-profile';
+import { isSellerProfileComplete } from '@/types/seller';
 
 const MAX_EXTRA = 5;
 
@@ -27,6 +29,7 @@ export default function SellCreateForm() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { mode, ready: modeReady, setMode } = useUserMode();
+  const { profile, ready: profileReady } = useSellerProfile(user?.uid);
   const [cover, setCover] = useState<ImageItem | null>(null);
   const [extras, setExtras] = useState<ImageItem[]>([]);
   const [title, setTitle] = useState('');
@@ -36,9 +39,6 @@ export default function SellCreateForm() {
   const [remainingLabel, setRemainingLabel] = useState('');
   const [deadline, setDeadline] = useState('');
   const [description, setDescription] = useState('');
-  const [sellerName, setSellerName] = useState('');
-  const [sellerPhone, setSellerPhone] = useState('');
-  const [sellerEmail, setSellerEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -51,8 +51,10 @@ export default function SellCreateForm() {
   }, [user, modeReady, mode, setMode]);
 
   useEffect(() => {
-    if (user?.email && !sellerEmail) setSellerEmail(user.email);
-  }, [user, sellerEmail]);
+    if (!loading && user && profileReady && !isSellerProfileComplete(profile)) {
+      router.replace('/seller/profile?next=/sell/new');
+    }
+  }, [loading, user, profile, profileReady, router]);
 
   function handleCover(fileList: FileList | null) {
     const file = fileList?.[0];
@@ -100,8 +102,8 @@ export default function SellCreateForm() {
       setError('상품 안내를 입력해 주세요.');
       return;
     }
-    if (!sellerName.trim() || !sellerPhone.trim() || !sellerEmail.trim()) {
-      setError('상호, 전화, 이메일을 입력해 주세요.');
+    if (!isSellerProfileComplete(profile)) {
+      router.replace('/seller/profile?next=/sell/new');
       return;
     }
 
@@ -113,11 +115,11 @@ export default function SellCreateForm() {
             id: `u-${crypto.randomUUID()}`,
             title: title.trim(),
             sellerId: user.uid,
-            sellerName: sellerName.trim(),
-            representativeName: '',
-            businessVerified: false,
-            sellerPhone: sellerPhone.trim(),
-            sellerEmail: sellerEmail.trim(),
+            sellerName: profile.sellerName,
+            representativeName: profile.representativeName,
+            businessVerified: profile.businessVerified,
+            sellerPhone: profile.sellerPhone,
+            sellerEmail: profile.sellerEmail,
             regularPrice: regular,
             salePrice: sale,
             quantityLabel: quantityLabel.trim(),
@@ -135,7 +137,7 @@ export default function SellCreateForm() {
     })();
   }
 
-  if (loading || !user) {
+  if (loading || !user || !profileReady || !isSellerProfileComplete(profile)) {
     return <p className="text-sm text-muted">불러오는 중…</p>;
   }
 
@@ -263,30 +265,6 @@ export default function SellCreateForm() {
             required
           />
         </label>
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="text-sm font-bold text-ink">판매자 연락처</h2>
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-ink">상호</span>
-          <input value={sellerName} onChange={(event) => setSellerName(event.target.value)} className={inputClassName} required />
-        </label>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block space-y-1.5">
-            <span className="text-sm font-semibold text-ink">전화</span>
-            <input value={sellerPhone} onChange={(event) => setSellerPhone(event.target.value)} className={inputClassName} required />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="text-sm font-semibold text-ink">이메일</span>
-            <input
-              type="email"
-              value={sellerEmail}
-              onChange={(event) => setSellerEmail(event.target.value)}
-              className={inputClassName}
-              required
-            />
-          </label>
-        </div>
       </section>
 
       {error ? (

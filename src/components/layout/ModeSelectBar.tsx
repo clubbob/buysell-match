@@ -16,7 +16,7 @@ export default function ModeSelectBar() {
 
   return (
     <div className="border-b border-line bg-white">
-      <div className="mx-auto flex max-w-board flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
+      <div className="mx-auto flex max-w-board flex-wrap items-center gap-3 px-4 py-2.5 sm:px-6">
         <p className="inline-flex items-center gap-2 text-sm text-ink">
           구매자 또는 판매자 이용 모드를 선택하세요
           <span className="mode-select-arrow" aria-hidden>
