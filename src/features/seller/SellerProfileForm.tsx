@@ -1,6 +1,7 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/features/auth/auth-context';
 import { inputClassName, isValidEmail } from '@/features/auth/auth-errors';
@@ -22,7 +23,6 @@ type StatusApiResponse =
 
 export default function SellerProfileForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { user, loading } = useAuth();
   const { mode, ready: modeReady, setMode } = useUserMode();
   const { profile, ready: profileReady, save } = useSellerProfile(user?.uid);
@@ -30,16 +30,18 @@ export default function SellerProfileForm() {
   const [representativeName, setRepresentativeName] = useState('');
   const [sellerPhone, setSellerPhone] = useState('');
   const [sellerEmail, setSellerEmail] = useState('');
+  const [businessAddress, setBusinessAddress] = useState('');
   const [businessNumber, setBusinessNumber] = useState('');
   const [verifiedNumber, setVerifiedNumber] = useState('');
+  const [verifiedAt, setVerifiedAt] = useState('');
   const [statusLabel, setStatusLabel] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
   const [filled, setFilled] = useState(false);
+  const [done, setDone] = useState<'created' | 'updated' | null>(null);
 
-  const nextPath = searchParams.get('next') === '/sell/new' ? '/sell/new' : '/mypage';
   const verified = digitsOnly(businessNumber) === digitsOnly(verifiedNumber) && digitsOnly(verifiedNumber).length === 10;
 
   useEffect(() => {
@@ -57,9 +59,11 @@ export default function SellerProfileForm() {
       setRepresentativeName(profile.representativeName);
       setSellerPhone(profile.sellerPhone);
       setSellerEmail(profile.sellerEmail);
+      setBusinessAddress(profile.businessAddress);
       setBusinessNumber(formatBusinessNumber(profile.businessNumber));
       if (profile.businessVerified) {
         setVerifiedNumber(formatBusinessNumber(profile.businessNumber));
+        setVerifiedAt(profile.businessVerifiedAt || new Date().toISOString().slice(0, 10));
         setStatusLabel('계속사업자');
       }
     } else if (user?.email) {
@@ -86,6 +90,7 @@ export default function SellerProfileForm() {
       const data = (await response.json()) as StatusApiResponse;
       if (!response.ok || !data.ok) {
         setVerifiedNumber('');
+        setVerifiedAt('');
         setStatusLabel('');
         const message = !data.ok ? data.error?.message || data.data?.message || '검증에 실패했습니다.' : '검증에 실패했습니다.';
         setLookupError(message);
@@ -93,9 +98,11 @@ export default function SellerProfileForm() {
       }
       setBusinessNumber(data.data.businessNumber);
       setVerifiedNumber(data.data.businessNumber);
+      setVerifiedAt(new Date().toISOString().slice(0, 10));
       setStatusLabel(data.data.statusLabel);
     } catch {
       setVerifiedNumber('');
+      setVerifiedAt('');
       setStatusLabel('');
       setLookupError('검증에 실패했습니다. 잠시 후 다시 시도해 주세요.');
     } finally {
@@ -114,8 +121,8 @@ export default function SellerProfileForm() {
       setLookupError('사업자등록번호를 검증해 주세요. 계속사업자만 등록할 수 있습니다.');
       return;
     }
-    if (!sellerName.trim() || !representativeName.trim() || !sellerPhone.trim()) {
-      setError('상호, 대표자, 전화를 입력해 주세요.');
+    if (!sellerName.trim() || !representativeName.trim() || !sellerPhone.trim() || !businessAddress.trim()) {
+      setError('상호, 대표자, 전화, 사업장 주소를 입력해 주세요.');
       return;
     }
     if (!isValidEmail(sellerEmail)) {
@@ -124,6 +131,7 @@ export default function SellerProfileForm() {
     }
 
     setPending(true);
+    const creating = !isSellerProfileComplete(profile);
     try {
       await save({
         sellerId: user.uid,
@@ -131,18 +139,39 @@ export default function SellerProfileForm() {
         representativeName: representativeName.trim(),
         sellerPhone: sellerPhone.trim(),
         sellerEmail: sellerEmail.trim(),
+        businessAddress: businessAddress.trim(),
         businessNumber: formatBusinessNumber(verifiedNumber),
         businessVerified: true,
+        businessVerifiedAt: verifiedAt || new Date().toISOString().slice(0, 10),
       });
-      router.replace(nextPath);
+      setDone(creating ? 'created' : 'updated');
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : '저장에 실패했습니다.');
+    } finally {
       setPending(false);
     }
   }
 
   if (loading || !user || !profileReady) {
     return <p className="text-sm text-muted">불러오는 중…</p>;
+  }
+
+  if (done) {
+    return (
+      <div className="mt-6 space-y-4">
+        <p className="text-sm text-ink">
+          {done === 'created' ? '판매자 정보 등록이 완료되었습니다.' : '판매자 정보 수정이 완료되었습니다.'}
+        </p>
+        <div className="action-row mt-0">
+          <Link href="/sell/new" className="btn-primary">
+            팝니다 등록
+          </Link>
+          <Link href="/mypage" className="btn-secondary">
+            마이페이지
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -159,6 +188,7 @@ export default function SellerProfileForm() {
               setBusinessNumber(next);
               if (digitsOnly(next) !== digitsOnly(verifiedNumber)) {
                 setVerifiedNumber('');
+                setVerifiedAt('');
                 setStatusLabel('');
               }
               setLookupError(null);
@@ -193,6 +223,16 @@ export default function SellerProfileForm() {
           value={representativeName}
           onChange={(event) => setRepresentativeName(event.target.value)}
           className={inputClassName}
+          required
+        />
+      </label>
+      <label className="block space-y-1.5">
+        <span className="text-sm font-semibold text-ink">사업장 주소</span>
+        <input
+          value={businessAddress}
+          onChange={(event) => setBusinessAddress(event.target.value)}
+          className={inputClassName}
+          placeholder="사업장 소재지를 입력해 주세요"
           required
         />
       </label>

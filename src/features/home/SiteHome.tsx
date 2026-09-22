@@ -2,17 +2,31 @@
 
 import Link from 'next/link';
 import PageIntro from '@/components/ui/PageIntro';
+import { useAuth } from '@/features/auth/auth-context';
+import { useUserMode } from '@/features/mode/mode-context';
+import { useSellerProfile } from '@/features/seller/use-seller-profile';
 import { formatWon } from '@/lib/sell-display';
 import { SAMPLE_SELL_LISTINGS } from '@/lib/sell-samples';
 import { SITE_NAME, SITE_TAGLINE } from '@/lib/site';
+import { isSellerProfileComplete } from '@/types/seller';
 import { sellCoverImage } from '@/types/sell';
 
 export default function SiteHome() {
+  const { user } = useAuth();
+  const { mode } = useUserMode();
+  const { profile, ready: profileReady } = useSellerProfile(user?.uid);
   const highlights = SAMPLE_SELL_LISTINGS.slice(0, 3);
+  const canPostSell = Boolean(user) && mode === 'seller' && profileReady && isSellerProfileComplete(profile);
 
   return (
     <div className="space-y-6">
-      <PageIntro title="메인" description={`${SITE_NAME}은 ${SITE_TAGLINE}.`} />
+      <PageIntro title="메인" description={`${SITE_NAME}은 ${SITE_TAGLINE}.`}>
+        {canPostSell ? (
+          <Link href="/sell/new" className="btn-primary">
+            팝니다 등록
+          </Link>
+        ) : null}
+      </PageIntro>
 
       <section className="grid gap-4 sm:grid-cols-2">
         <Link href="/sell" className="panel block px-5 py-6 hover:bg-slate-50">

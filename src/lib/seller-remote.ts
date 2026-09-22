@@ -4,17 +4,18 @@ import { isSellerProfileComplete, type SellerProfile } from '@/types/seller';
 
 const COLLECTION = 'sellerProfiles';
 
-function toProfile(id: string, data: Record<string, unknown>): SellerProfile | null {
-  const profile: SellerProfile = {
+function toProfile(id: string, data: Record<string, unknown>): SellerProfile {
+  return {
     sellerId: id,
     sellerName: String(data.sellerName ?? ''),
     representativeName: String(data.representativeName ?? ''),
     sellerPhone: String(data.sellerPhone ?? ''),
     sellerEmail: String(data.sellerEmail ?? ''),
+    businessAddress: String(data.businessAddress ?? ''),
     businessNumber: String(data.businessNumber ?? ''),
     businessVerified: Boolean(data.businessVerified),
+    businessVerifiedAt: String(data.businessVerifiedAt ?? ''),
   };
-  return isSellerProfileComplete(profile) ? profile : null;
 }
 
 export async function fetchSellerProfile(sellerId: string): Promise<SellerProfile | null> {

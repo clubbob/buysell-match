@@ -11,7 +11,7 @@ import { useSellListings } from '@/features/sell/use-sell-listings';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
 import { USER_MODE_LABELS } from '@/lib/user-mode';
 import { cn } from '@/lib/utils';
-import { isSellerProfileComplete } from '@/types/seller';
+import { formatBusinessVerifiedAt, isSellerProfileComplete } from '@/types/seller';
 
 export default function MyPage() {
   const router = useRouter();
@@ -29,10 +29,17 @@ export default function MyPage() {
   }
 
   const myListings = mine(user.uid);
+  const canPostSell = mode === 'seller' && profileReady && isSellerProfileComplete(profile);
 
   return (
     <div className="space-y-6">
-      <PageIntro title="마이페이지" description={user.email ?? ''} />
+      <PageIntro title="마이페이지" description={user.email ?? ''}>
+        {canPostSell ? (
+          <Link href="/sell/new" className="btn-primary">
+            팝니다 등록
+          </Link>
+        ) : null}
+      </PageIntro>
 
       <section className="panel px-4 py-5 sm:px-5">
         <h2 className="text-sm font-bold text-ink">서비스 이용 모드</h2>
@@ -63,16 +70,37 @@ export default function MyPage() {
           <h2 className="text-sm font-bold text-ink">판매자 정보</h2>
           {profileReady && isSellerProfileComplete(profile) ? (
             <>
-              <p className="mt-1 text-sm text-muted">
-                {profile.sellerName} · {profile.representativeName}
-              </p>
-              <p className="mt-1 text-sm text-muted">
-                {profile.businessNumber}
-                {profile.businessVerified ? ' · 사업자 확인' : ''}
-              </p>
-              <p className="mt-1 text-sm text-muted">
-                {profile.sellerPhone} · {profile.sellerEmail}
-              </p>
+              <dl className="mt-3 grid gap-x-8 gap-y-1.5 text-sm sm:grid-cols-2">
+                <div className="flex gap-3">
+                  <dt className="w-[7.5rem] shrink-0 text-muted">사업자등록번호</dt>
+                  <dd className="min-w-0 text-ink">
+                    {profile.businessNumber}
+                    {profile.businessVerified
+                      ? ` · 사업자 확인${profile.businessVerifiedAt ? ` ${formatBusinessVerifiedAt(profile.businessVerifiedAt)}` : ''}`
+                      : ''}
+                  </dd>
+                </div>
+                <div className="flex gap-3">
+                  <dt className="w-[7.5rem] shrink-0 text-muted">상호</dt>
+                  <dd className="min-w-0 text-ink">{profile.sellerName}</dd>
+                </div>
+                <div className="flex gap-3">
+                  <dt className="w-[7.5rem] shrink-0 text-muted">대표자</dt>
+                  <dd className="min-w-0 text-ink">{profile.representativeName}</dd>
+                </div>
+                <div className="flex gap-3">
+                  <dt className="w-[7.5rem] shrink-0 text-muted">사업장 주소</dt>
+                  <dd className="min-w-0 text-ink">{profile.businessAddress}</dd>
+                </div>
+                <div className="flex gap-3">
+                  <dt className="w-[7.5rem] shrink-0 text-muted">전화</dt>
+                  <dd className="min-w-0 text-ink">{profile.sellerPhone}</dd>
+                </div>
+                <div className="flex gap-3">
+                  <dt className="w-[7.5rem] shrink-0 text-muted">이메일</dt>
+                  <dd className="min-w-0 break-all text-ink">{profile.sellerEmail}</dd>
+                </div>
+              </dl>
               <div className="mt-4">
                 <Link href="/seller/profile" className="btn-secondary">
                   수정
@@ -96,7 +124,14 @@ export default function MyPage() {
         ready && myListings.length > 0 ? (
           <SellListPanel title="내가 올린 팝니다" description="계정에 저장된 글입니다." items={myListings} />
         ) : (
-          <p className="panel px-4 py-10 text-center text-sm text-muted">아직 올린 팝니다가 없습니다.</p>
+          <div className="panel px-4 py-10 text-center">
+            <p className="text-sm text-muted">아직 올린 팝니다가 없습니다.</p>
+            {canPostSell ? (
+              <Link href="/sell/new" className="btn-primary mt-4">
+                팝니다 등록
+              </Link>
+            ) : null}
+          </div>
         )
       ) : null}
 
