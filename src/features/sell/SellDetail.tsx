@@ -7,8 +7,8 @@ import type { SellListing } from '@/types/sell';
 
 function Spec({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-3 border-b border-line py-3 text-sm">
-      <dt className="leading-none text-subtle">{label}</dt>
+    <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-3 border-b border-line py-3 text-sm">
+      <dt className="leading-snug text-subtle">{label}</dt>
       <dd className="flex min-h-[1.75rem] items-center text-ink">{children}</dd>
     </div>
   );
@@ -60,6 +60,7 @@ export default function SellDetail({ item }: { item: SellListing }) {
                   <span className="whitespace-nowrap text-muted">이메일 {item.sellerEmail}</span>
                 </div>
               </Spec>
+              <Spec label="공동구매 최소 주문">{item.minPurchaseLabel || '—'}</Spec>
               <Spec label="수량">
                 {item.quantityLabel}
                 <span className="ml-2 text-muted">({item.remainingLabel})</span>

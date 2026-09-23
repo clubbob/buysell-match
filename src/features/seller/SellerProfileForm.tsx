@@ -8,7 +8,10 @@ import { inputClassName, isValidEmail } from '@/features/auth/auth-errors';
 import { useUserMode } from '@/features/mode/mode-context';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
 import { digitsOnly, formatBusinessNumber } from '@/lib/business-number';
-import { isSellerProfileComplete } from '@/types/seller';
+import { uploadBusinessCertificate } from '@/lib/seller-remote';
+import { hasSellerProfile, isSellerProfileComplete } from '@/types/seller';
+
+const CERT_MAX_BYTES = 8 * 1024 * 1024;
 
 type StatusApiResponse =
   | {
@@ -39,6 +42,9 @@ export default function SellerProfileForm() {
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
+  const [certificateUrl, setCertificateUrl] = useState('');
+  const [certificateFile, setCertificateFile] = useState<File | null>(null);
+  const [certificatePreview, setCertificatePreview] = useState('');
   const [filled, setFilled] = useState(false);
   const [done, setDone] = useState<'created' | 'updated' | null>(null);
 
@@ -65,6 +71,10 @@ export default function SellerProfileForm() {
         setVerifiedNumber(formatBusinessNumber(profile.businessNumber));
         setVerifiedAt(profile.businessVerifiedAt || new Date().toISOString().slice(0, 10));
         setStatusLabel('계속사업자');
+      }
+      if (profile.businessCertificateUrl) {
+        setCertificateUrl(profile.businessCertificateUrl);
+        setCertificatePreview(profile.businessCertificateUrl);
       }
     } else if (user?.email) {
       setSellerEmail(user.email);
@@ -129,10 +139,17 @@ export default function SellerProfileForm() {
       setError('올바른 이메일 주소를 입력해 주세요.');
       return;
     }
+    if (!certificateFile && !certificateUrl) {
+      setError('사업자등록증을 첨부해 주세요.');
+      return;
+    }
 
     setPending(true);
-    const creating = !isSellerProfileComplete(profile);
+    const creating = !hasSellerProfile(profile);
     try {
+      const businessCertificateUrl = certificateFile
+        ? await uploadBusinessCertificate(user.uid, certificateFile)
+        : certificateUrl;
       await save({
         sellerId: user.uid,
         sellerName: sellerName.trim(),
@@ -143,6 +160,7 @@ export default function SellerProfileForm() {
         businessNumber: formatBusinessNumber(verifiedNumber),
         businessVerified: true,
         businessVerifiedAt: verifiedAt || new Date().toISOString().slice(0, 10),
+        businessCertificateUrl,
       });
       setDone(creating ? 'created' : 'updated');
     } catch (submitError) {
@@ -253,6 +271,39 @@ export default function SellerProfileForm() {
         </label>
       </div>
 
+      <div className="space-y-1.5">
+        <span className="block text-sm font-semibold text-ink">사업자등록증</span>
+        <label className="flex min-h-40 cursor-pointer flex-col items-center justify-center border border-dashed border-line bg-slate-50">
+          {certificatePreview && !certificatePreview.toLowerCase().includes('.pdf') && !certificateFile?.type.includes('pdf') ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={certificatePreview} alt="사업자등록증" className="h-40 w-full object-contain" />
+          ) : certificateFile || certificateUrl ? (
+            <span className="px-4 py-8 text-center text-sm text-ink">
+              {certificateFile ? certificateFile.name : '사업자등록증이 첨부되어 있습니다. 클릭하면 바꿀 수 있습니다.'}
+            </span>
+          ) : (
+            <span className="px-4 py-8 text-center text-sm text-subtle">클릭해서 사업자등록증 사진 또는 PDF를 첨부하세요</span>
+          )}
+          <input
+            type="file"
+            accept="image/*,.pdf,application/pdf"
+            className="sr-only"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = '';
+              if (!file) return;
+              if (file.size > CERT_MAX_BYTES) {
+                setError('사업자등록증은 8MB 이하만 첨부할 수 있습니다.');
+                return;
+              }
+              setError(null);
+              setCertificateFile(file);
+              setCertificatePreview(file.type.includes('pdf') ? '' : URL.createObjectURL(file));
+            }}
+          />
+        </label>
+      </div>
+
       {error ? (
         <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger" role="alert">
           {error}
@@ -260,7 +311,7 @@ export default function SellerProfileForm() {
       ) : null}
 
       <button type="submit" className="btn-primary" disabled={pending || !verified}>
-        {pending ? '저장 중…' : isSellerProfileComplete(profile) ? '수정하기' : '등록하기'}
+        {pending ? '저장 중…' : hasSellerProfile(profile) ? '수정하기' : '등록하기'}
       </button>
     </form>
   );

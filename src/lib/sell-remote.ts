@@ -19,6 +19,7 @@ function toListing(id: string, data: Record<string, unknown>): SellListing | nul
     sellerEmail: String(data.sellerEmail ?? ''),
     regularPrice: Number(data.regularPrice) || 0,
     salePrice: Number(data.salePrice) || 0,
+    minPurchaseLabel: String(data.minPurchaseLabel ?? data.minOrderLabel ?? ''),
     quantityLabel: String(data.quantityLabel ?? ''),
     remainingLabel: String(data.remainingLabel ?? ''),
     deadline: String(data.deadline ?? ''),

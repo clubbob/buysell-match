@@ -7,9 +7,10 @@ import { useUserMode } from '@/features/mode/mode-context';
 import { createRemoteSellListing } from '@/lib/sell-remote';
 import { inputClassName } from '@/features/auth/auth-errors';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
+import { loginHref } from '@/lib/auth-redirect';
 import { isSellerProfileComplete } from '@/types/seller';
 
-const MAX_EXTRA = 5;
+const EXTRA_COUNT = 4;
 
 type ImageItem = {
   id: string;
@@ -35,6 +36,7 @@ export default function SellCreateForm() {
   const [title, setTitle] = useState('');
   const [regularPrice, setRegularPrice] = useState('');
   const [salePrice, setSalePrice] = useState('');
+  const [minPurchaseLabel, setMinPurchaseLabel] = useState('');
   const [quantityLabel, setQuantityLabel] = useState('');
   const [remainingLabel, setRemainingLabel] = useState('');
   const [deadline, setDeadline] = useState('');
@@ -43,7 +45,7 @@ export default function SellCreateForm() {
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) router.replace('/login');
+    if (!loading && !user) router.replace(loginHref('seller'));
   }, [loading, user, router]);
 
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function SellCreateForm() {
 
   function handleExtras(fileList: FileList | null) {
     if (!fileList?.length) return;
-    const remaining = MAX_EXTRA - extras.length;
+    const remaining = EXTRA_COUNT - extras.length;
     const files = Array.from(fileList).slice(0, remaining);
     setExtras((current) => [...current, ...files.map(toImageItem)]);
   }
@@ -80,6 +82,10 @@ export default function SellCreateForm() {
       setError('대표 이미지를 넣어 주세요.');
       return;
     }
+    if (extras.length !== EXTRA_COUNT) {
+      setError(`추가 이미지는 ${EXTRA_COUNT}장 올려 주세요.`);
+      return;
+    }
     if (!title.trim()) {
       setError('상품명을 입력해 주세요.');
       return;
@@ -90,8 +96,8 @@ export default function SellCreateForm() {
       setError('가격은 0보다 큰 숫자로 입력해 주세요.');
       return;
     }
-    if (!quantityLabel.trim() || !remainingLabel.trim()) {
-      setError('수량과 남은 수량을 입력해 주세요.');
+    if (!minPurchaseLabel.trim() || !quantityLabel.trim() || !remainingLabel.trim()) {
+      setError('공동구매 최소 주문, 수량, 남은 수량을 입력해 주세요.');
       return;
     }
     if (!deadline) {
@@ -122,6 +128,7 @@ export default function SellCreateForm() {
             sellerEmail: profile.sellerEmail,
             regularPrice: regular,
             salePrice: sale,
+            minPurchaseLabel: minPurchaseLabel.trim(),
             quantityLabel: quantityLabel.trim(),
             remainingLabel: remainingLabel.trim(),
             deadline,
@@ -145,7 +152,7 @@ export default function SellCreateForm() {
     <form className="space-y-8" onSubmit={handleSubmit}>
       <section>
         <h2 className="text-sm font-bold text-ink">상품 사진</h2>
-        <p className="mt-1 text-sm text-muted">대표 이미지 1장은 필수입니다. 추가 이미지는 최대 {MAX_EXTRA}장까지 등록할 수 있습니다.</p>
+        <p className="mt-1 text-sm text-muted">대표 이미지 1장과 추가 이미지 {EXTRA_COUNT}장을 올려 주세요.</p>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="block">
@@ -163,7 +170,7 @@ export default function SellCreateForm() {
 
           <div>
             <span className="mb-2 block text-sm font-semibold text-ink">추가 이미지</span>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {extras.map((item) => (
                 <div key={item.id} className="relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -177,7 +184,7 @@ export default function SellCreateForm() {
                   </button>
                 </div>
               ))}
-              {extras.length < MAX_EXTRA ? (
+              {extras.length < EXTRA_COUNT ? (
                 <label className="flex h-24 cursor-pointer items-center justify-center border border-dashed border-line text-xs text-subtle">
                   + 추가
                   <input
@@ -224,7 +231,18 @@ export default function SellCreateForm() {
             />
           </label>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <label className="block space-y-1.5">
+            <span className="text-sm font-semibold text-ink">공동구매 최소 주문</span>
+            <input
+              value={minPurchaseLabel}
+              onChange={(event) => setMinPurchaseLabel(event.target.value)}
+              className={inputClassName}
+              placeholder="예: 20포"
+              required
+            />
+            <span className="block text-xs text-subtle">참여가 이 수량만큼 모이면 판매 확정할 수 있습니다.</span>
+          </label>
           <label className="block space-y-1.5">
             <span className="text-sm font-semibold text-ink">수량</span>
             <input

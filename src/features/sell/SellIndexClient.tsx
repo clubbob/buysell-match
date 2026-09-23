@@ -3,12 +3,18 @@
 import Link from 'next/link';
 import PageIntro from '@/components/ui/PageIntro';
 import SellListPanel from '@/components/ui/SellListPanel';
+import { useAuth } from '@/features/auth/auth-context';
+import { useUserMode } from '@/features/mode/mode-context';
 import { useSellListings } from '@/features/sell/use-sell-listings';
+import { loginHref } from '@/lib/auth-redirect';
 
 export default function SellIndexClient({ seller }: { seller?: string }) {
+  const { user } = useAuth();
+  const { mode, ready: modeReady } = useUserMode();
   const { items, ready } = useSellListings();
   const filtered = seller ? items.filter((item) => item.sellerId === seller) : items;
   const sellerName = filtered[0]?.sellerName;
+  const showSellCreate = modeReady && (!user || mode === 'seller');
 
   return (
     <div className="space-y-5">
@@ -24,11 +30,11 @@ export default function SellIndexClient({ seller }: { seller?: string }) {
           <Link href="/sell" className="btn-secondary">
             전체 보기
           </Link>
-        ) : (
-          <Link href="/sell/new" className="btn-primary">
+        ) : showSellCreate ? (
+          <Link href={user ? '/sell/new' : loginHref('seller')} className="btn-primary">
             팝니다 등록
           </Link>
-        )}
+        ) : null}
       </PageIntro>
       {ready ? (
         <SellListPanel

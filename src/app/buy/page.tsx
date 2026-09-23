@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import BoardPanel from '@/components/ui/BoardPanel';
 import PageIntro from '@/components/ui/PageIntro';
+import BuyCreateLink from '@/features/buy/BuyCreateLink';
 
 export const metadata: Metadata = {
   title: '삽니다',
@@ -11,9 +11,7 @@ export default function BuyPage() {
   return (
     <div className="space-y-5">
       <PageIntro title="삽니다" description="구매자가 찾는 상품입니다.">
-        <Link href="/buy/new" className="btn-primary">
-          삽니다 등록
-        </Link>
+        <BuyCreateLink />
       </PageIntro>
       <BoardPanel
         title="전체"

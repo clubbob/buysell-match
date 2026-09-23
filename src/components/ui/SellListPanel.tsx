@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { discountRate, formatDeadline, formatWon } from '@/lib/sell-display';
+import { discountRate, formatDeadline, formatQuantityNumber, formatWon } from '@/lib/sell-display';
 import { sellCoverImage, type SellListing } from '@/types/sell';
 
 function PhotoSlot({ src, alt }: { src?: string | null; alt: string }) {
@@ -39,7 +39,8 @@ function DesktopRow({ item }: { item: SellListing }) {
         <span className="font-semibold">{formatWon(item.salePrice)}</span>
         {rate > 0 ? <span className="mt-0.5 block text-xs font-medium text-muted">(할인율 {rate}%)</span> : null}
       </td>
-      <td className="px-3 py-3 align-middle text-sm text-ink">{item.quantityLabel}</td>
+      <td className="px-3 py-3 align-middle text-sm tabular-nums text-ink">{formatQuantityNumber(item.minPurchaseLabel)}</td>
+      <td className="px-3 py-3 align-middle text-sm tabular-nums text-ink">{formatQuantityNumber(item.remainingLabel)}</td>
       <td className="px-4 py-3 align-middle text-sm text-ink">{formatDeadline(item.deadline)}</td>
     </tr>
   );
@@ -62,7 +63,9 @@ function MobileRow({ item }: { item: SellListing }) {
               {rate > 0 ? <span className="ml-1 text-xs text-muted">(할인율 {rate}%)</span> : null}
             </p>
             <p className="text-sm text-ink">
-              {item.quantityLabel}
+              {item.minPurchaseLabel ? `공동구매 최소 주문 ${formatQuantityNumber(item.minPurchaseLabel)}` : null}
+              {item.minPurchaseLabel ? <span className="mx-1.5 text-subtle">·</span> : null}
+              {formatQuantityNumber(item.remainingLabel)}
               <span className="mx-1.5 text-subtle">·</span>
               {formatDeadline(item.deadline)}
             </p>
@@ -107,13 +110,14 @@ export default function SellListPanel({
         <>
           <table className="hidden w-full table-fixed lg:table">
             <colgroup>
-              <col className="w-[18%]" />
+              <col className="w-[16%]" />
               <col className="w-[72px]" />
+              <col className="w-[12%]" />
+              <col className="w-[11%]" />
               <col className="w-[14%]" />
               <col className="w-[12%]" />
-              <col className="w-[18%]" />
-              <col className="w-[10%]" />
-              <col className="w-[18%]" />
+              <col className="w-[12%]" />
+              <col className="w-[15%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-line bg-slate-50 text-left text-[11px] font-semibold tracking-wide text-subtle">
@@ -122,7 +126,8 @@ export default function SellListPanel({
                 <th className="px-3 py-2">판매자</th>
                 <th className="px-3 py-2">정상 가격</th>
                 <th className="px-3 py-2">특판 가격</th>
-                <th className="px-3 py-2">수량</th>
+                <th className="px-3 py-2">공동구매 최소 주문</th>
+                <th className="px-3 py-2">잔여 수량</th>
                 <th className="px-4 py-2">마감</th>
               </tr>
             </thead>

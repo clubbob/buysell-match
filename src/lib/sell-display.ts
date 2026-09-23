@@ -1,3 +1,9 @@
+export function formatQuantityNumber(label: string): string {
+  const match = label.replace(/,/g, '').match(/\d+/);
+  if (!match) return '—';
+  return Number(match[0]).toLocaleString('ko-KR');
+}
+
 export function formatWon(value: number): string {
   return `${value.toLocaleString('ko-KR')}원`;
 }

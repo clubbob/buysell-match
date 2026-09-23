@@ -12,7 +12,7 @@ export default function ModeSelectBar() {
 
   const onMarketPage = pathname === '/' || pathname.startsWith('/sell') || pathname.startsWith('/buy');
 
-  if (loading || !ready || !user || mode || !onMarketPage) return null;
+  if (loading || !ready || mode || !onMarketPage) return null;
 
   return (
     <div className="border-b border-line bg-white">
@@ -26,7 +26,7 @@ export default function ModeSelectBar() {
           </span>
         </p>
         <Link
-          href="/mypage"
+          href={user ? '/mypage' : '/login?next=/mypage'}
           className="inline-flex h-9 shrink-0 items-center bg-ink px-3.5 text-sm font-semibold text-white hover:bg-ink-hover"
         >
           선택하기

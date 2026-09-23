@@ -8,9 +8,10 @@ export type SellerProfile = {
   businessNumber: string;
   businessVerified: boolean;
   businessVerifiedAt: string;
+  businessCertificateUrl: string;
 };
 
-export function isSellerProfileComplete(profile: SellerProfile | null | undefined): profile is SellerProfile {
+export function hasSellerProfile(profile: SellerProfile | null | undefined): profile is SellerProfile {
   return Boolean(
     profile?.sellerName.trim() &&
       profile.representativeName.trim() &&
@@ -20,6 +21,10 @@ export function isSellerProfileComplete(profile: SellerProfile | null | undefine
       profile.businessNumber.trim() &&
       profile.businessVerified,
   );
+}
+
+export function isSellerProfileComplete(profile: SellerProfile | null | undefined): profile is SellerProfile {
+  return hasSellerProfile(profile) && Boolean(profile.businessCertificateUrl.trim());
 }
 
 export function formatBusinessVerifiedAt(value: string): string {

@@ -11,7 +11,7 @@ import { useSellListings } from '@/features/sell/use-sell-listings';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
 import { USER_MODE_LABELS } from '@/lib/user-mode';
 import { cn } from '@/lib/utils';
-import { formatBusinessVerifiedAt, isSellerProfileComplete } from '@/types/seller';
+import { formatBusinessVerifiedAt, hasSellerProfile, isSellerProfileComplete } from '@/types/seller';
 
 export default function MyPage() {
   const router = useRouter();
@@ -37,6 +37,10 @@ export default function MyPage() {
         {canPostSell ? (
           <Link href="/sell/new" className="btn-primary">
             팝니다 등록
+          </Link>
+        ) : mode === 'buyer' ? (
+          <Link href="/buy/new" className="btn-primary">
+            삽니다 등록
           </Link>
         ) : null}
       </PageIntro>
@@ -68,7 +72,7 @@ export default function MyPage() {
       {mode === 'seller' ? (
         <section className="panel px-4 py-5 sm:px-5">
           <h2 className="text-sm font-bold text-ink">판매자 정보</h2>
-          {profileReady && isSellerProfileComplete(profile) ? (
+          {profileReady && hasSellerProfile(profile) ? (
             <>
               <dl className="mt-3 grid gap-x-8 gap-y-1.5 text-sm sm:grid-cols-2">
                 <div className="flex gap-3">
@@ -99,6 +103,23 @@ export default function MyPage() {
                 <div className="flex gap-3">
                   <dt className="w-[7.5rem] shrink-0 text-muted">이메일</dt>
                   <dd className="min-w-0 break-all text-ink">{profile.sellerEmail}</dd>
+                </div>
+                <div className="flex gap-3 sm:col-span-2">
+                  <dt className="w-[7.5rem] shrink-0 text-muted">사업자등록증</dt>
+                  <dd className="min-w-0">
+                    {profile.businessCertificateUrl ? (
+                      <a
+                        href={profile.businessCertificateUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-chip"
+                      >
+                        첨부 파일 보기
+                      </a>
+                    ) : (
+                      <span className="text-muted">미첨부 · 수정에서 첨부해 주세요</span>
+                    )}
+                  </dd>
                 </div>
               </dl>
               <div className="mt-4">

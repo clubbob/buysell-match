@@ -51,7 +51,7 @@ export default function SellImageGallery({ images, alt }: { images: string[]; al
         ) : null}
       </button>
       {images.length > 1 ? (
-        <ul className="grid shrink-0 grid-cols-4 gap-px border-t border-line bg-line sm:grid-cols-5">
+        <ul className="grid shrink-0 grid-cols-5 gap-px border-t border-line bg-line">
           {images.map((src, index) => (
             <li key={`${src}-${index}`}>
               <button

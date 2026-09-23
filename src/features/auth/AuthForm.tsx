@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/features/auth/auth-context';
 import { getAuthErrorMessage, inputClassName, isAsciiPassword, isValidEmail } from '@/features/auth/auth-errors';
+import { useUserMode } from '@/features/mode/mode-context';
+import { safeNextPath, safeUserMode } from '@/lib/auth-redirect';
 
 type AuthFormMode = 'login' | 'signup';
 
@@ -17,7 +19,14 @@ function loadRememberedEmail() {
 
 export default function AuthForm({ mode }: { mode: AuthFormMode }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading, configured, signInWithEmail, signUpWithEmail } = useAuth();
+  const { setMode } = useUserMode();
+  const isSignup = mode === 'signup';
+  const nextPath = safeNextPath(searchParams.get('next'));
+  const intentMode = safeUserMode(searchParams.get('mode'));
+  const authQuery = searchParams.toString();
+  const otherAuthHref = `${isSignup ? '/login' : '/signup'}${authQuery ? `?${authQuery}` : ''}`;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -25,11 +34,15 @@ export default function AuthForm({ mode }: { mode: AuthFormMode }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const isSignup = mode === 'signup';
+  function finishAuth() {
+    if (intentMode) setMode(intentMode);
+    router.replace(nextPath ?? '/');
+  }
 
   useEffect(() => {
-    if (!loading && user) router.replace('/');
-  }, [loading, user, router]);
+    if (!loading && user) finishAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run when session becomes ready
+  }, [loading, user]);
 
   useEffect(() => {
     if (isSignup) return;
@@ -80,7 +93,7 @@ export default function AuthForm({ mode }: { mode: AuthFormMode }) {
           window.localStorage.removeItem(REMEMBER_EMAIL_KEY);
         }
       }
-      router.replace('/');
+      finishAuth();
     } catch (err) {
       setError(getAuthErrorMessage(err, isSignup ? '회원가입에 실패했습니다.' : '로그인에 실패했습니다.'));
     } finally {
@@ -170,14 +183,14 @@ export default function AuthForm({ mode }: { mode: AuthFormMode }) {
         {isSignup ? (
           <>
             이미 계정이 있으면{' '}
-            <Link href="/login" className="font-semibold text-ink underline-offset-2 hover:underline">
+            <Link href={otherAuthHref} className="font-semibold text-ink underline-offset-2 hover:underline">
               로그인
             </Link>
           </>
         ) : (
           <>
             계정이 없으면{' '}
-            <Link href="/signup" className="font-semibold text-ink underline-offset-2 hover:underline">
+            <Link href={otherAuthHref} className="font-semibold text-ink underline-offset-2 hover:underline">
               회원가입
             </Link>
           </>

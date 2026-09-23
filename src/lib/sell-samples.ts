@@ -9,7 +9,7 @@ const PHOTOS = [
   '/samples/sell-6.jpg',
 ];
 
-function photos(coverIndex: number, extraCount = 3): string[] {
+function photos(coverIndex: number, extraCount = 4): string[] {
   const extras = Array.from({ length: extraCount }, (_, offset) => PHOTOS[(coverIndex + offset + 1) % PHOTOS.length]);
   return [PHOTOS[coverIndex], ...extras];
 }
@@ -27,11 +27,12 @@ export const SAMPLE_SELL_LISTINGS: SellListing[] = [
     sellerEmail: 'order@handeul.co.kr',
     regularPrice: 36000,
     salePrice: 28000,
+    minPurchaseLabel: '20포',
     quantityLabel: '50포',
     remainingLabel: '32포 남음',
     deadline: '2026-09-30',
     description:
-      '경기미 10kg입니다. 2026년 햅쌀이며 단위는 포입니다. 최소 참여는 1포이고, 마감 후 일괄 발송합니다. 결제와 배송은 판매자와 직접 진행합니다.',
+      '경기미 10kg입니다. 2026년 햅쌀이며 단위는 포입니다. 공동구매 최소 주문 20포가 모이면 판매 확정할 수 있고, 마감 후 일괄 발송합니다. 결제와 배송은 판매자와 직접 진행합니다.',
   },
   {
     id: 's2',
@@ -45,6 +46,7 @@ export const SAMPLE_SELL_LISTINGS: SellListing[] = [
     sellerEmail: 'sales@cleanfactory.co.kr',
     regularPrice: 12000,
     salePrice: 8900,
+    minPurchaseLabel: '50박스',
     quantityLabel: '200박스',
     remainingLabel: '148박스 남음',
     deadline: '2026-09-28',
@@ -63,6 +65,7 @@ export const SAMPLE_SELL_LISTINGS: SellListing[] = [
     sellerEmail: 'hello@greenliving.co.kr',
     regularPrice: 9800,
     salePrice: 6400,
+    minPurchaseLabel: '40개',
     quantityLabel: '120개',
     remainingLabel: '75개 남음',
     deadline: '2026-10-05',
@@ -81,6 +84,7 @@ export const SAMPLE_SELL_LISTINGS: SellListing[] = [
     sellerEmail: 'contact@sowontex.co.kr',
     regularPrice: 18000,
     salePrice: 12500,
+    minPurchaseLabel: '20세트',
     quantityLabel: '80세트',
     remainingLabel: '51세트 남음',
     deadline: '2026-10-02',
@@ -99,6 +103,7 @@ export const SAMPLE_SELL_LISTINGS: SellListing[] = [
     sellerEmail: 'farm@cheongsong.kr',
     regularPrice: 27000,
     salePrice: 19800,
+    minPurchaseLabel: '15상자',
     quantityLabel: '40상자',
     remainingLabel: '18상자 남음',
     deadline: '2026-09-26',
@@ -117,6 +122,7 @@ export const SAMPLE_SELL_LISTINGS: SellListing[] = [
     sellerEmail: 'biz@officeon.co.kr',
     regularPrice: 28000,
     salePrice: 21000,
+    minPurchaseLabel: '20박스',
     quantityLabel: '60박스',
     remainingLabel: '44박스 남음',
     deadline: '2026-10-08',

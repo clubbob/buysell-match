@@ -16,15 +16,11 @@ export type HeaderNavItem = {
 export function getHeaderNavItems(mode: UserMode | null, isLoggedIn: boolean): HeaderNavItem[] {
   const home: HeaderNavItem = { href: '/', label: '메인', exact: true };
 
-  if (!isLoggedIn || !mode) {
-    return [home, { href: '/sell', label: '팝니다' }, { href: '/buy', label: '삽니다' }];
+  if (isLoggedIn && mode === 'seller') {
+    return [home, { href: '/buy', label: '삽니다' }, { href: '/sell', label: '팝니다' }];
   }
 
-  if (mode === 'buyer') {
-    return [home, { href: '/sell', label: '팝니다' }, { href: '/buy/new', label: '삽니다 등록' }];
-  }
-
-  return [home, { href: '/buy', label: '삽니다' }, { href: '/sell/new', label: '팝니다 등록' }];
+  return [home, { href: '/sell', label: '팝니다' }, { href: '/buy', label: '삽니다' }];
 }
 
 export function isUserMode(value: unknown): value is UserMode {

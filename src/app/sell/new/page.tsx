@@ -15,7 +15,7 @@ export default function NewSellPage() {
         <PageIntro
           eyebrow="판매자"
           title="팝니다 등록"
-          description="상품 사진, 가격, 수량, 마감을 등록합니다. 목록에는 대표 이미지가 보입니다."
+          description="상품 사진, 가격, 공동구매 최소 주문, 수량, 마감을 등록합니다. 목록에는 대표 이미지가 보입니다."
         />
         <div className="mt-6">
           <SellCreateForm />

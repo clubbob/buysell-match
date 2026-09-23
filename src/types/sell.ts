@@ -10,6 +10,7 @@ export type SellListing = {
   sellerEmail: string;
   regularPrice: number;
   salePrice: number;
+  minPurchaseLabel: string;
   quantityLabel: string;
   remainingLabel: string;
   deadline: string;

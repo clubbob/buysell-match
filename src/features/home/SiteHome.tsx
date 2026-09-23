@@ -17,6 +17,7 @@ export default function SiteHome() {
   const { profile, ready: profileReady } = useSellerProfile(user?.uid);
   const highlights = SAMPLE_SELL_LISTINGS.slice(0, 3);
   const canPostSell = Boolean(user) && mode === 'seller' && profileReady && isSellerProfileComplete(profile);
+  const canPostBuy = Boolean(user) && mode === 'buyer';
 
   return (
     <div className="space-y-6">
@@ -25,20 +26,41 @@ export default function SiteHome() {
           <Link href="/sell/new" className="btn-primary">
             팝니다 등록
           </Link>
+        ) : canPostBuy ? (
+          <Link href="/buy/new" className="btn-primary">
+            삽니다 등록
+          </Link>
         ) : null}
       </PageIntro>
 
       <section className="grid gap-4 sm:grid-cols-2">
-        <Link href="/sell" className="panel block px-5 py-6 hover:bg-slate-50">
-          <p className="text-xs font-semibold tracking-wide text-subtle">장터</p>
-          <h2 className="mt-1 text-xl font-bold text-ink">팝니다</h2>
-          <p className="mt-2 text-sm leading-relaxed text-muted">판매자가 올린 상품을 보고 구매에 참여합니다.</p>
-        </Link>
-        <Link href="/buy" className="panel block px-5 py-6 hover:bg-slate-50">
-          <p className="text-xs font-semibold tracking-wide text-subtle">장터</p>
-          <h2 className="mt-1 text-xl font-bold text-ink">삽니다</h2>
-          <p className="mt-2 text-sm leading-relaxed text-muted">찾는 상품을 올리거나, 올라온 요청을 확인합니다.</p>
-        </Link>
+        {mode === 'seller' ? (
+          <>
+            <Link href="/buy" className="panel block px-5 py-6 hover:bg-slate-50">
+              <p className="text-xs font-semibold tracking-wide text-subtle">장터</p>
+              <h2 className="mt-1 text-xl font-bold text-ink">삽니다</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted">구매자가 찾는 상품을 보고 판매에 참여합니다.</p>
+            </Link>
+            <Link href="/sell" className="panel block px-5 py-6 hover:bg-slate-50">
+              <p className="text-xs font-semibold tracking-wide text-subtle">장터</p>
+              <h2 className="mt-1 text-xl font-bold text-ink">팝니다</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted">판매 상품을 올리거나, 올라온 글을 확인합니다.</p>
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link href="/sell" className="panel block px-5 py-6 hover:bg-slate-50">
+              <p className="text-xs font-semibold tracking-wide text-subtle">장터</p>
+              <h2 className="mt-1 text-xl font-bold text-ink">팝니다</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted">판매자가 올린 상품을 보고 구매에 참여합니다.</p>
+            </Link>
+            <Link href="/buy" className="panel block px-5 py-6 hover:bg-slate-50">
+              <p className="text-xs font-semibold tracking-wide text-subtle">장터</p>
+              <h2 className="mt-1 text-xl font-bold text-ink">삽니다</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted">찾는 상품을 올리거나, 올라온 요청을 확인합니다.</p>
+            </Link>
+          </>
+        )}
       </section>
 
       <section className="panel overflow-hidden">

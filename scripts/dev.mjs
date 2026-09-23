@@ -1,4 +1,5 @@
 import { execSync, spawn } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -23,6 +24,7 @@ function leftoverNextPids() {
         cmd.includes(`${path.sep}node_modules${path.sep}next`) ||
         cmd.includes('node_modules/next') ||
         cmd.includes('next-server') ||
+        cmd.includes('start-server.js') ||
         cmd.includes('next dev');
       return inThisRepo && isNext && Number(row.ProcessId) !== process.pid;
     })
@@ -30,18 +32,32 @@ function leftoverNextPids() {
     .filter((pid) => Number.isInteger(pid) && pid > 0);
 }
 
-const leftover = leftoverNextPids();
-for (const pid of leftover) {
+function stopPid(pid) {
   try {
-    process.kill(pid);
-    console.log(`이전 개발 서버를 종료했습니다. (pid ${pid})`);
+    execSync(`taskkill /F /T /PID ${pid}`, { stdio: 'ignore' });
+    return true;
   } catch {
-    // already gone
+    try {
+      process.kill(pid);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 
-if (leftover.length > 0) {
-  await new Promise((resolve) => setTimeout(resolve, 800));
+const leftover = leftoverNextPids();
+let stopped = 0;
+for (const pid of leftover) {
+  if (stopPid(pid)) {
+    stopped += 1;
+    console.log(`이전 개발 서버를 종료했습니다. (pid ${pid})`);
+  }
+}
+
+if (stopped > 0) {
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+  fs.rmSync(path.join(root, '.next'), { recursive: true, force: true });
 }
 
 const child = spawn(process.execPath, [nextBin, 'dev'], {
