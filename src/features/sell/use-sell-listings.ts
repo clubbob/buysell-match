@@ -8,6 +8,7 @@ import type { SellListing } from '@/types/sell';
 export function useSellListings() {
   const [userItems, setUserItems] = useState<SellListing[]>([]);
   const [ready, setReady] = useState(false);
+  const [remainingTick, setRemainingTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -28,7 +29,11 @@ export function useSellListings() {
     };
   }, []);
 
-  const items = useMemo(() => mergeSellListings(userItems), [userItems]);
+  const items = useMemo(() => mergeSellListings(userItems), [userItems, remainingTick]);
+
+  const refreshRemaining = useCallback(() => {
+    setRemainingTick((value) => value + 1);
+  }, []);
 
   const add = useCallback((item: SellListing) => {
     setUserItems((current) => [item, ...current.filter((entry) => entry.id !== item.id)]);
@@ -42,5 +47,5 @@ export function useSellListings() {
 
   const mine = useCallback((sellerId: string) => userItems.filter((item) => item.sellerId === sellerId), [userItems]);
 
-  return { items, ready, add, remove, getById, mine };
+  return { items, ready, add, remove, getById, mine, refreshRemaining };
 }

@@ -1,7 +1,11 @@
+'use client';
+
 import Link from 'next/link';
 import SellImageGallery from '@/features/sell/SellImageGallery';
+import SellJoinSection from '@/features/sell/SellJoinSection';
 import PageBack from '@/components/ui/PageBack';
-import { discountRate, formatDeadline, formatWon } from '@/lib/sell-display';
+import { useAuth } from '@/features/auth/auth-context';
+import { deadlineParts, discountRate, formatQuantityNumber, formatWon, isRemainingShort } from '@/lib/sell-display';
 import { countSellerReviews, getSellerReviews } from '@/lib/seller-reviews';
 import type { SellListing } from '@/types/sell';
 
@@ -14,13 +18,24 @@ function Spec({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-export default function SellDetail({ item }: { item: SellListing }) {
+export default function SellDetail({ item, onRemainingChange }: { item: SellListing; onRemainingChange?: () => void }) {
+  const { user } = useAuth();
   const rate = discountRate(item.regularPrice, item.salePrice);
   const reviews = getSellerReviews(item.sellerId);
+  const remainingShort = isRemainingShort(item.minPurchaseLabel, item.remainingLabel);
+  const deadline = deadlineParts(item.deadline);
+  const canEdit = Boolean(user && user.uid === item.sellerId);
 
   return (
     <div className="space-y-5">
-      <PageBack href="/sell" />
+      <div className="flex justify-end gap-2">
+        {canEdit ? (
+          <Link href={`/sell/${item.id}/edit`} className="btn-secondary">
+            수정
+          </Link>
+        ) : null}
+        <PageBack href="/sell" />
+      </div>
 
       <article className="panel overflow-hidden">
         <div className="flex flex-col lg:flex-row">
@@ -30,14 +45,6 @@ export default function SellDetail({ item }: { item: SellListing }) {
 
           <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6">
             <h1 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">{item.title}</h1>
-
-            <div className="mt-5 space-y-1">
-              <p className="text-sm text-subtle line-through tabular-nums">{formatWon(item.regularPrice)}</p>
-              <p className="text-lg font-bold tabular-nums text-ink">
-                {formatWon(item.salePrice)}
-                {rate > 0 ? <span className="ml-2 text-sm font-medium text-muted">(할인율 {rate}%)</span> : null}
-              </p>
-            </div>
 
             <dl className="mt-5">
               <Spec label="판매자">
@@ -60,24 +67,33 @@ export default function SellDetail({ item }: { item: SellListing }) {
                   <span className="whitespace-nowrap text-muted">이메일 {item.sellerEmail}</span>
                 </div>
               </Spec>
-              <Spec label="공동구매 최소 주문">{item.minPurchaseLabel || '—'}</Spec>
-              <Spec label="수량">
-                {item.quantityLabel}
-                <span className="ml-2 text-muted">({item.remainingLabel})</span>
+              <Spec label="정상 가격">
+                <span className="text-subtle line-through tabular-nums">{formatWon(item.regularPrice)}</span>
               </Spec>
-              <Spec label="마감">{formatDeadline(item.deadline)}</Spec>
+              <Spec label="특판 가격">
+                <span>
+                  <span className="font-semibold tabular-nums">{formatWon(item.salePrice)}</span>
+                  {rate > 0 ? <span className="mt-0.5 block text-xs font-medium text-muted">(할인율 {rate}%)</span> : null}
+                </span>
+              </Spec>
+              <Spec label="공동구매 최소 주문">{formatQuantityNumber(item.minPurchaseLabel)}</Spec>
+              <Spec label="잔여 수량">
+                <span>
+                  <span className="tabular-nums">{formatQuantityNumber(item.remainingLabel)}</span>
+                  {remainingShort ? <span className="mt-0.5 block text-xs font-medium text-muted">잔여 부족</span> : null}
+                </span>
+              </Spec>
+              <Spec label="마감">
+                <span>
+                  <span className="tabular-nums">{deadline.date}</span>
+                  <span className="mt-0.5 block text-xs font-medium text-muted">{deadline.note}</span>
+                </span>
+              </Spec>
             </dl>
           </div>
         </div>
 
-        <div className="flex flex-col items-center justify-center gap-2 border-t border-line px-4 py-4 sm:flex-row sm:px-6">
-          <button type="button" className="btn-primary">
-            구매 참여
-          </button>
-          <Link href="/sell" className="btn-secondary">
-            목록으로
-          </Link>
-        </div>
+        <SellJoinSection item={item} onRemainingChange={onRemainingChange} />
       </article>
 
       <section className="panel px-4 py-5 sm:px-6">

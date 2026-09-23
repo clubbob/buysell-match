@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { discountRate, formatDeadline, formatQuantityNumber, formatWon } from '@/lib/sell-display';
+import { deadlineParts, discountRate, formatQuantityNumber, formatWon, isRemainingShort } from '@/lib/sell-display';
 import { sellCoverImage, type SellListing } from '@/types/sell';
 
 function PhotoSlot({ src, alt }: { src?: string | null; alt: string }) {
@@ -23,6 +23,7 @@ function PhotoSlot({ src, alt }: { src?: string | null; alt: string }) {
 function DesktopRow({ item }: { item: SellListing }) {
   const router = useRouter();
   const rate = discountRate(item.regularPrice, item.salePrice);
+  const deadline = deadlineParts(item.deadline);
 
   return (
     <tr
@@ -40,14 +41,23 @@ function DesktopRow({ item }: { item: SellListing }) {
         {rate > 0 ? <span className="mt-0.5 block text-xs font-medium text-muted">(할인율 {rate}%)</span> : null}
       </td>
       <td className="px-3 py-3 align-middle text-sm tabular-nums text-ink">{formatQuantityNumber(item.minPurchaseLabel)}</td>
-      <td className="px-3 py-3 align-middle text-sm tabular-nums text-ink">{formatQuantityNumber(item.remainingLabel)}</td>
-      <td className="px-4 py-3 align-middle text-sm text-ink">{formatDeadline(item.deadline)}</td>
+      <td className="px-3 py-3 align-middle text-sm text-ink">
+        <span className="tabular-nums">{formatQuantityNumber(item.remainingLabel)}</span>
+        {isRemainingShort(item.minPurchaseLabel, item.remainingLabel) ? (
+          <span className="mt-0.5 block text-xs font-medium text-muted">잔여 부족</span>
+        ) : null}
+      </td>
+      <td className="px-4 py-3 align-middle text-sm text-ink">
+        <span className="tabular-nums">{deadline.date}</span>
+        <span className="mt-0.5 block text-xs font-medium text-muted">{deadline.note}</span>
+      </td>
     </tr>
   );
 }
 
 function MobileRow({ item }: { item: SellListing }) {
   const rate = discountRate(item.regularPrice, item.salePrice);
+  const deadline = deadlineParts(item.deadline);
 
   return (
     <li className="border-t border-line">
@@ -66,8 +76,12 @@ function MobileRow({ item }: { item: SellListing }) {
               {item.minPurchaseLabel ? `공동구매 최소 주문 ${formatQuantityNumber(item.minPurchaseLabel)}` : null}
               {item.minPurchaseLabel ? <span className="mx-1.5 text-subtle">·</span> : null}
               {formatQuantityNumber(item.remainingLabel)}
+              {isRemainingShort(item.minPurchaseLabel, item.remainingLabel) ? (
+                <span className="ml-1 text-xs font-medium text-muted">잔여 부족</span>
+              ) : null}
               <span className="mx-1.5 text-subtle">·</span>
-              {formatDeadline(item.deadline)}
+              {deadline.date}
+              <span className="ml-1 text-xs font-medium text-muted">{deadline.note}</span>
             </p>
           </div>
         </div>

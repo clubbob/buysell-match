@@ -4,10 +4,12 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/features/auth/auth-context';
 import { useUserMode } from '@/features/mode/mode-context';
-import { createRemoteSellListing } from '@/lib/sell-remote';
+import { createRemoteSellListing, resolveSellImages, updateRemoteSellListing } from '@/lib/sell-remote';
+import type { SellListing } from '@/types/sell';
 import { inputClassName } from '@/features/auth/auth-errors';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
 import { loginHref } from '@/lib/auth-redirect';
+import { quantityAmount } from '@/lib/sell-display';
 import { isSellerProfileComplete } from '@/types/seller';
 
 const EXTRA_COUNT = 4;
@@ -15,7 +17,7 @@ const EXTRA_COUNT = 4;
 type ImageItem = {
   id: string;
   url: string;
-  file: File;
+  file: File | null;
 };
 
 function toImageItem(file: File): ImageItem {
@@ -26,27 +28,35 @@ function toImageItem(file: File): ImageItem {
   };
 }
 
-export default function SellCreateForm() {
+export default function SellCreateForm({ listing }: { listing?: SellListing }) {
+  const isEdit = Boolean(listing);
   const router = useRouter();
   const { user, loading } = useAuth();
   const { mode, ready: modeReady, setMode } = useUserMode();
   const { profile, ready: profileReady } = useSellerProfile(user?.uid);
-  const [cover, setCover] = useState<ImageItem | null>(null);
-  const [extras, setExtras] = useState<ImageItem[]>([]);
-  const [title, setTitle] = useState('');
-  const [regularPrice, setRegularPrice] = useState('');
-  const [salePrice, setSalePrice] = useState('');
-  const [minPurchaseLabel, setMinPurchaseLabel] = useState('');
-  const [quantityLabel, setQuantityLabel] = useState('');
-  const [remainingLabel, setRemainingLabel] = useState('');
-  const [deadline, setDeadline] = useState('');
-  const [description, setDescription] = useState('');
+  const [cover, setCover] = useState<ImageItem | null>(
+    listing?.images[0] ? { id: 'cover', url: listing.images[0], file: null } : null,
+  );
+  const [extras, setExtras] = useState<ImageItem[]>(
+    (listing?.images.slice(1) ?? []).map((url, index) => ({ id: `extra-${index}`, url, file: null })),
+  );
+  const [title, setTitle] = useState(listing?.title ?? '');
+  const [regularPrice, setRegularPrice] = useState(listing ? String(listing.regularPrice) : '');
+  const [salePrice, setSalePrice] = useState(listing ? String(listing.salePrice) : '');
+  const [minPurchaseLabel, setMinPurchaseLabel] = useState(listing?.minPurchaseLabel ?? '');
+  const [limitLabel, setLimitLabel] = useState(listing?.limitLabel ?? listing?.quantityLabel ?? '');
+  const [quantityLabel, setQuantityLabel] = useState(listing?.quantityLabel ?? '');
+  const [remainingLabel, setRemainingLabel] = useState(listing?.remainingLabel ?? '');
+  const [deadline, setDeadline] = useState(listing?.deadline ?? '');
+  const [description, setDescription] = useState(listing?.description ?? '');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
+  const returnPath = isEdit && listing ? `/sell/${listing.id}/edit` : '/sell/new';
+
   useEffect(() => {
-    if (!loading && !user) router.replace(loginHref('seller'));
-  }, [loading, user, router]);
+    if (!loading && !user) router.replace(loginHref('seller', returnPath));
+  }, [loading, user, router, returnPath]);
 
   useEffect(() => {
     if (user && modeReady && mode !== 'seller') setMode('seller');
@@ -54,9 +64,9 @@ export default function SellCreateForm() {
 
   useEffect(() => {
     if (!loading && user && profileReady && !isSellerProfileComplete(profile)) {
-      router.replace('/seller/profile?next=/sell/new');
+      router.replace(`/seller/profile?next=${returnPath}`);
     }
-  }, [loading, user, profile, profileReady, router]);
+  }, [loading, user, profile, profileReady, router, returnPath]);
 
   function handleCover(fileList: FileList | null) {
     const file = fileList?.[0];
@@ -75,15 +85,23 @@ export default function SellCreateForm() {
     event.preventDefault();
     setError(null);
     if (!user) {
-      setError('로그인 후 등록할 수 있습니다.');
+      setError(isEdit ? '로그인 후 수정할 수 있습니다.' : '로그인 후 등록할 수 있습니다.');
       return;
     }
     if (!cover) {
       setError('대표 이미지를 넣어 주세요.');
       return;
     }
-    if (extras.length !== EXTRA_COUNT) {
+    if (!isEdit && !cover.file) {
+      setError('대표 이미지를 넣어 주세요.');
+      return;
+    }
+    if (!isEdit && extras.length !== EXTRA_COUNT) {
       setError(`추가 이미지는 ${EXTRA_COUNT}장 올려 주세요.`);
+      return;
+    }
+    if (isEdit && extras.length < 1) {
+      setError('추가 이미지를 1장 이상 남겨 주세요.');
       return;
     }
     if (!title.trim()) {
@@ -96,8 +114,32 @@ export default function SellCreateForm() {
       setError('가격은 0보다 큰 숫자로 입력해 주세요.');
       return;
     }
-    if (!minPurchaseLabel.trim() || !quantityLabel.trim() || !remainingLabel.trim()) {
-      setError('공동구매 최소 주문, 수량, 남은 수량을 입력해 주세요.');
+    if (!minPurchaseLabel.trim() || !limitLabel.trim() || !quantityLabel.trim() || !remainingLabel.trim()) {
+      setError('공동구매 최소 주문, 한계 수량, 수량, 잔여 수량을 입력해 주세요.');
+      return;
+    }
+    const minPurchase = quantityAmount(minPurchaseLabel);
+    const limit = quantityAmount(limitLabel);
+    const totalQuantity = quantityAmount(quantityLabel);
+    const remaining = quantityAmount(remainingLabel);
+    if (minPurchase == null || minPurchase <= 0 || limit == null || totalQuantity == null || remaining == null) {
+      setError('공동구매 최소 주문, 한계 수량, 수량, 잔여 수량은 숫자로 입력해 주세요.');
+      return;
+    }
+    if (limit < minPurchase) {
+      setError('한계 수량은 공동구매 최소 주문보다 적을 수 없습니다.');
+      return;
+    }
+    if (!isEdit && remaining < minPurchase) {
+      setError('등록할 때 잔여 수량은 공동구매 최소 주문보다 적을 수 없습니다.');
+      return;
+    }
+    if (remaining > limit) {
+      setError('잔여 수량은 한계 수량보다 많을 수 없습니다.');
+      return;
+    }
+    if (totalQuantity < remaining) {
+      setError('잔여 수량은 전체 수량보다 많을 수 없습니다.');
       return;
     }
     if (!deadline) {
@@ -109,36 +151,44 @@ export default function SellCreateForm() {
       return;
     }
     if (!isSellerProfileComplete(profile)) {
-      router.replace('/seller/profile?next=/sell/new');
+      router.replace(`/seller/profile?next=${returnPath}`);
       return;
     }
 
     setPending(true);
     void (async () => {
       try {
-        const item = await createRemoteSellListing(
-          {
-            id: `u-${crypto.randomUUID()}`,
-            title: title.trim(),
-            sellerId: user.uid,
-            sellerName: profile.sellerName,
-            representativeName: profile.representativeName,
-            businessVerified: profile.businessVerified,
-            sellerPhone: profile.sellerPhone,
-            sellerEmail: profile.sellerEmail,
-            regularPrice: regular,
-            salePrice: sale,
-            minPurchaseLabel: minPurchaseLabel.trim(),
-            quantityLabel: quantityLabel.trim(),
-            remainingLabel: remainingLabel.trim(),
-            deadline,
-            description: description.trim(),
-          },
-          [cover.file, ...extras.map((entry) => entry.file)],
-        );
+        const payload = {
+          title: title.trim(),
+          sellerId: user.uid,
+          sellerName: profile.sellerName,
+          representativeName: profile.representativeName,
+          businessVerified: profile.businessVerified,
+          sellerPhone: profile.sellerPhone,
+          sellerEmail: profile.sellerEmail,
+          regularPrice: regular,
+          salePrice: sale,
+          minPurchaseLabel: minPurchaseLabel.trim(),
+          limitLabel: limitLabel.trim(),
+          quantityLabel: quantityLabel.trim(),
+          remainingLabel: remainingLabel.trim(),
+          deadline,
+          description: description.trim(),
+        };
+        const item =
+          isEdit && listing
+            ? await updateRemoteSellListing({
+                ...listing,
+                ...payload,
+                images: await resolveSellImages(user.uid, listing.id, [cover, ...extras]),
+              })
+            : await createRemoteSellListing(
+                { ...payload, id: `u-${crypto.randomUUID()}` },
+                [cover.file as File, ...extras.map((entry) => entry.file as File)],
+              );
         router.push(`/sell/${item.id}`);
       } catch (submitError) {
-        setError(submitError instanceof Error ? submitError.message : '등록에 실패했습니다.');
+        setError(submitError instanceof Error ? submitError.message : isEdit ? '수정에 실패했습니다.' : '등록에 실패했습니다.');
         setPending(false);
       }
     })();
@@ -231,7 +281,7 @@ export default function SellCreateForm() {
             />
           </label>
         </div>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <label className="block space-y-1.5">
             <span className="text-sm font-semibold text-ink">공동구매 최소 주문</span>
             <input
@@ -241,7 +291,18 @@ export default function SellCreateForm() {
               placeholder="예: 20포"
               required
             />
-            <span className="block text-xs text-subtle">참여가 이 수량만큼 모이면 판매 확정할 수 있습니다.</span>
+            <span className="block text-xs text-subtle">마감 전까지 이 수량이 모일 때마다 거래합니다. 잔여가 이 수량 이상이면 추가 거래할 수 있습니다.</span>
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-sm font-semibold text-ink">한계 수량</span>
+            <input
+              value={limitLabel}
+              onChange={(event) => setLimitLabel(event.target.value)}
+              className={inputClassName}
+              placeholder="예: 100포"
+              required
+            />
+            <span className="block text-xs text-subtle">마감까지 이 공구에서 받을 수 있는 전체 한도입니다. 한 번만 파는 수량이 아닙니다.</span>
           </label>
           <label className="block space-y-1.5">
             <span className="text-sm font-semibold text-ink">수량</span>
@@ -249,19 +310,22 @@ export default function SellCreateForm() {
               value={quantityLabel}
               onChange={(event) => setQuantityLabel(event.target.value)}
               className={inputClassName}
-              placeholder="예: 50포"
+              placeholder="예: 100포"
               required
             />
           </label>
           <label className="block space-y-1.5">
-            <span className="text-sm font-semibold text-ink">남은 수량</span>
+            <span className="text-sm font-semibold text-ink">잔여 수량</span>
             <input
               value={remainingLabel}
               onChange={(event) => setRemainingLabel(event.target.value)}
               className={inputClassName}
-              placeholder="예: 32포 남음"
+              placeholder="예: 100포"
               required
             />
+            <span className="block text-xs text-subtle">
+              판매 확정 때만 줄어듭니다. 최소 주문보다 적으면 잔여 부족으로 구매 참여를 받지 않습니다.
+            </span>
           </label>
         </div>
         <label className="block space-y-1.5">
@@ -292,7 +356,7 @@ export default function SellCreateForm() {
       ) : null}
 
       <button type="submit" className="btn-primary" disabled={pending}>
-        {pending ? '등록 중…' : '등록하기'}
+        {pending ? (isEdit ? '수정 중…' : '등록 중…') : isEdit ? '수정하기' : '등록하기'}
       </button>
     </form>
   );

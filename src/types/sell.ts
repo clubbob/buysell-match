@@ -11,6 +11,7 @@ export type SellListing = {
   regularPrice: number;
   salePrice: number;
   minPurchaseLabel: string;
+  limitLabel: string;
   quantityLabel: string;
   remainingLabel: string;
   deadline: string;

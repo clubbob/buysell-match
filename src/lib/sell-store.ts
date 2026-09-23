@@ -2,6 +2,25 @@ import { SAMPLE_SELL_LISTINGS } from '@/lib/sell-samples';
 import type { SellListing } from '@/types/sell';
 
 const STORAGE_KEY = 'buysell.sellListings';
+const REMAINING_KEY = 'buysell.sellRemaining';
+
+export function loadRemainingOverrides(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem(REMAINING_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveRemainingOverride(id: string, remainingLabel: string) {
+  if (typeof window === 'undefined') return;
+  const next = { ...loadRemainingOverrides(), [id]: remainingLabel };
+  window.localStorage.setItem(REMAINING_KEY, JSON.stringify(next));
+}
 
 function isListing(value: unknown): value is SellListing {
   if (!value || typeof value !== 'object') return false;
@@ -36,7 +55,10 @@ export function removeUserSellListing(id: string) {
 
 export function mergeSellListings(userItems: SellListing[]): SellListing[] {
   const sampleIds = new Set(SAMPLE_SELL_LISTINGS.map((item) => item.id));
-  return [...userItems.filter((item) => !sampleIds.has(item.id)), ...SAMPLE_SELL_LISTINGS];
+  const overrides = loadRemainingOverrides();
+  return [...userItems.filter((item) => !sampleIds.has(item.id)), ...SAMPLE_SELL_LISTINGS].map((item) =>
+    overrides[item.id] ? { ...item, remainingLabel: overrides[item.id] } : item,
+  );
 }
 
 export function findSellListing(id: string, userItems: SellListing[]): SellListing | undefined {

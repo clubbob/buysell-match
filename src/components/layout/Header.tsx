@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 
 function isNavActive(pathname: string, href: string, exact?: boolean): boolean {
   if (exact || href === '/') return pathname === href;
-  if (href === '/sell' && pathname.startsWith('/sell/new')) return false;
+  if (href === '/sell' && (pathname.startsWith('/sell/new') || pathname.endsWith('/edit'))) return false;
   if (href === '/buy' && pathname.startsWith('/buy/new')) return false;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
