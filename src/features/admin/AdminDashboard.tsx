@@ -1,77 +1,106 @@
 'use client';
 
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import PageIntro from '@/components/ui/PageIntro';
-import SignupTrendChart from '@/features/admin/SignupTrendChart';
+import MemberCompareChart from '@/features/admin/MemberCompareChart';
+import Sparkline, { type SparkTone } from '@/features/admin/Sparkline';
 import { readApiJson } from '@/lib/api-json';
-import type { AdminDashboardData } from '@/lib/admin-dashboard';
-import { BUYER_DETAIL_LABEL, SELLER_DETAIL_LABEL } from '@/lib/profile-labels';
-import { cn } from '@/lib/utils';
+import type { AdminDashboardData, SignupTrendPoint } from '@/lib/admin-dashboard';
 
-const RANGES = [
-  { days: 7, label: '7일' },
-  { days: 14, label: '14일' },
-  { days: 30, label: '30일' },
-] as const;
+const TONES = {
+  members: { id: 'members', stroke: '#2563eb', fill: '#60a5fa', bar: '#3b82f6', grid: '#bfdbfe' },
+  buyers: { id: 'buyers', stroke: '#4338ca', fill: '#818cf8', bar: '#6366f1', grid: '#c7d2fe' },
+  sellers: { id: 'sellers', stroke: '#047857', fill: '#34d399', bar: '#10b981', grid: '#a7f3d0' },
+  listings: { id: 'listings', stroke: '#0f766e', fill: '#2dd4bf', bar: '#14b8a6', grid: '#99f6e4' },
+  buys: { id: 'buys', stroke: '#c2410c', fill: '#fb923c', bar: '#f97316', grid: '#fed7aa' },
+  joins: { id: 'joins', stroke: '#0369a1', fill: '#38bdf8', bar: '#0ea5e9', grid: '#bae6fd' },
+  sells: { id: 'sells', stroke: '#6d28d9', fill: '#a78bfa', bar: '#8b5cf6', grid: '#ddd6fe' },
+  inquiries: { id: 'inquiries', stroke: '#334155', fill: '#94a3b8', bar: '#64748b', grid: '#e2e8f0' },
+  waiting: { id: 'waiting', stroke: '#be123c', fill: '#fb7185', bar: '#f43f5e', grid: '#fecdd3' },
+} as const satisfies Record<string, SparkTone>;
 
-function RateRow({ label, value, total }: { label: string; value: number; total: number }) {
-  const percent = total > 0 ? Math.round((value / total) * 100) : 0;
+const WASH: Record<keyof typeof TONES, string> = {
+  members: 'bg-blue-50/80',
+  buyers: 'bg-indigo-50/80',
+  sellers: 'bg-emerald-50/80',
+  listings: 'bg-teal-50/80',
+  buys: 'bg-orange-50/80',
+  joins: 'bg-sky-50/80',
+  sells: 'bg-violet-50/80',
+  inquiries: 'bg-slate-50',
+  waiting: 'bg-rose-50/80',
+};
+
+function StatCard({
+  label,
+  value,
+  points,
+  tone,
+  nested = false,
+}: {
+  label: string;
+  value: string;
+  points?: SignupTrendPoint[];
+  tone: keyof typeof TONES;
+  nested?: boolean;
+}) {
   return (
-    <div>
-      <div className="flex items-baseline justify-between gap-3 text-sm">
-        <span className="text-ink">{label}</span>
-        <span className="tabular-nums text-muted">
-          {total}명 중 {value}명 · {percent}%
-        </span>
+    <article className={`${nested ? 'px-4 py-5 sm:px-5' : 'panel px-4 py-5 sm:px-5'} ${WASH[tone]}`}>
+      <div className="flex items-end justify-between gap-3">
+        <h2 className="text-base font-bold tracking-tight text-ink">{label}</h2>
+        <p className="text-2xl font-bold tabular-nums tracking-tight" style={{ color: TONES[tone].stroke }}>
+          {value}
+        </p>
       </div>
-      <div className="mt-2 h-2 overflow-hidden bg-slate-100">
-        <div className="h-full bg-ink transition-[width]" style={{ width: `${percent}%` }} />
-      </div>
-    </div>
+      <Sparkline points={points ?? []} tone={TONES[tone]} />
+    </article>
   );
 }
 
 export default function AdminDashboard() {
-  const [days, setDays] = useState<7 | 14 | 30>(14);
   const [data, setData] = useState<AdminDashboardData | null>(null);
   const [ready, setReady] = useState(false);
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setReady(false);
+    setPending(true);
+    try {
+      const response = await fetch('/api/admin/dashboard?days=14', { cache: 'no-store' });
+      const payload = await readApiJson<{ ok?: boolean; data?: AdminDashboardData; message?: string }>(
+        response,
+        '대시보드를 불러오지 못했습니다.',
+      );
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.message ?? '대시보드를 불러오지 못했습니다.');
+      }
+      setData(payload.data);
+      setUpdatedAt(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      setError(null);
+    } catch (loadError: unknown) {
+      setError(loadError instanceof Error ? loadError.message : '대시보드를 불러오지 못했습니다.');
+    } finally {
+      setReady(true);
+      setPending(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    setReady(false);
-    void fetch(`/api/admin/dashboard?days=${days}`)
-      .then(async (response) => {
-        const payload = await readApiJson<{ ok?: boolean; data?: AdminDashboardData; message?: string }>(
-          response,
-          '대시보드를 불러오지 못했습니다.',
-        );
-        if (!response.ok || !payload.ok || !payload.data) {
-          throw new Error(payload.message ?? '대시보드를 불러오지 못했습니다.');
-        }
-        return payload.data;
-      })
-      .then((next) => {
-        if (!cancelled) {
-          setData(next);
-          setError(null);
-        }
-      })
-      .catch((loadError: unknown) => {
-        if (!cancelled) setError(loadError instanceof Error ? loadError.message : '대시보드를 불러오지 못했습니다.');
-      })
-      .finally(() => {
-        if (!cancelled) setReady(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [days]);
+    void load();
+  }, [load]);
 
   return (
     <div className="space-y-5">
-      <PageIntro title="대시보드" description="가입 추세와 회원 현황을 봅니다. 항목은 이후에 더 넣습니다." />
+      <PageIntro title="대시보드" description="서비스 전체 현황입니다.">
+        <div className="flex items-center gap-2">
+          {updatedAt ? <p className="text-xs tabular-nums text-muted">갱신 {updatedAt}</p> : null}
+          <button type="button" className="btn-secondary" disabled={pending} onClick={() => void load(true)}>
+            {pending ? '새로고침 중…' : '새로고침'}
+          </button>
+        </div>
+      </PageIntro>
 
       {error ? (
         <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger" role="alert">
@@ -82,82 +111,83 @@ export default function AdminDashboard() {
       {!ready && !data ? (
         <p className="text-sm text-muted">불러오는 중…</p>
       ) : data ? (
-        <>
-          <section className="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(14rem,1fr)]">
-            <article className="panel px-4 py-5 sm:px-5">
-              <p className="text-[11px] font-semibold tracking-wide text-subtle">가입 회원</p>
-              <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-ink">{data.totals.members}명</p>
-              <p className="mt-1 text-sm text-muted">기본 가입한 회원입니다. 아래는 그중에서 상세 등록을 마친 수입니다.</p>
-              <div className="mt-5 space-y-4 border-t border-line pt-4">
-                <p className="text-xs font-semibold tracking-wide text-subtle">세부</p>
-                <RateRow label={BUYER_DETAIL_LABEL} value={data.totals.buyers} total={data.totals.members} />
-                <RateRow label={SELLER_DETAIL_LABEL} value={data.totals.sellers} total={data.totals.members} />
-              </div>
-            </article>
-            <article className="panel px-4 py-5 sm:px-5">
-              <p className="text-[11px] font-semibold tracking-wide text-subtle">이번 주 가입</p>
-              <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-ink">{data.totals.week}명</p>
-              <p className="mt-1 text-sm text-muted">최근 7일 동안 새로 가입한 회원입니다.</p>
-            </article>
-          </section>
-
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(18rem,1fr)]">
-            <section className="panel min-w-0 overflow-hidden">
-              <header className="flex flex-wrap items-end justify-between gap-3 border-b border-line px-4 py-3.5 sm:px-5">
-                <div>
-                  <h2 className="text-[15px] font-bold text-ink">가입 추세</h2>
-                  <p className="mt-0.5 text-sm text-muted">하루 가입 인원입니다.</p>
-                </div>
-                <div className="flex gap-1">
-                  {RANGES.map((range) => (
-                    <button
-                      key={range.days}
-                      type="button"
-                      onClick={() => setDays(range.days)}
-                      className={cn(days === range.days ? 'btn-primary' : 'btn-secondary', 'min-h-9 px-3 text-xs sm:min-h-9')}
-                    >
-                      {range.label}
-                    </button>
-                  ))}
-                </div>
-              </header>
-              <div className="px-3 py-4 sm:px-5">
-                <SignupTrendChart points={data.trend} />
-              </div>
-            </section>
-
-            <div className="grid gap-4">
-              <section className="panel overflow-hidden">
-                <header className="flex items-end justify-between gap-3 border-b border-line px-4 py-3.5 sm:px-5">
-                  <div>
-                    <h2 className="text-[15px] font-bold text-ink">최근 가입</h2>
-                    <p className="mt-0.5 text-sm text-muted">새로 들어온 회원입니다.</p>
-                  </div>
-                  <Link href="/admin/members" className="text-sm font-semibold text-ink underline-offset-2 hover:underline">
-                    회원정보
-                  </Link>
-                </header>
-                {data.recent.length > 0 ? (
-                  <ul className="divide-y divide-line">
-                    {data.recent.map((item) => (
-                      <li key={item.id}>
-                        <Link href={`/admin/members/${item.id}`} className="block px-4 py-3 hover:bg-slate-50 sm:px-5">
-                          <p className="text-sm font-semibold text-ink">{item.name}</p>
-                          <p className="mt-0.5 text-sm text-muted">
-                            {item.email || '이메일 없음'}
-                            {item.joinedAt ? <span className="text-subtle"> · 가입 {item.joinedAt}</span> : null}
-                          </p>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="px-4 py-8 text-center text-sm text-muted">아직 가입한 회원이 없습니다.</p>
-                )}
-              </section>
+        <section className="space-y-4">
+          <section className="panel overflow-hidden">
+            <header className="border-b border-line px-5 py-4">
+              <h2 className="text-base font-bold tracking-tight text-ink">가입 회원</h2>
+            </header>
+            <MemberCompareChart
+              members={data.series?.members ?? []}
+              buyers={data.series?.buyers ?? []}
+              sellers={data.series?.sellers ?? []}
+              memberTotal={data.totals.members ?? 0}
+              buyerTotal={data.totals.buyers ?? 0}
+              sellerTotal={data.totals.sellers ?? 0}
+              tones={{ members: TONES.members, buyers: TONES.buyers, sellers: TONES.sellers }}
+            />
+            <div className="grid divide-y divide-line border-t border-line md:grid-cols-3 md:divide-x md:divide-y-0">
+              <StatCard
+                label="가입 회원"
+                value={`${data.totals.members ?? 0}명`}
+                points={data.series?.members}
+                tone="members"
+                nested
+              />
+              <StatCard
+                label="구매자 등록"
+                value={`${data.totals.buyers ?? 0}명`}
+                points={data.series?.buyers}
+                tone="buyers"
+                nested
+              />
+              <StatCard
+                label="판매자 등록"
+                value={`${data.totals.sellers ?? 0}명`}
+                points={data.series?.sellers}
+                tone="sellers"
+                nested
+              />
             </div>
+          </section>
+          <div className="grid gap-4 sm:grid-cols-2">
+          <StatCard
+            label="팝니다"
+            value={`${data.totals.listings ?? 0}건`}
+            points={data.series?.listings}
+            tone="listings"
+          />
+          <StatCard
+            label="삽니다"
+            value={`${data.totals.buys ?? 0}건`}
+            points={data.series?.buys}
+            tone="buys"
+          />
+          <StatCard
+            label="구매 참여"
+            value={`${data.totals.joinsOpen ?? 0}건`}
+            points={data.series?.joinsOpen}
+            tone="joins"
+          />
+          <StatCard
+            label="판매 참여"
+            value={`${data.totals.sellJoinsOpen ?? 0}건`}
+            points={data.series?.sellJoinsOpen}
+            tone="sells"
+          />
+          <StatCard
+            label="상품 문의"
+            value={`${data.totals.inquiries ?? 0}건`}
+            points={data.series?.inquiries}
+            tone="inquiries"
+          />
+          <StatCard
+            label="미답변 문의"
+            value={`${data.totals.inquiriesWaiting ?? 0}건`}
+            points={data.series?.inquiriesWaiting}
+            tone="waiting"
+          />
           </div>
-        </>
+        </section>
       ) : null}
     </div>
   );

@@ -1,11 +1,9 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import DefaultAddressBadge from '@/components/ui/DefaultAddressBadge';
 import PageBack from '@/components/ui/PageBack';
 import { readApiJson } from '@/lib/api-json';
-import { getClientAuth } from '@/lib/firebase';
 import { BUYER_DETAIL_LABEL, SELLER_DETAIL_LABEL } from '@/lib/profile-labels';
 import type { BuyerProfile } from '@/types/buyer';
 import { formatConsentStatus, formatMemberJoinedAt, type MemberRecord } from '@/types/member';
@@ -39,10 +37,8 @@ function BuyerFields({ buyer }: { buyer: BuyerProfile }) {
 }
 
 export default function AdminMemberDetail({ id }: { id: string }) {
-  const router = useRouter();
   const [item, setItem] = useState<MemberRecord | null>(null);
   const [ready, setReady] = useState(false);
-  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -70,32 +66,6 @@ export default function AdminMemberDetail({ id }: { id: string }) {
     };
   }, [id]);
 
-  async function handleDelete() {
-    if (!item) return;
-    const label = item.member.name || item.member.email || '이 회원';
-    if (!window.confirm(`${label} 정보를 삭제할까요?`)) return;
-    setError(null);
-    setPending(true);
-    try {
-      const token = await getClientAuth()?.currentUser?.getIdToken();
-      const response = await fetch(`/api/admin/members/${item.member.id}`, {
-        method: 'DELETE',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const data = (await response.json()) as { ok?: boolean; message?: string };
-      if (!response.ok || !data.ok) {
-        setError(data.message ?? '삭제에 실패했습니다.');
-        return;
-      }
-      router.replace('/admin/members');
-      router.refresh();
-    } catch {
-      setError('삭제에 실패했습니다.');
-    } finally {
-      setPending(false);
-    }
-  }
-
   if (!ready) {
     return <p className="text-sm text-muted">불러오는 중…</p>;
   }
@@ -111,12 +81,7 @@ export default function AdminMemberDetail({ id }: { id: string }) {
 
   return (
     <div className="space-y-5">
-      <div className="flex justify-end gap-2">
-        <button type="button" className="btn-secondary" disabled={pending} onClick={() => void handleDelete()}>
-          {pending ? '삭제 중…' : '삭제'}
-        </button>
-        <PageBack href="/admin/members" />
-      </div>
+      <PageBack href="/admin/members" />
 
       {error ? (
         <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger" role="alert">

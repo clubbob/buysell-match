@@ -129,7 +129,11 @@ export default function BuyerProfileForm() {
 
       <div className="space-y-3">
         <span className="block text-sm font-semibold text-ink">배송 주소</span>
-        <p className="text-xs text-subtle">주문할 때 쓸 기본 배송 주소를 고르세요. 주소는 여러 개 넣을 수 있습니다.</p>
+        <p className="text-xs text-subtle">
+          {hasBuyerProfile(profile)
+            ? '주문할 때 쓸 기본 배송 주소를 고르세요. 주소는 여러 개 넣을 수 있습니다.'
+            : '주문할 때 쓸 기본 배송 주소를 고르세요.'}
+        </p>
         {addresses.map((item, index) => (
           <div key={item.id} className="space-y-2 border border-line px-3 py-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -163,9 +167,11 @@ export default function BuyerProfileForm() {
             </label>
           </div>
         ))}
-        <button type="button" className="btn-secondary" onClick={addAddress}>
-          배송 주소 추가
-        </button>
+        {hasBuyerProfile(profile) ? (
+          <button type="button" className="btn-secondary" onClick={addAddress}>
+            배송 주소 추가
+          </button>
+        ) : null}
       </div>
 
       {error ? (

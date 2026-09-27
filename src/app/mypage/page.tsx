@@ -7,9 +7,10 @@ import PageIntro from '@/components/ui/PageIntro';
 import { useAuth } from '@/features/auth/auth-context';
 import { useBuyerProfile } from '@/features/buyer/use-buyer-profile';
 import { useUserMode } from '@/features/mode/mode-context';
+import MyPageInquiries from '@/features/mypage/MyPageInquiries';
+import MyPageSellPosts from '@/features/mypage/MyPageSellPosts';
 import { useSellListings } from '@/features/sell/use-sell-listings';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
-import { formatWon } from '@/lib/sell-display';
 import { USER_MODE_LABELS } from '@/lib/user-mode';
 import { cn } from '@/lib/utils';
 import { BUYER_DETAIL_LABEL, SELLER_DETAIL_LABEL } from '@/lib/profile-labels';
@@ -148,6 +149,8 @@ export default function MyPage() {
         </div>
       </section>
 
+      <MyPageInquiries sellerId={user.uid} listings={myListings} />
+
       <section className="panel overflow-hidden">
         <div className="flex border-b border-line">
           <button
@@ -173,25 +176,7 @@ export default function MyPage() {
         </div>
 
         {postTab === 'sell' ? (
-          ready && myListings.length > 0 ? (
-            <ul className="divide-y divide-line">
-              {myListings.map((item) => (
-                <li key={item.id} className="flex items-center justify-between gap-3 px-4 py-3.5">
-                  <Link href={`/sell/${item.id}`} className="min-w-0 truncate text-sm font-semibold text-ink hover:underline">
-                    {item.title}
-                  </Link>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-sm tabular-nums text-ink">{formatWon(item.salePrice)}</span>
-                    <Link href={`/sell/${item.id}/edit`} className="btn-chip">
-                      수정
-                    </Link>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="px-4 py-10 text-center text-sm text-muted">아직 올린 팝니다가 없습니다.</p>
-          )
+          <MyPageSellPosts sellerId={user.uid} listings={myListings} ready={ready} />
         ) : (
           <p className="px-4 py-10 text-center text-sm text-muted">아직 올린 삽니다가 없습니다.</p>
         )}

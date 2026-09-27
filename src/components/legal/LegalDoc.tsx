@@ -2,13 +2,14 @@ import PageBack from '@/components/ui/PageBack';
 
 export function LegalDoc({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-5">
+    <div className="mx-auto w-full max-w-3xl space-y-5">
       <PageBack href="/">← 홈</PageBack>
-      <article className="panel max-w-3xl px-4 py-6 text-sm leading-relaxed text-muted sm:px-6 sm:py-8">
+      <article className="panel px-4 py-6 text-sm leading-relaxed text-muted sm:px-6 sm:py-8">
         <h1 className="text-xl font-bold tracking-tight text-ink">{title}</h1>
         <p className="mt-2 text-xs text-subtle">시행일 2026.09.27</p>
         {children}
       </article>
+      <PageBack href="/">← 홈</PageBack>
     </div>
   );
 }

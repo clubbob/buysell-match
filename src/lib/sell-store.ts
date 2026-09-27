@@ -54,7 +54,12 @@ export function removeUserSellListing(id: string) {
 
 export function mergeSellListings(userItems: SellListing[]): SellListing[] {
   const overrides = loadRemainingOverrides();
-  return userItems.map((item) => (overrides[item.id] ? { ...item, remainingLabel: overrides[item.id] } : item));
+  return userItems.map((item) => ({
+    ...item,
+    specText: item.specText ?? '',
+    tradeText: item.tradeText ?? '',
+    remainingLabel: overrides[item.id] || item.remainingLabel,
+  }));
 }
 
 export function findSellListing(id: string, userItems: SellListing[]): SellListing | undefined {

@@ -1,5 +1,6 @@
+import { listDocuments } from '@/lib/firebase-rest-admin';
 import { hasBuyerProfile } from '@/types/buyer';
-import { formatMemberJoinedAt, type MemberRecord } from '@/types/member';
+import type { MemberRecord } from '@/types/member';
 import { hasSellerProfile } from '@/types/seller';
 
 export const SEOUL_TZ = 'Asia/Seoul';
@@ -10,22 +11,40 @@ export type SignupTrendPoint = {
   count: number;
 };
 
-export type DashboardRecentMember = {
-  id: string;
-  name: string;
-  email: string;
-  joinedAt: string;
+export type DashboardSeries = {
+  members: SignupTrendPoint[];
+  buyers: SignupTrendPoint[];
+  sellers: SignupTrendPoint[];
+  listings: SignupTrendPoint[];
+  buys: SignupTrendPoint[];
+  joinsOpen: SignupTrendPoint[];
+  sellJoinsOpen: SignupTrendPoint[];
+  inquiries: SignupTrendPoint[];
+  inquiriesWaiting: SignupTrendPoint[];
 };
 
 export type AdminDashboardData = {
   totals: {
     members: number;
-    week: number;
     buyers: number;
     sellers: number;
+    listings: number;
+    buys: number;
+    joinsOpen: number;
+    sellJoinsOpen: number;
+    inquiries: number;
+    inquiriesWaiting: number;
   };
   trend: SignupTrendPoint[];
-  recent: DashboardRecentMember[];
+  series: DashboardSeries;
+};
+
+type ServiceDocs = {
+  listings: { data: Record<string, unknown> }[];
+  buys: { data: Record<string, unknown> }[];
+  joins: { data: Record<string, unknown> }[];
+  sellJoins: { data: Record<string, unknown> }[];
+  inquiries: { data: Record<string, unknown> }[];
 };
 
 function seoulDateKey(value: Date): string {
@@ -55,42 +74,137 @@ function memberDayKey(createdAt: string): string {
   return seoulDateKey(parsed);
 }
 
-export function buildAdminDashboard(items: MemberRecord[], days = 14, now = new Date()): AdminDashboardData {
-  const today = seoulDateKey(now);
-  const start = addSeoulDays(today, -(days - 1));
-  const weekStart = addSeoulDays(today, -6);
-  const counts = new Map<string, number>();
+function emptySeries(): DashboardSeries {
+  const empty: SignupTrendPoint[] = [];
+  return {
+    members: empty,
+    buyers: empty,
+    sellers: empty,
+    listings: empty,
+    buys: empty,
+    joinsOpen: empty,
+    sellJoinsOpen: empty,
+    inquiries: empty,
+    inquiriesWaiting: empty,
+  };
+}
 
-  for (const item of items) {
-    const key = memberDayKey(item.member.createdAt);
+export async function loadServiceDocuments(): Promise<ServiceDocs> {
+  try {
+    const [listings, buys, joins, sellJoins, inquiries] = await Promise.all([
+      listDocuments('sellListings'),
+      listDocuments('buyListings'),
+      listDocuments('sellJoins'),
+      listDocuments('buyJoins'),
+      listDocuments('sellInquiries'),
+    ]);
+    return { listings, buys, joins, sellJoins, inquiries };
+  } catch {
+    return { listings: [], buys: [], joins: [], sellJoins: [], inquiries: [] };
+  }
+}
+
+function seriesFromDays(keys: string[], start: string, today: string): SignupTrendPoint[] {
+  const counts = new Map<string, number>();
+  for (const key of keys) {
     if (!key) continue;
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
-
-  const trend: SignupTrendPoint[] = [];
+  const points: SignupTrendPoint[] = [];
   for (let cursor = start; cursor <= today; cursor = addSeoulDays(cursor, 1)) {
-    trend.push({
+    points.push({
       date: cursor,
       label: seoulDayLabel(cursor),
       count: counts.get(cursor) ?? 0,
     });
   }
+  return points;
+}
 
-  const week = [...counts.entries()].reduce((sum, [key, count]) => (key >= weekStart ? sum + count : sum), 0);
+function docDay(data: Record<string, unknown>, fallback: string) {
+  return memberDayKey(String(data.createdAt ?? '')) || fallback;
+}
+
+export function buildAdminDashboard(
+  items: MemberRecord[],
+  docs: ServiceDocs,
+  days = 14,
+  now = new Date(),
+): AdminDashboardData {
+  const today = seoulDateKey(now);
+  const start = addSeoulDays(today, -(days - 1));
+
+  const memberDays = items.map((item) => memberDayKey(item.member.createdAt)).filter(Boolean);
+  const members = seriesFromDays(memberDays, start, today);
+  const buyerItems = items.filter((item) => hasBuyerProfile(item.buyer));
+  const sellerItems = items.filter((item) => hasSellerProfile(item.seller));
+  const buyers = seriesFromDays(
+    buyerItems.map((item) => memberDayKey(item.member.createdAt)).filter(Boolean),
+    start,
+    today,
+  );
+  const sellers = seriesFromDays(
+    sellerItems.map((item) => memberDayKey(item.member.createdAt)).filter(Boolean),
+    start,
+    today,
+  );
+  const listings = seriesFromDays(
+    docs.listings.map((entry) => docDay(entry.data, today)),
+    start,
+    today,
+  );
+  const buys = seriesFromDays(
+    docs.buys.map((entry) => docDay(entry.data, today)),
+    start,
+    today,
+  );
+  const openJoins = docs.joins.filter((entry) => String(entry.data.status ?? 'open') !== 'confirmed');
+  const joinsOpen = seriesFromDays(
+    openJoins.map((entry) => docDay(entry.data, today)),
+    start,
+    today,
+  );
+  const openSellJoins = docs.sellJoins.filter((entry) => String(entry.data.status ?? 'open') !== 'confirmed');
+  const sellJoinsOpen = seriesFromDays(
+    openSellJoins.map((entry) => docDay(entry.data, today)),
+    start,
+    today,
+  );
+  const inquiries = seriesFromDays(
+    docs.inquiries.map((entry) => docDay(entry.data, today)),
+    start,
+    today,
+  );
+  const waiting = docs.inquiries.filter((entry) => !String(entry.data.answer ?? '').trim());
+  const inquiriesWaiting = seriesFromDays(
+    waiting.map((entry) => docDay(entry.data, today)),
+    start,
+    today,
+  );
+
+  const series = { members, buyers, sellers, listings, buys, joinsOpen, sellJoinsOpen, inquiries, inquiriesWaiting };
 
   return {
     totals: {
       members: items.length,
-      week,
-      buyers: items.filter((item) => hasBuyerProfile(item.buyer)).length,
-      sellers: items.filter((item) => hasSellerProfile(item.seller)).length,
+      buyers: buyerItems.length,
+      sellers: sellerItems.length,
+      listings: docs.listings.length,
+      buys: docs.buys.length,
+      joinsOpen: openJoins.length,
+      sellJoinsOpen: openSellJoins.length,
+      inquiries: docs.inquiries.length,
+      inquiriesWaiting: waiting.length,
     },
-    trend,
-    recent: items.slice(0, 5).map((item) => ({
-      id: item.member.id,
-      name: item.member.name || item.member.email || '이름 없음',
-      email: item.member.email,
-      joinedAt: formatMemberJoinedAt(item.member.createdAt),
-    })),
+    trend: members,
+    series,
+  };
+}
+
+export function emptyDashboard(): AdminDashboardData {
+  return {
+    totals: { members: 0, buyers: 0, sellers: 0, listings: 0, buys: 0, joinsOpen: 0, sellJoinsOpen: 0, inquiries: 0, inquiriesWaiting: 0 },
+    trend: [],
+    series: emptySeries(),
   };
 }

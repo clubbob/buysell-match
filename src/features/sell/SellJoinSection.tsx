@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/features/auth/auth-context';
 import { inputClassName } from '@/features/auth/auth-errors';
-import DefaultAddressBadge from '@/components/ui/DefaultAddressBadge';
 import { useBuyerProfile } from '@/features/buyer/use-buyer-profile';
 import { loginHref } from '@/lib/auth-redirect';
 import { BUYER_DETAIL_LABEL } from '@/lib/profile-labels';
 import { defaultBuyerAddress, hasBuyerProfile } from '@/types/buyer';
+import { formatMemberJoinedAt } from '@/types/member';
 import { confirmSellJoins, createSellJoin, fetchSellJoins } from '@/lib/sell-join-remote';
 import { updateSellRemaining } from '@/lib/sell-remote';
 import {
@@ -37,7 +37,6 @@ export default function SellJoinSection({
   const { user, loading } = useAuth();
   const { profile: buyerProfile, ready: buyerReady } = useBuyerProfile(user?.uid);
   const [joins, setJoins] = useState<SellJoin[]>([]);
-  const [deliveryAddressId, setDeliveryAddressId] = useState('');
   const [ready, setReady] = useState(false);
   const [quantity, setQuantity] = useState('1');
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +57,12 @@ export default function SellJoinSection({
   const canMoreTrade = remaining >= min && min > 0 && !deadlinePassed;
   const canConfirm = gathered >= min && min > 0 && canMoreTrade;
   const isOwner = Boolean(user && user.uid === item.sellerId);
-  const alreadyJoined = Boolean(user && joins.some((join) => join.buyerId === user.uid && join.status === 'open'));
+  const myJoin = user
+    ? joins.find((join) => join.buyerId === user.uid && join.status === 'open') ??
+      joins.find((join) => join.buyerId === user.uid) ??
+      null
+    : null;
+  const alreadyJoined = Boolean(myJoin && myJoin.status === 'open');
 
   useEffect(() => {
     let cancelled = false;
@@ -78,13 +82,6 @@ export default function SellJoinSection({
     onJoinChange?.(joinSummary);
   }, [joinSummary, onJoinChange]);
 
-  useEffect(() => {
-    if (!buyerProfile) return;
-    setDeliveryAddressId((current) =>
-      buyerProfile.addresses.some((item) => item.id === current) ? current : buyerProfile.defaultAddressId,
-    );
-  }, [buyerProfile]);
-
   async function handleJoin() {
     setError(null);
     if (!user) {
@@ -100,8 +97,7 @@ export default function SellJoinSection({
       router.push('/buyer/profile');
       return;
     }
-    const delivery =
-      buyerProfile.addresses.find((item) => item.id === deliveryAddressId) ?? defaultBuyerAddress(buyerProfile);
+    const delivery = defaultBuyerAddress(buyerProfile);
     if (!delivery?.address) {
       setError('주문에 쓸 배송 주소를 골라 주세요.');
       return;
@@ -172,7 +168,7 @@ export default function SellJoinSection({
         : gathered >= min
           ? `${currentJoin}. 최소 주문을 채웠습니다.`
           : `${currentJoin}. 최소 주문까지 ${formatCount(need)} 남음.`;
-  const statusText = isOwner ? `내 상품이라 구매 참여할 수 없습니다. ${joinStatus}` : joinStatus;
+  const statusText = joinStatus;
 
   return (
     <div className="border-t border-line px-4 py-4 sm:px-6">
@@ -183,7 +179,34 @@ export default function SellJoinSection({
         </p>
       ) : null}
 
-      <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
+      <div className="flex w-full flex-col items-center gap-2">
+        {myJoin ? (
+          <div className="mb-2 w-full overflow-x-auto border border-line">
+            <p className="border-b border-line bg-slate-50 px-3 py-2 text-center text-sm font-semibold text-ink">
+              내 구매 참여
+            </p>
+            <table className="w-full table-fixed text-center text-sm">
+              <thead>
+                <tr className="border-b border-line text-[11px] font-semibold text-subtle">
+                  <th className="px-3 py-2 font-semibold">수량</th>
+                  <th className="px-3 py-2 font-semibold">상태</th>
+                  <th className="px-3 py-2 font-semibold">참여일</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-t border-line">
+                  <td className="px-3 py-2.5 font-semibold tabular-nums text-ink">{formatCount(myJoin.quantity)}</td>
+                  <td className="px-3 py-2.5 font-semibold text-ink">
+                    {myJoin.status === 'confirmed' ? '판매 확정' : '접수됨'}
+                  </td>
+                  <td className="px-3 py-2.5 font-semibold tabular-nums text-ink">
+                    {formatMemberJoinedAt(myJoin.createdAt) || '—'}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        ) : null}
         {remainingShort ? (
           <button type="button" className="btn-primary" disabled>
             잔여 부족
@@ -201,9 +224,7 @@ export default function SellJoinSection({
             구매 참여
           </Link>
         ) : alreadyJoined ? (
-          <button type="button" className="btn-primary" disabled>
-            이번 참여 완료
-          </button>
+          <p className="text-sm font-semibold text-ink">이번 참여가 접수되었습니다.</p>
         ) : available === 0 && !isOwner ? (
           <button type="button" className="btn-primary" disabled>
             이번 수량 마감
@@ -217,37 +238,17 @@ export default function SellJoinSection({
         ) : (
           <>
             {!buyerReady ? (
-              <p className="w-full text-center text-sm text-muted">배송 주소를 불러오는 중…</p>
+              <p className="text-center text-sm text-muted">불러오는 중…</p>
             ) : !hasBuyerProfile(buyerProfile) ? (
-              <div className="w-full space-y-2 text-center">
-                <p className="text-sm text-muted">구매 참여 전에 배송 주소를 등록해 주세요.</p>
-                <Link href="/buyer/profile" className="btn-secondary">
+              <>
+                <p className="text-center text-sm text-muted">
+                  구매 참여 전에 {BUYER_DETAIL_LABEL}을 등록해 주세요.
+                </p>
+                <Link href="/buyer/profile" className="btn-secondary whitespace-nowrap">
                   {BUYER_DETAIL_LABEL}
                 </Link>
-              </div>
-            ) : (
-              <fieldset className="w-full max-w-md space-y-2 text-left">
-                <legend className="text-sm font-semibold text-ink">배송 주소</legend>
-                {buyerProfile.addresses.map((item, index) => (
-                  <label key={item.id} className="flex items-start gap-2 text-sm text-ink">
-                    <input
-                      type="radio"
-                      name="joinAddress"
-                      className="mt-0.5 h-4 w-4 accent-ink"
-                      checked={deliveryAddressId === item.id}
-                      onChange={() => setDeliveryAddressId(item.id)}
-                    />
-                    <span>
-                      <span className="inline-flex flex-wrap items-center gap-2 font-semibold">
-                        배송 주소 {index + 1}
-                        {item.id === buyerProfile.defaultAddressId ? <DefaultAddressBadge /> : null}
-                      </span>
-                      <span className="mt-0.5 block text-muted">{item.address}</span>
-                    </span>
-                  </label>
-                ))}
-              </fieldset>
-            )}
+              </>
+            ) : null}
             {hasBuyerProfile(buyerProfile) ? (
               <>
                 <label className="flex items-center gap-2 text-sm text-ink">
@@ -268,9 +269,6 @@ export default function SellJoinSection({
             ) : null}
           </>
         )}
-        <Link href="/sell" className="btn-secondary">
-          목록으로
-        </Link>
       </div>
     </div>
   );

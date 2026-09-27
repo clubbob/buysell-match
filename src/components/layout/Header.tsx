@@ -87,7 +87,16 @@ export default function Header() {
         <div className="hidden items-center gap-1 md:flex">
           {isLoggedIn ? (
             <>
-              {mode ? <span className="px-3 py-2 text-sm text-white/55">{USER_MODE_LABELS[mode]}</span> : null}
+              {mode ? (
+                <span className="flex flex-col justify-center px-3 py-1">
+                  <span className="text-sm text-white/55">{USER_MODE_LABELS[mode]}</span>
+                  {user?.email ? (
+                    <span className="max-w-[12rem] truncate text-[11px] leading-tight text-white/45">{user.email}</span>
+                  ) : null}
+                </span>
+              ) : user?.email ? (
+                <span className="max-w-[12rem] truncate px-3 py-2 text-[11px] text-white/45">{user.email}</span>
+              ) : null}
               <Link href="/mypage" className="px-3 py-2 text-sm text-white/75 hover:text-white">
                 마이페이지
               </Link>
@@ -137,12 +146,16 @@ export default function Header() {
             {isLoggedIn ? (
               <>
                 {mode ? (
-                  <p className="flex min-h-11 items-center px-1 text-sm text-white/55">{USER_MODE_LABELS[mode]}</p>
+                  <div className="px-1 py-2">
+                    <p className="text-sm text-white/55">{USER_MODE_LABELS[mode]}</p>
+                    {user?.email ? <p className="mt-0.5 break-all text-[11px] text-white/45">{user.email}</p> : null}
+                  </div>
+                ) : user?.email ? (
+                  <p className="break-all px-1 py-2 text-[11px] text-white/45">{user.email}</p>
                 ) : null}
                 <Link href="/mypage" className="flex min-h-11 items-center px-1 text-sm text-white/85">
                   마이페이지
                 </Link>
-                <p className="break-all px-1 pt-2 text-xs text-white/55">{user?.email}</p>
                 <button type="button" onClick={handleLogout} className="flex min-h-11 items-center px-1 text-left text-sm text-white/85">
                   로그아웃
                 </button>

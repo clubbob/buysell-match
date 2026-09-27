@@ -59,7 +59,7 @@ export async function uploadStorageFile(path: string, bytes: Uint8Array, content
         Authorization: `Bearer ${token}`,
         'Content-Type': contentType,
       },
-      body: bytes,
+      body: Buffer.from(bytes),
     },
   );
   const data = (await upload.json()) as { name?: string; downloadTokens?: string; error?: { message?: string } };

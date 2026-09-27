@@ -42,6 +42,22 @@ export async function fetchSellJoins(listingId: string): Promise<SellJoin[]> {
   }
 }
 
+export async function fetchSellJoinsBySeller(sellerId: string): Promise<SellJoin[]> {
+  const local = loadLocalJoins().filter((item) => item.sellerId === sellerId);
+  const db = getClientFirestore();
+  if (!db) return local;
+
+  try {
+    const snapshot = await getDocs(query(collection(db, COLLECTION), where('sellerId', '==', sellerId)));
+    const remote = snapshot.docs
+      .map((entry) => toJoin(entry.id, entry.data() as Record<string, unknown>))
+      .filter((item): item is SellJoin => Boolean(item));
+    return mergeJoins(remote, local);
+  } catch {
+    return local;
+  }
+}
+
 export async function fetchOpenJoinSummaries(listingIds: string[]): Promise<Record<string, OpenJoinSummary>> {
   const unique = [...new Set(listingIds.filter(Boolean))];
   const entries = await Promise.all(

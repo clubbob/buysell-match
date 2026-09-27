@@ -1,6 +1,7 @@
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { getClientFirestore, getClientStorage } from '@/lib/firebase';
+import { fetchSellJoins } from '@/lib/sell-join-remote';
 import { saveRemainingOverride } from '@/lib/sell-store';
 import type { SellListing } from '@/types/sell';
 
@@ -27,6 +28,8 @@ function toListing(id: string, data: Record<string, unknown>): SellListing | nul
     remainingLabel: String(data.remainingLabel ?? ''),
     deadline: String(data.deadline ?? ''),
     description: String(data.description ?? ''),
+    specText: String(data.specText ?? ''),
+    tradeText: String(data.tradeText ?? ''),
   };
 }
 
@@ -95,6 +98,10 @@ export async function createRemoteSellListing(item: Omit<SellListing, 'images'>,
 }
 
 export async function updateRemoteSellListing(item: SellListing): Promise<SellListing> {
+  const joins = await fetchSellJoins(item.id);
+  if (joins.length > 0) {
+    throw new Error('구매 참여가 있는 상품은 수정할 수 없습니다.');
+  }
   const db = getClientFirestore();
   if (!db) throw new Error('Firestore가 연결되지 않았습니다.');
   await setDoc(doc(db, COLLECTION, item.id), item);

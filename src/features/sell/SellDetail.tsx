@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import SellImageGallery from '@/features/sell/SellImageGallery';
+import SellGuidePanel from '@/features/sell/SellGuidePanel';
 import SellJoinSection from '@/features/sell/SellJoinSection';
 import PageBack from '@/components/ui/PageBack';
 import { useState } from 'react';
 import { deadlineParts, discountRate, formatJoinParticipants, formatQuantityNumber, formatWon, isRemainingShort } from '@/lib/sell-display';
 import type { OpenJoinSummary } from '@/types/sell-join';
-import { countSellerReviews, getSellerReviews } from '@/lib/seller-reviews';
 import type { SellListing } from '@/types/sell';
 
 function Spec({ label, children }: { label: string; children: React.ReactNode }) {
@@ -23,7 +23,6 @@ export default function SellDetail({ item, onRemainingChange }: { item: SellList
   const [join, setJoin] = useState<OpenJoinSummary>({ quantity: 0, buyers: 0 });
   const joinNote = formatJoinParticipants(join.buyers, join.quantity);
   const rate = discountRate(item.regularPrice, item.salePrice);
-  const reviews = getSellerReviews(item.sellerId);
   const remainingShort = isRemainingShort(item.minPurchaseLabel, item.remainingLabel);
   const deadline = deadlineParts(item.deadline);
 
@@ -54,9 +53,6 @@ export default function SellDetail({ item, onRemainingChange }: { item: SellList
                   ) : (
                     <span className="whitespace-nowrap text-xs text-subtle">인증 대기</span>
                   )}
-                  <Link href={`/seller/${item.sellerId}?from=${item.id}`} className="btn-chip">
-                    구매자 후기 {countSellerReviews(item.sellerId)}건
-                  </Link>
                   {item.sellerMobile ? (
                     <span className="whitespace-nowrap text-muted">핸드폰 {item.sellerMobile}</span>
                   ) : null}
@@ -100,34 +96,7 @@ export default function SellDetail({ item, onRemainingChange }: { item: SellList
         <SellJoinSection item={item} onRemainingChange={onRemainingChange} onJoinChange={setJoin} />
       </article>
 
-      <section className="panel px-4 py-5 sm:px-6">
-        <h2 className="text-sm font-bold text-ink">상품 안내</h2>
-        <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-muted">{item.description}</p>
-      </section>
-
-      {reviews.length > 0 ? (
-        <section className="panel overflow-hidden">
-          <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-4 sm:px-6">
-            <h2 className="text-sm font-bold text-ink">구매자 후기 {reviews.length}건</h2>
-            <Link href={`/seller/${item.sellerId}?from=${item.id}`} className="btn-chip">
-              전체 보기
-            </Link>
-          </div>
-          <ul className="divide-y divide-line">
-            {reviews.map((review) => (
-              <li key={review.id} className="px-4 py-4 sm:px-6">
-                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                  <span className="text-sm font-semibold text-ink">{review.buyerName}</span>
-                  <span className="text-sm text-ink">별점 {review.rating}/5</span>
-                  <span className="text-xs text-subtle">{review.createdAt.replaceAll('-', '/')}</span>
-                </div>
-                <p className="mt-1 text-xs text-subtle">{review.productTitle}</p>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{review.content}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      <SellGuidePanel item={item} />
 
       <p className="text-xs leading-relaxed text-subtle">
         공구매칭은 통신판매중개자이며 결제·정산·배송의 당사자가 아닙니다. 거래는 판매자와 구매자 사이에서 이루어집니다.

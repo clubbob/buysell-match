@@ -17,6 +17,8 @@ export type SellListing = {
   remainingLabel: string;
   deadline: string;
   description: string;
+  specText: string;
+  tradeText: string;
 };
 
 export function sellCoverImage(item: Pick<SellListing, 'images'>): string | null {

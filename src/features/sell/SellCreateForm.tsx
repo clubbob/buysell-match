@@ -8,6 +8,7 @@ import type { SellListing } from '@/types/sell';
 import { inputClassName } from '@/features/auth/auth-errors';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
 import { loginHref } from '@/lib/auth-redirect';
+import { listingGuide } from '@/lib/sell-guide';
 import { quantityAmount } from '@/lib/sell-display';
 import { isSellerProfileComplete } from '@/types/seller';
 
@@ -46,7 +47,10 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
   const [quantityLabel, setQuantityLabel] = useState(listing?.quantityLabel ?? '');
   const [remainingLabel, setRemainingLabel] = useState(listing?.remainingLabel ?? '');
   const [deadline, setDeadline] = useState(listing?.deadline ?? '');
-  const [description, setDescription] = useState(listing?.description ?? '');
+  const initialGuide = listing ? listingGuide(listing) : { intro: '', spec: '', trade: '' };
+  const [description, setDescription] = useState(initialGuide.intro);
+  const [specText, setSpecText] = useState(initialGuide.spec);
+  const [tradeText, setTradeText] = useState(initialGuide.trade);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -140,8 +144,8 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
       setError('마감일을 선택해 주세요.');
       return;
     }
-    if (!description.trim()) {
-      setError('상품 안내를 입력해 주세요.');
+    if (!description.trim() || !specText.trim() || !tradeText.trim()) {
+      setError('소개, 구성·규격, 결제·배송·교환을 모두 입력해 주세요.');
       return;
     }
     if (!isSellerProfileComplete(profile)) {
@@ -169,6 +173,8 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
           remainingLabel: remainingLabel.trim(),
           deadline,
           description: description.trim(),
+          specText: specText.trim(),
+          tradeText: tradeText.trim(),
         };
         const item =
           isEdit && listing
@@ -333,16 +339,39 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
             required
           />
         </label>
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-ink">상품 안내</span>
-          <p className="text-sm text-muted">구성, 규격, 진행 방식, 배송·결제를 구체적으로 적어 주세요.</p>
-          <textarea
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            className={`${inputClassName} h-48 py-3`}
-            required
-          />
-        </label>
+        <div className="space-y-4 border-t border-line pt-4">
+          <h2 className="text-sm font-bold text-ink">상품 안내</h2>
+          <label className="block space-y-1.5">
+            <span className="text-sm font-semibold text-ink">소개</span>
+            <p className="text-sm text-muted">어떤 상품인지 한눈에 보이게 적어 주세요.</p>
+            <textarea
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              className={`${inputClassName} h-28 py-3`}
+              required
+            />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-sm font-semibold text-ink">구성·규격</span>
+            <p className="text-sm text-muted">구성품, 수량, 크기, 소재처럼 확인에 필요한 내용을 적습니다.</p>
+            <textarea
+              value={specText}
+              onChange={(event) => setSpecText(event.target.value)}
+              className={`${inputClassName} h-32 py-3`}
+              required
+            />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-sm font-semibold text-ink">결제·배송·교환</span>
+            <p className="text-sm text-muted">입금 방법, 배송, 교환·반품은 판매자 조건을 구체적으로 적습니다.</p>
+            <textarea
+              value={tradeText}
+              onChange={(event) => setTradeText(event.target.value)}
+              className={`${inputClassName} h-32 py-3`}
+              required
+            />
+          </label>
+        </div>
       </section>
 
       {error ? (

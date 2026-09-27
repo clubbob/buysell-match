@@ -1,29 +1,59 @@
 import Link from 'next/link';
-import { SITE_NAME } from '@/lib/site';
+import { SITE_COMPANY, SITE_NAME } from '@/lib/site';
+
+const LEGAL_LINKS = [
+  { href: '/terms', label: '이용약관' },
+  { href: '/privacy', label: '개인정보처리방침', strong: true },
+  { href: '/marketing', label: '마케팅 수신 동의' },
+] as const;
+
+function Sep() {
+  return (
+    <span className="mx-2 select-none text-line" aria-hidden>
+      |
+    </span>
+  );
+}
 
 export default function Footer() {
   return (
-    <footer className="mt-auto border-t border-line bg-white">
-      <div className="mx-auto grid max-w-board items-center gap-3 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:grid-cols-[1fr_auto] sm:px-6">
-        <div className="space-y-1">
-          <p className="text-sm font-bold text-ink">{SITE_NAME}</p>
-          <p className="max-w-xl text-xs leading-relaxed text-muted">
-            통신판매중개자이며 결제·정산·배송의 당사자가 아닙니다. 거래 조건과 이행은 판매자와 구매자 사이에서
-            이루어집니다.
-          </p>
-          <p className="text-xs text-subtle">© {new Date().getFullYear()} {SITE_NAME}</p>
-        </div>
-        <nav className="flex flex-col sm:items-end" aria-label="법적 고지">
-          <Link href="/terms" className="inline-flex min-h-10 items-center text-sm font-medium text-ink hover:underline sm:min-h-0 sm:py-0.5">
-            이용약관
-          </Link>
-          <Link href="/privacy" className="inline-flex min-h-10 items-center text-sm font-medium text-ink hover:underline sm:min-h-0 sm:py-0.5">
-            개인정보처리방침
-          </Link>
-          <Link href="/marketing" className="inline-flex min-h-10 items-center text-sm font-medium text-ink hover:underline sm:min-h-0 sm:py-0.5">
-            마케팅 수신 동의
-          </Link>
+    <footer className="mt-auto border-t border-line bg-slate-50">
+      <div className="mx-auto max-w-board px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-center sm:px-6">
+        <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm" aria-label="법적 고지">
+          {LEGAL_LINKS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={item.strong ? 'font-semibold text-ink hover:underline' : 'font-medium text-ink hover:underline'}
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
+
+        <div className="mt-2 space-y-0.5 text-xs leading-5 text-muted">
+          <p className="break-words">
+            <span className="font-semibold text-ink">{SITE_COMPANY.legalName}</span>
+            <Sep />
+            통신판매중개자
+            <Sep />
+            대표 {SITE_COMPANY.representative}
+            <Sep />
+            사업자등록번호 {SITE_COMPANY.businessNumber}
+            <Sep />
+            개인정보보호책임자 {SITE_COMPANY.privacyOfficer}
+          </p>
+          <p className="break-words">
+            주소 {SITE_COMPANY.address}
+            <Sep />
+            이메일 {SITE_COMPANY.email}
+            <Sep />
+            전화 {SITE_COMPANY.phone}
+          </p>
+        </div>
+        <p className="mt-1 text-xs leading-5 text-subtle">
+          © {new Date().getFullYear()} {SITE_NAME}. All rights reserved.
+        </p>
       </div>
     </footer>
   );
