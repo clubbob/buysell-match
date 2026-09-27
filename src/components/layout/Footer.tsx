@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { SITE_COMPANY, SITE_NAME } from '@/lib/site';
 
-const LEGAL_LINKS = [
+const LEGAL_LINKS: { href: string; label: string; strong?: boolean }[] = [
   { href: '/terms', label: '이용약관' },
   { href: '/privacy', label: '개인정보처리방침', strong: true },
   { href: '/marketing', label: '마케팅 수신 동의' },
-] as const;
+];
 
 function Sep() {
   return (
