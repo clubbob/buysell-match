@@ -9,7 +9,7 @@ import {
   queryDocumentIds,
 } from '@/lib/firebase-rest-admin';
 import { toBuyerProfile } from '@/types/buyer';
-import type { MemberRecord } from '@/types/member';
+import { toMember, type MemberRecord } from '@/types/member';
 import { toSellerProfile } from '@/types/seller';
 
 export const runtime = 'nodejs';
@@ -78,12 +78,11 @@ async function getMember(context: RouteContext) {
   }
 
   const item: MemberRecord = {
-    member: {
-      id,
-      name: String(memberData?.name ?? user?.displayName ?? seller?.representativeName ?? seller?.sellerName ?? ''),
-      email: String(memberData?.email ?? user?.email ?? seller?.sellerEmail ?? ''),
-      createdAt: String(memberData?.createdAt || user?.createdAt || ''),
-    },
+    member: toMember(id, memberData, {
+      name: user?.displayName ?? seller?.representativeName ?? seller?.sellerName ?? '',
+      email: user?.email ?? seller?.sellerEmail ?? '',
+      createdAt: user?.createdAt ?? '',
+    }),
     buyer,
     seller,
   };

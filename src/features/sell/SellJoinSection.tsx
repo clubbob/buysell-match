@@ -163,7 +163,7 @@ export default function SellJoinSection({
   const people = formatJoinParticipants(joinSummary.buyers, gathered);
   const currentJoin = people ? `현재 ${people}` : '현재 구매 참여 없음';
   const need = Math.max(0, min - gathered);
-  const statusText = remainingShort
+  const joinStatus = remainingShort
     ? '잔여가 공구 최소 주문보다 적어 구매 참여를 받을 수 없습니다.'
     : deadlinePassed
       ? '마감된 상품입니다.'
@@ -172,6 +172,7 @@ export default function SellJoinSection({
         : gathered >= min
           ? `${currentJoin}. 최소 주문을 채웠습니다.`
           : `${currentJoin}. 최소 주문까지 ${formatCount(need)} 남음.`;
+  const statusText = isOwner ? `내 상품이라 구매 참여할 수 없습니다. ${joinStatus}` : joinStatus;
 
   return (
     <div className="border-t border-line px-4 py-4 sm:px-6">
@@ -208,9 +209,11 @@ export default function SellJoinSection({
             이번 수량 마감
           </button>
         ) : isOwner ? (
-          <button type="button" className="btn-primary" disabled={!canConfirm || pending} onClick={() => void handleConfirm()}>
-            {pending ? '처리 중…' : canConfirm ? '판매 확정' : '판매 확정 대기'}
-          </button>
+          canConfirm ? (
+            <button type="button" className="btn-primary" disabled={pending} onClick={() => void handleConfirm()}>
+              {pending ? '처리 중…' : '판매 확정'}
+            </button>
+          ) : null
         ) : (
           <>
             {!buyerReady ? (

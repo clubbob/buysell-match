@@ -1,17 +1,8 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { getClientFirestore } from '@/lib/firebase';
-import type { Member } from '@/types/member';
+import { EMPTY_MEMBER_CONSENTS, toMember, type Member } from '@/types/member';
 
 const COLLECTION = 'members';
-
-function toMember(id: string, data: Record<string, unknown>): Member {
-  return {
-    id,
-    name: String(data.name ?? ''),
-    email: String(data.email ?? ''),
-    createdAt: String(data.createdAt ?? ''),
-  };
-}
 
 export async function fetchMember(id: string): Promise<Member | null> {
   const db = getClientFirestore();
@@ -24,7 +15,7 @@ export async function fetchMember(id: string): Promise<Member | null> {
 export async function saveMember(member: Member): Promise<Member> {
   const db = getClientFirestore();
   if (!db) throw new Error('Firestore가 연결되지 않았습니다.');
-  await setDoc(doc(db, COLLECTION, member.id), member);
+  await setDoc(doc(db, COLLECTION, member.id), member, { merge: true });
   return member;
 }
 
@@ -42,5 +33,9 @@ export async function ensureMember(input: {
     name,
     email,
     createdAt: existing?.createdAt || new Date().toISOString(),
+    termsAgreedAt: existing?.termsAgreedAt ?? EMPTY_MEMBER_CONSENTS.termsAgreedAt,
+    privacyAgreedAt: existing?.privacyAgreedAt ?? EMPTY_MEMBER_CONSENTS.privacyAgreedAt,
+    marketingAgreed: existing?.marketingAgreed ?? EMPTY_MEMBER_CONSENTS.marketingAgreed,
+    marketingAgreedAt: existing?.marketingAgreedAt ?? EMPTY_MEMBER_CONSENTS.marketingAgreedAt,
   });
 }

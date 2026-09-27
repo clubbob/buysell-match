@@ -5,7 +5,6 @@ import SellImageGallery from '@/features/sell/SellImageGallery';
 import SellJoinSection from '@/features/sell/SellJoinSection';
 import PageBack from '@/components/ui/PageBack';
 import { useState } from 'react';
-import { useAuth } from '@/features/auth/auth-context';
 import { deadlineParts, discountRate, formatJoinParticipants, formatQuantityNumber, formatWon, isRemainingShort } from '@/lib/sell-display';
 import type { OpenJoinSummary } from '@/types/sell-join';
 import { countSellerReviews, getSellerReviews } from '@/lib/seller-reviews';
@@ -21,25 +20,16 @@ function Spec({ label, children }: { label: string; children: React.ReactNode })
 }
 
 export default function SellDetail({ item, onRemainingChange }: { item: SellListing; onRemainingChange?: () => void }) {
-  const { user } = useAuth();
   const [join, setJoin] = useState<OpenJoinSummary>({ quantity: 0, buyers: 0 });
   const joinNote = formatJoinParticipants(join.buyers, join.quantity);
   const rate = discountRate(item.regularPrice, item.salePrice);
   const reviews = getSellerReviews(item.sellerId);
   const remainingShort = isRemainingShort(item.minPurchaseLabel, item.remainingLabel);
   const deadline = deadlineParts(item.deadline);
-  const canEdit = Boolean(user && user.uid === item.sellerId);
 
   return (
     <div className="space-y-5">
-      <div className="flex justify-end gap-2">
-        {canEdit ? (
-          <Link href={`/sell/${item.id}/edit`} className="btn-secondary">
-            수정
-          </Link>
-        ) : null}
-        <PageBack href="/sell" />
-      </div>
+      <PageBack href="/sell" />
 
       <article className="panel overflow-hidden">
         <div className="flex flex-col lg:flex-row">
@@ -112,7 +102,7 @@ export default function SellDetail({ item, onRemainingChange }: { item: SellList
 
       <section className="panel px-4 py-5 sm:px-6">
         <h2 className="text-sm font-bold text-ink">상품 안내</h2>
-        <p className="mt-3 text-sm leading-relaxed text-muted">{item.description}</p>
+        <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-muted">{item.description}</p>
       </section>
 
       {reviews.length > 0 ? (

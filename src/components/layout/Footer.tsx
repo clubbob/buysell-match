@@ -20,6 +20,9 @@ export default function Footer() {
           <Link href="/privacy" className="inline-flex min-h-10 items-center text-sm font-medium text-ink hover:underline sm:min-h-0 sm:py-0.5">
             개인정보처리방침
           </Link>
+          <Link href="/marketing" className="inline-flex min-h-10 items-center text-sm font-medium text-ink hover:underline sm:min-h-0 sm:py-0.5">
+            마케팅 수신 동의
+          </Link>
         </nav>
       </div>
     </footer>

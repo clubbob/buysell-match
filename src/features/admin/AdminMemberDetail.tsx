@@ -8,7 +8,7 @@ import { readApiJson } from '@/lib/api-json';
 import { getClientAuth } from '@/lib/firebase';
 import { BUYER_DETAIL_LABEL, SELLER_DETAIL_LABEL } from '@/lib/profile-labels';
 import type { BuyerProfile } from '@/types/buyer';
-import { formatMemberJoinedAt, type MemberRecord } from '@/types/member';
+import { formatConsentStatus, formatMemberJoinedAt, type MemberRecord } from '@/types/member';
 
 function Field({ label, value }: { label: string; value?: string | null }) {
   return (
@@ -133,6 +133,15 @@ export default function AdminMemberDetail({ id }: { id: string }) {
             <Field label="이름" value={item.member.name} />
             <Field label="이메일" value={item.member.email} />
             <Field label="가입 일자" value={formatMemberJoinedAt(item.member.createdAt)} />
+            <Field label="이용약관" value={formatConsentStatus(item.member.termsAgreedAt)} />
+            <Field
+              label="개인정보처리방침"
+              value={formatConsentStatus(item.member.privacyAgreedAt)}
+            />
+            <Field
+              label="마케팅 수신"
+              value={formatConsentStatus(item.member.marketingAgreedAt, item.member.marketingAgreed)}
+            />
           </dl>
         </section>
 

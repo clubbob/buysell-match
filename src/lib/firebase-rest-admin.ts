@@ -42,6 +42,36 @@ export function hasFirebaseAdminConfig() {
   return Boolean(parseServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT_KEY) && projectId());
 }
 
+function storageBucket() {
+  return (process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || `${projectId()}.appspot.com`).replace(/^gs:\/\//, '');
+}
+
+export async function uploadStorageFile(path: string, bytes: Uint8Array, contentType: string): Promise<string> {
+  const token = await getAccessToken();
+  const bucket = storageBucket();
+  if (!token || !bucket) throw new Error('Storage가 연결되지 않았습니다.');
+
+  const upload = await fetch(
+    `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?name=${encodeURIComponent(path)}`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': contentType,
+      },
+      body: bytes,
+    },
+  );
+  const data = (await upload.json()) as { name?: string; downloadTokens?: string; error?: { message?: string } };
+  if (!upload.ok) {
+    throw new Error(data.error?.message ?? 'Storage 업로드에 실패했습니다.');
+  }
+
+  const tokenParam = data.downloadTokens ?? '';
+  const objectPath = encodeURIComponent(data.name || path);
+  return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${objectPath}?alt=media${tokenParam ? `&token=${tokenParam}` : ''}`;
+}
+
 async function getAccessToken(): Promise<string | null> {
   if (tokenCache && tokenCache.exp - 60_000 > Date.now()) return tokenCache.value;
   const account = parseServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
@@ -192,6 +222,20 @@ function toAuthUser(user: { localId?: string; email?: string; displayName?: stri
     displayName: user.displayName ?? '',
     createdAt: Number.isFinite(createdMs) && createdMs > 0 ? new Date(createdMs).toISOString() : '',
   };
+}
+
+export async function getAuthUserByEmail(email: string): Promise<AuthUser | null> {
+  const token = await getAccessToken();
+  const project = projectId();
+  if (!token || !project) return null;
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${project}/accounts:lookup`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: [email] }),
+  });
+  const data = (await response.json()) as { users?: { localId?: string; email?: string; displayName?: string; createdAt?: string }[] };
+  const user = data.users?.[0];
+  return user?.localId ? toAuthUser(user) : null;
 }
 
 export async function getAuthUser(uid: string): Promise<AuthUser | null> {

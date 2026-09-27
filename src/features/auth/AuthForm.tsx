@@ -12,16 +12,62 @@ import {
   isValidPersonName,
   normalizePersonName,
 } from '@/features/auth/auth-errors';
+import { MarketingBody, PrivacyBody, TermsBody } from '@/components/legal/legal-bodies';
 import { useUserMode } from '@/features/mode/mode-context';
 import { safeNextPath } from '@/lib/auth-redirect';
 
 type AuthFormMode = 'login' | 'signup';
+type ConsentDoc = 'terms' | 'privacy' | 'marketing';
 
 const REMEMBER_EMAIL_KEY = 'buysell.rememberEmail';
 
 function loadRememberedEmail() {
   if (typeof window === 'undefined') return '';
   return window.localStorage.getItem(REMEMBER_EMAIL_KEY)?.trim() ?? '';
+}
+
+function ConsentRow({
+  required,
+  label,
+  checked,
+  open,
+  onChange,
+  onToggle,
+  children,
+}: {
+  required?: boolean;
+  label: string;
+  checked: boolean;
+  open: boolean;
+  onChange: (next: boolean) => void;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <label className="flex min-w-0 items-center gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={(event) => onChange(event.target.checked)}
+            className="h-4 w-4 accent-ink"
+          />
+          <span>
+            <span className="font-semibold">{required ? '[필수]' : '[선택]'}</span> {label}
+          </span>
+        </label>
+        <button type="button" className="btn-chip shrink-0" onClick={onToggle}>
+          {open ? '닫기' : '내용'}
+        </button>
+      </div>
+      {open ? (
+        <div className="max-h-72 overflow-y-auto border border-line bg-white px-3 py-3 text-xs leading-relaxed text-muted">
+          {children}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export default function AuthForm({ mode }: { mode: AuthFormMode }) {
@@ -38,8 +84,13 @@ export default function AuthForm({ mode }: { mode: AuthFormMode }) {
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [rememberEmail, setRememberEmail] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [agreeMarketing, setAgreeMarketing] = useState(false);
+  const [openDoc, setOpenDoc] = useState<ConsentDoc | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const agreeAll = agreeTerms && agreePrivacy && agreeMarketing;
 
   function finishAuth() {
     resetMode();
@@ -92,11 +143,15 @@ export default function AuthForm({ mode }: { mode: AuthFormMode }) {
       setError('비밀번호가 일치하지 않습니다.');
       return;
     }
+    if (isSignup && (!agreeTerms || !agreePrivacy)) {
+      setError('이용약관과 개인정보처리방침에 동의해 주세요.');
+      return;
+    }
 
     setPending(true);
     try {
       if (isSignup) {
-        await signUpWithEmail(displayName, email, password);
+        await signUpWithEmail(displayName, email, password, { marketingAgreed: agreeMarketing });
       } else {
         await signInWithEmail(email, password);
         if (rememberEmail) {
@@ -119,7 +174,7 @@ export default function AuthForm({ mode }: { mode: AuthFormMode }) {
         <h1 className="text-xl font-bold tracking-tight text-ink">{isSignup ? '회원가입' : '로그인'}</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">
           {isSignup
-            ? '이름, 이메일, 비밀번호를 등록합니다. 서비스 이용 역할은 로그인 후에 고릅니다.'
+            ? '이름, 이메일, 비밀번호와 필수 약관 동의를 등록합니다. 서비스 이용 역할은 로그인 후에 고릅니다.'
             : '가입한 이메일과 비밀번호로 로그인합니다.'}
         </p>
       </div>
@@ -191,6 +246,55 @@ export default function AuthForm({ mode }: { mode: AuthFormMode }) {
               required
             />
           </label>
+        ) : null}
+
+        {isSignup ? (
+          <fieldset className="space-y-3 border-t border-line pt-4">
+            <legend className="text-sm font-semibold text-ink">약관 동의</legend>
+            <label className="flex items-center gap-2 text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={agreeAll}
+                onChange={(event) => {
+                  const next = event.target.checked;
+                  setAgreeTerms(next);
+                  setAgreePrivacy(next);
+                  setAgreeMarketing(next);
+                }}
+                className="h-4 w-4 accent-ink"
+              />
+              전체 동의
+            </label>
+            <ConsentRow
+              required
+              label="이용약관"
+              checked={agreeTerms}
+              open={openDoc === 'terms'}
+              onChange={setAgreeTerms}
+              onToggle={() => setOpenDoc((current) => (current === 'terms' ? null : 'terms'))}
+            >
+              <TermsBody />
+            </ConsentRow>
+            <ConsentRow
+              required
+              label="개인정보처리방침"
+              checked={agreePrivacy}
+              open={openDoc === 'privacy'}
+              onChange={setAgreePrivacy}
+              onToggle={() => setOpenDoc((current) => (current === 'privacy' ? null : 'privacy'))}
+            >
+              <PrivacyBody />
+            </ConsentRow>
+            <ConsentRow
+              label="마케팅 수신 동의"
+              checked={agreeMarketing}
+              open={openDoc === 'marketing'}
+              onChange={setAgreeMarketing}
+              onToggle={() => setOpenDoc((current) => (current === 'marketing' ? null : 'marketing'))}
+            >
+              <MarketingBody />
+            </ConsentRow>
+          </fieldset>
         ) : null}
 
         {error ? (

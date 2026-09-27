@@ -17,13 +17,14 @@ import { getClientAuth } from '@/lib/firebase';
 import { hasFirebaseClientConfig } from '@/lib/firebase-config';
 import { ensureMember, saveMember } from '@/lib/member-remote';
 import { clearUserMode } from '@/lib/user-mode';
+import type { SignupConsents } from '@/types/member';
 
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
   configured: boolean;
   signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (name: string, email: string, password: string) => Promise<void>;
+  signUpWithEmail: (name: string, email: string, password: string, consents: SignupConsents) => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   changePassword: (currentPassword: string, nextPassword: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -63,23 +64,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signInWithEmailAndPassword(auth, email.trim(), password);
   }, []);
 
-  const signUpWithEmail = useCallback(async (name: string, email: string, password: string) => {
-    const auth = getClientAuth();
-    if (!auth) throw new Error('Firebase가 설정되지 않았습니다.');
-    clearUserMode();
-    const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
-    await updateProfile(credential.user, { displayName: name });
-    try {
-      await saveMember({
-        id: credential.user.uid,
-        name,
-        email: email.trim(),
-        createdAt: new Date().toISOString(),
-      });
-    } catch {
-      // Auth 가입은 유지하고, 이후 로그인 시 members 문서를 다시 맞춘다.
-    }
-  }, []);
+  const signUpWithEmail = useCallback(
+    async (name: string, email: string, password: string, consents: SignupConsents) => {
+      const auth = getClientAuth();
+      if (!auth) throw new Error('Firebase가 설정되지 않았습니다.');
+      clearUserMode();
+      const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      await updateProfile(credential.user, { displayName: name });
+      const now = new Date().toISOString();
+      try {
+        await saveMember({
+          id: credential.user.uid,
+          name,
+          email: email.trim(),
+          createdAt: now,
+          termsAgreedAt: now,
+          privacyAgreedAt: now,
+          marketingAgreed: consents.marketingAgreed,
+          marketingAgreedAt: consents.marketingAgreed ? now : '',
+        });
+      } catch {
+        // Auth 가입은 유지하고, 이후 로그인 시 members 문서를 다시 맞춘다.
+      }
+    },
+    [],
+  );
 
   const sendPasswordReset = useCallback(async (email: string) => {
     const auth = getClientAuth();

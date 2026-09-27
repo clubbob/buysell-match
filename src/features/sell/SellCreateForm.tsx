@@ -335,10 +335,11 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
         </label>
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-ink">상품 안내</span>
+          <p className="text-sm text-muted">구성, 규격, 진행 방식, 배송·결제를 구체적으로 적어 주세요.</p>
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            className={`${inputClassName} h-32 py-3`}
+            className={`${inputClassName} h-48 py-3`}
             required
           />
         </label>

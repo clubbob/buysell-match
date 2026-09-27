@@ -33,7 +33,7 @@ export default function SellEditLoader({ id }: { id: string }) {
 
   return (
     <div className="space-y-5">
-      <PageBack href={`/sell/${item.id}`} />
+      <PageBack href="/mypage">← 마이페이지</PageBack>
       <div className="panel px-4 py-6 sm:px-6 sm:py-8">
         <PageIntro
           eyebrow="판매자"

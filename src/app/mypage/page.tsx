@@ -176,11 +176,16 @@ export default function MyPage() {
           ready && myListings.length > 0 ? (
             <ul className="divide-y divide-line">
               {myListings.map((item) => (
-                <li key={item.id}>
-                  <Link href={`/sell/${item.id}`} className="flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-slate-50">
-                    <span className="min-w-0 truncate text-sm font-semibold text-ink">{item.title}</span>
-                    <span className="shrink-0 text-sm tabular-nums text-ink">{formatWon(item.salePrice)}</span>
+                <li key={item.id} className="flex items-center justify-between gap-3 px-4 py-3.5">
+                  <Link href={`/sell/${item.id}`} className="min-w-0 truncate text-sm font-semibold text-ink hover:underline">
+                    {item.title}
                   </Link>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-sm tabular-nums text-ink">{formatWon(item.salePrice)}</span>
+                    <Link href={`/sell/${item.id}/edit`} className="btn-chip">
+                      수정
+                    </Link>
+                  </div>
                 </li>
               ))}
             </ul>
