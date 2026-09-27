@@ -7,6 +7,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { inputClassName } from '@/features/auth/auth-errors';
 import { useBuyerProfile } from '@/features/buyer/use-buyer-profile';
 import { formatPhoneNumber, PHONE_HYPHEN_HINT } from '@/lib/phone-number';
+import { BUYER_DETAIL_LABEL } from '@/lib/profile-labels';
 import DefaultAddressBadge from '@/components/ui/DefaultAddressBadge';
 import { createBuyerAddress, hasBuyerProfile, resolveDefaultAddressId, type BuyerAddress } from '@/types/buyer';
 
@@ -99,7 +100,7 @@ export default function BuyerProfileForm() {
     return (
       <div className="mt-6 space-y-4">
         <p className="text-sm text-ink">
-          {done === 'created' ? '구매자 정보 등록이 완료되었습니다.' : '구매자 정보 수정이 완료되었습니다.'}
+          {done === 'created' ? `${BUYER_DETAIL_LABEL}이 완료되었습니다.` : `${BUYER_DETAIL_LABEL} 수정이 완료되었습니다.`}
         </p>
         <div className="action-row mt-0">
           <Link href="/mypage" className="btn-primary">

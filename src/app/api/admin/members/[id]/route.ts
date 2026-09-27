@@ -5,6 +5,9 @@ import { toBuyerProfile } from '@/types/buyer';
 import type { MemberRecord } from '@/types/member';
 import { toSellerProfile } from '@/types/seller';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 type RouteContext = {
   params: Promise<{ id: string }>;
 };

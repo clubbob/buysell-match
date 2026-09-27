@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/lib/firebase-admin';
+import { BUYER_DETAIL_LABEL } from '@/lib/profile-labels';
 import { getAuthedUid } from '@/lib/user-token';
 import {
   createBuyerAddress,
@@ -9,6 +10,9 @@ import {
   type BuyerAddress,
   type BuyerProfile,
 } from '@/types/buyer';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 function cleanAddresses(value: unknown): BuyerAddress[] {
   if (!Array.isArray(value) && !(value && typeof value === 'object')) return [];
@@ -59,7 +63,7 @@ export async function PUT(request: Request) {
   try {
     body = (await request.json()) as Partial<BuyerProfile>;
   } catch {
-    return NextResponse.json({ ok: false, message: '구매자 정보를 확인해 주세요.' }, { status: 400 });
+    return NextResponse.json({ ok: false, message: `${BUYER_DETAIL_LABEL}을 확인해 주세요.` }, { status: 400 });
   }
 
   const addresses = cleanAddresses(body.addresses);

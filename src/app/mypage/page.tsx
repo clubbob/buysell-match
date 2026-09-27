@@ -12,6 +12,7 @@ import { useSellerProfile } from '@/features/seller/use-seller-profile';
 import { formatWon } from '@/lib/sell-display';
 import { USER_MODE_LABELS } from '@/lib/user-mode';
 import { cn } from '@/lib/utils';
+import { BUYER_DETAIL_LABEL, SELLER_DETAIL_LABEL } from '@/lib/profile-labels';
 import { hasBuyerProfile } from '@/types/buyer';
 import { formatMemberJoinedAt } from '@/types/member';
 import { isSellerProfileComplete } from '@/types/seller';
@@ -133,13 +134,13 @@ export default function MyPage() {
             action="비밀번호 변경"
           />
           <SummaryRow
-            title="구매자 이용 시"
+            title={BUYER_DETAIL_LABEL}
             detail={buyerDetail}
             href="/buyer/profile"
             action={hasBuyerProfile(buyerProfile) ? '보기' : '등록'}
           />
           <SummaryRow
-            title="판매자 이용 시"
+            title={SELLER_DETAIL_LABEL}
             detail={sellerDetail}
             href="/seller/profile"
             action={profile ? '보기' : '등록'}

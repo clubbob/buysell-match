@@ -1,4 +1,5 @@
 import { getClientAuth } from '@/lib/firebase';
+import { BUYER_DETAIL_LABEL } from '@/lib/profile-labels';
 import { hasBuyerProfile, type BuyerProfile } from '@/types/buyer';
 
 async function authHeaders(): Promise<HeadersInit> {
@@ -15,7 +16,7 @@ export async function fetchBuyerProfile(buyerId: string): Promise<BuyerProfile |
   const response = await fetch('/api/me/buyer', { headers });
   const data = (await response.json()) as { ok?: boolean; profile?: BuyerProfile | null; message?: string };
   if (!response.ok || !data.ok) {
-    throw new Error(data.message ?? '구매자 정보를 불러오지 못했습니다.');
+    throw new Error(data.message ?? `${BUYER_DETAIL_LABEL}을 불러오지 못했습니다.`);
   }
   const profile = data.profile ?? null;
   if (profile && profile.buyerId !== buyerId) return null;
@@ -23,7 +24,7 @@ export async function fetchBuyerProfile(buyerId: string): Promise<BuyerProfile |
 }
 
 export async function saveBuyerProfile(profile: BuyerProfile): Promise<BuyerProfile> {
-  if (!hasBuyerProfile(profile)) throw new Error('구매자 정보를 모두 입력해 주세요.');
+  if (!hasBuyerProfile(profile)) throw new Error(`${BUYER_DETAIL_LABEL}을 모두 입력해 주세요.`);
   const headers = await authHeaders();
   const response = await fetch('/api/me/buyer', {
     method: 'PUT',
@@ -32,7 +33,7 @@ export async function saveBuyerProfile(profile: BuyerProfile): Promise<BuyerProf
   });
   const data = (await response.json()) as { ok?: boolean; profile?: BuyerProfile; message?: string };
   if (!response.ok || !data.ok || !data.profile) {
-    throw new Error(data.message ?? '구매자 정보를 저장하지 못했습니다.');
+    throw new Error(data.message ?? `${BUYER_DETAIL_LABEL}을 저장하지 못했습니다.`);
   }
   return data.profile;
 }

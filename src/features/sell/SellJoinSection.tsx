@@ -8,6 +8,7 @@ import { inputClassName } from '@/features/auth/auth-errors';
 import DefaultAddressBadge from '@/components/ui/DefaultAddressBadge';
 import { useBuyerProfile } from '@/features/buyer/use-buyer-profile';
 import { loginHref } from '@/lib/auth-redirect';
+import { BUYER_DETAIL_LABEL } from '@/lib/profile-labels';
 import { defaultBuyerAddress, hasBuyerProfile } from '@/types/buyer';
 import { confirmSellJoins, createSellJoin, fetchSellJoins } from '@/lib/sell-join-remote';
 import { updateSellRemaining } from '@/lib/sell-remote';
@@ -218,7 +219,7 @@ export default function SellJoinSection({
               <div className="w-full space-y-2 text-center">
                 <p className="text-sm text-muted">구매 참여 전에 배송 주소를 등록해 주세요.</p>
                 <Link href="/buyer/profile" className="btn-secondary">
-                  구매자 정보 등록
+                  {BUYER_DETAIL_LABEL}
                 </Link>
               </div>
             ) : (

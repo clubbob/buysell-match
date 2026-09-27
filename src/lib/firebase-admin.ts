@@ -2,6 +2,27 @@ import { applicationDefault, cert, getApps, initializeApp, type App } from 'fire
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
+function parseServiceAccount(raw: string): Record<string, string> | null {
+  const text = raw.trim().replace(/^\uFEFF/, '');
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    try {
+      parsed = JSON.parse(JSON.parse(text) as string);
+    } catch {
+      return null;
+    }
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+  const account = { ...(parsed as Record<string, string>) };
+  if (typeof account.private_key === 'string') {
+    account.private_key = account.private_key.replace(/\\n/g, '\n');
+  }
+  if (!account.client_email || !account.private_key) return null;
+  return account;
+}
+
 function createAdminApp(): App | null {
   const existing = getApps()[0];
   if (existing) return existing;
@@ -11,7 +32,8 @@ function createAdminApp(): App | null {
 
   try {
     if (raw) {
-      const serviceAccount = JSON.parse(raw) as Record<string, string>;
+      const serviceAccount = parseServiceAccount(raw);
+      if (!serviceAccount) return null;
       return initializeApp({
         credential: cert(serviceAccount),
         projectId: projectId || serviceAccount.project_id,

@@ -1,6 +1,7 @@
 import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { getClientFirestore, getClientStorage } from '@/lib/firebase';
+import { SELLER_DETAIL_LABEL } from '@/lib/profile-labels';
 import { isSellerProfileComplete, type SellerProfile } from '@/types/seller';
 
 const COLLECTION = 'sellerProfiles';
@@ -48,7 +49,7 @@ export async function fetchSellerProfile(sellerId: string): Promise<SellerProfil
 export async function saveSellerProfile(profile: SellerProfile): Promise<SellerProfile> {
   const db = getClientFirestore();
   if (!db) throw new Error('Firestore가 연결되지 않았습니다.');
-  if (!isSellerProfileComplete(profile)) throw new Error('판매자 정보를 모두 입력해 주세요.');
+  if (!isSellerProfileComplete(profile)) throw new Error(`${SELLER_DETAIL_LABEL}을 모두 입력해 주세요.`);
   await setDoc(doc(db, COLLECTION, profile.sellerId), profile);
   return profile;
 }

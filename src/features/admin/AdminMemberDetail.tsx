@@ -6,6 +6,7 @@ import DefaultAddressBadge from '@/components/ui/DefaultAddressBadge';
 import PageBack from '@/components/ui/PageBack';
 import { readApiJson } from '@/lib/api-json';
 import { getClientAuth } from '@/lib/firebase';
+import { BUYER_DETAIL_LABEL, SELLER_DETAIL_LABEL } from '@/lib/profile-labels';
 import type { BuyerProfile } from '@/types/buyer';
 import { formatMemberJoinedAt, type MemberRecord } from '@/types/member';
 
@@ -136,16 +137,16 @@ export default function AdminMemberDetail({ id }: { id: string }) {
         </section>
 
         <section className="mt-4 border-t border-line pt-4">
-          <h2 className="text-xs font-semibold tracking-wide text-subtle">구매자 세부 정보</h2>
+          <h2 className="text-xs font-semibold tracking-wide text-subtle">{BUYER_DETAIL_LABEL}</h2>
           {item.buyer ? (
             <BuyerFields buyer={item.buyer} />
           ) : (
-            <p className="mt-2 text-sm text-muted">아직 등록된 구매자 세부 정보가 없습니다.</p>
+            <p className="mt-2 text-sm text-muted">아직 {BUYER_DETAIL_LABEL}이 없습니다.</p>
           )}
         </section>
 
         <section className="mt-4 border-t border-line pt-4">
-          <h2 className="text-xs font-semibold tracking-wide text-subtle">판매자 세부 정보</h2>
+          <h2 className="text-xs font-semibold tracking-wide text-subtle">{SELLER_DETAIL_LABEL}</h2>
           {item.seller ? (
             <dl className="mt-2 space-y-1.5">
               <Field label="상호" value={item.seller.sellerName} />
@@ -168,7 +169,7 @@ export default function AdminMemberDetail({ id }: { id: string }) {
               )}
             </dl>
           ) : (
-            <p className="mt-2 text-sm text-muted">아직 등록된 판매자 세부 정보가 없습니다.</p>
+            <p className="mt-2 text-sm text-muted">아직 {SELLER_DETAIL_LABEL}이 없습니다.</p>
           )}
         </section>
       </article>

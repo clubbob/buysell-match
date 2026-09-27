@@ -8,6 +8,7 @@ import { inputClassName } from '@/features/auth/auth-errors';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
 import { digitsOnly, formatBusinessNumber } from '@/lib/business-number';
 import { formatPhoneNumber, PHONE_HYPHEN_HINT } from '@/lib/phone-number';
+import { SELLER_DETAIL_LABEL } from '@/lib/profile-labels';
 import { uploadBusinessCertificate } from '@/lib/seller-remote';
 import { hasSellerProfile, isSellerProfileComplete } from '@/types/seller';
 
@@ -168,7 +169,7 @@ export default function SellerProfileForm() {
     return (
       <div className="mt-6 space-y-4">
         <p className="text-sm text-ink">
-          {done === 'created' ? '판매자 정보 등록이 완료되었습니다.' : '판매자 정보 수정이 완료되었습니다.'}
+          {done === 'created' ? `${SELLER_DETAIL_LABEL}이 완료되었습니다.` : `${SELLER_DETAIL_LABEL} 수정이 완료되었습니다.`}
         </p>
         <div className="action-row mt-0">
           <Link href="/mypage" className="btn-primary">
@@ -213,7 +214,7 @@ export default function SellerProfileForm() {
             {lookupError}
           </p>
         ) : (
-          <p className="text-sm text-muted">계속사업자로 조회된 경우에만 판매자 정보를 등록할 수 있습니다.</p>
+          <p className="text-sm text-muted">계속사업자로 조회된 경우에만 {SELLER_DETAIL_LABEL}을 할 수 있습니다.</p>
         )}
         <p className="text-xs text-subtle">출처: 국세청, 공공데이터포털</p>
       </div>

@@ -1,4 +1,5 @@
 import { digitsOnly, formatBusinessNumber } from '@/lib/business-number';
+import { SELLER_DETAIL_LABEL } from '@/lib/profile-labels';
 
 export type BizVerifyStatus = 'active' | 'suspended' | 'closed' | 'not_found';
 
@@ -127,7 +128,7 @@ export async function lookupNtsBusinessStatus(rawNumber: string): Promise<NtsBus
       mapped.status === 'closed'
         ? `폐업자로 조회되었습니다.${closedOn ? ` (폐업일 ${closedOn})` : ''}`
         : mapped.status === 'suspended'
-          ? '휴업자로 조회되었습니다. 계속사업자만 판매자 정보를 등록할 수 있습니다.'
+          ? `휴업자로 조회되었습니다. 계속사업자만 ${SELLER_DETAIL_LABEL}을 할 수 있습니다.`
           : taxType || '국세청에 등록되지 않은 사업자등록번호입니다.';
     return {
       ok: false,

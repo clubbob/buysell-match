@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import PageIntro from '@/components/ui/PageIntro';
 import { readApiJson } from '@/lib/api-json';
+import { BUYER_DETAIL_LABEL, SELLER_DETAIL_LABEL } from '@/lib/profile-labels';
 import { hasBuyerProfile } from '@/types/buyer';
 import { formatMemberJoinedAt, type MemberRecord } from '@/types/member';
 import { hasSellerProfile } from '@/types/seller';
@@ -49,9 +50,9 @@ function MobileRow({ item }: { item: MemberRecord }) {
         <p className="mt-1 text-sm text-ink">
           가입 {formatMemberJoinedAt(item.member.createdAt) || '—'}
           <span className="mx-1.5 text-subtle">·</span>
-          구매자 상세 등록 {buyerLabel(item)}
+          {BUYER_DETAIL_LABEL} {buyerLabel(item)}
           <span className="mx-1.5 text-subtle">·</span>
-          판매자 상세 등록 {sellerLabel(item)}
+          {SELLER_DETAIL_LABEL} {sellerLabel(item)}
         </p>
       </Link>
     </li>
@@ -119,8 +120,8 @@ export default function AdminMembers() {
                 <th className="px-4 py-2">이름</th>
                 <th className="px-3 py-2">이메일</th>
                 <th className="px-3 py-2">가입 일자</th>
-                <th className="px-3 py-2">구매자 상세 등록</th>
-                <th className="px-4 py-2">판매자 상세 등록</th>
+                <th className="px-3 py-2">{BUYER_DETAIL_LABEL}</th>
+                <th className="px-4 py-2">{SELLER_DETAIL_LABEL}</th>
               </tr>
             </thead>
             <tbody>
