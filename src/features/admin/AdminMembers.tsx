@@ -5,6 +5,7 @@ import DefaultAddressBadge from '@/components/ui/DefaultAddressBadge';
 import PageIntro from '@/components/ui/PageIntro';
 import { getClientAuth } from '@/lib/firebase';
 import { formatBusinessVerifiedAt } from '@/types/seller';
+import type { BuyerProfile } from '@/types/buyer';
 import type { MemberRecord } from '@/types/member';
 
 function Field({ label, value }: { label: string; value?: string | null }) {
@@ -13,6 +14,25 @@ function Field({ label, value }: { label: string; value?: string | null }) {
       <dt className="w-24 shrink-0 text-muted sm:w-[7.5rem]">{label}</dt>
       <dd className="min-w-0 break-all text-ink">{value?.trim() ? value : '—'}</dd>
     </div>
+  );
+}
+
+function BuyerFields({ buyer }: { buyer: BuyerProfile }) {
+  return (
+    <dl className="mt-2 space-y-1.5">
+      <Field label="핸드폰 번호" value={buyer.buyerPhone} />
+      {buyer.addresses.map((address, index) => (
+        <div key={address.id} className="flex gap-3 text-sm">
+          <dt className="w-24 shrink-0 text-muted sm:w-[7.5rem]">
+            {buyer.addresses.length > 1 ? `배송 주소 ${index + 1}` : '배송 주소'}
+          </dt>
+          <dd className="flex min-w-0 flex-wrap items-center gap-2 break-all text-ink">
+            <span>{address.address}</span>
+            {address.id === buyer.defaultAddressId ? <DefaultAddressBadge /> : null}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -107,20 +127,7 @@ export default function AdminMembers() {
               <section className="mt-4 border-t border-line pt-4">
                 <h3 className="text-xs font-semibold tracking-wide text-subtle">구매자 세부 정보</h3>
                 {item.buyer ? (
-                  <dl className="mt-2 space-y-1.5">
-                    <Field label="핸드폰 번호" value={item.buyer.buyerPhone} />
-                    {item.buyer.addresses.map((address, index) => (
-                      <div key={address.id} className="flex gap-3 text-sm">
-                        <dt className="w-24 shrink-0 text-muted sm:w-[7.5rem]">
-                          {item.buyer.addresses.length > 1 ? `배송 주소 ${index + 1}` : '배송 주소'}
-                        </dt>
-                        <dd className="flex min-w-0 flex-wrap items-center gap-2 break-all text-ink">
-                          <span>{address.address}</span>
-                          {address.id === item.buyer.defaultAddressId ? <DefaultAddressBadge /> : null}
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
+                  <BuyerFields buyer={item.buyer} />
                 ) : (
                   <p className="mt-2 text-sm text-muted">아직 등록된 구매자 세부 정보가 없습니다.</p>
                 )}
