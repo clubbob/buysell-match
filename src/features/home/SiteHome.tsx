@@ -21,7 +21,7 @@ export default function SiteHome() {
 
   return (
     <div className="space-y-6">
-      <PageIntro title="메인" description={`${SITE_NAME}은 ${SITE_TAGLINE}.`}>
+      <PageIntro title={SITE_NAME} description={`${SITE_NAME}은 ${SITE_TAGLINE}.`}>
         {canPostSell ? (
           <Link href="/sell/new" className="btn-primary">
             팝니다 등록

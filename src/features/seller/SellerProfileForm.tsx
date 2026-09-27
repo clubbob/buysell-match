@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/features/auth/auth-context';
-import { inputClassName, isValidEmail } from '@/features/auth/auth-errors';
-import { useUserMode } from '@/features/mode/mode-context';
+import { inputClassName } from '@/features/auth/auth-errors';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
 import { digitsOnly, formatBusinessNumber } from '@/lib/business-number';
+import { formatPhoneNumber, PHONE_HYPHEN_HINT } from '@/lib/phone-number';
 import { uploadBusinessCertificate } from '@/lib/seller-remote';
 import { hasSellerProfile, isSellerProfileComplete } from '@/types/seller';
 
@@ -27,12 +27,11 @@ type StatusApiResponse =
 export default function SellerProfileForm() {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const { mode, ready: modeReady, setMode } = useUserMode();
   const { profile, ready: profileReady, save } = useSellerProfile(user?.uid);
   const [sellerName, setSellerName] = useState('');
   const [representativeName, setRepresentativeName] = useState('');
+  const [sellerMobile, setSellerMobile] = useState('');
   const [sellerPhone, setSellerPhone] = useState('');
-  const [sellerEmail, setSellerEmail] = useState('');
   const [businessAddress, setBusinessAddress] = useState('');
   const [businessNumber, setBusinessNumber] = useState('');
   const [verifiedNumber, setVerifiedNumber] = useState('');
@@ -55,16 +54,12 @@ export default function SellerProfileForm() {
   }, [loading, user, router]);
 
   useEffect(() => {
-    if (user && modeReady && mode !== 'seller') setMode('seller');
-  }, [user, modeReady, mode, setMode]);
-
-  useEffect(() => {
     if (!profileReady || filled) return;
     if (profile) {
       setSellerName(profile.sellerName);
       setRepresentativeName(profile.representativeName);
-      setSellerPhone(profile.sellerPhone);
-      setSellerEmail(profile.sellerEmail);
+      setSellerMobile(formatPhoneNumber(profile.sellerMobile));
+      setSellerPhone(formatPhoneNumber(profile.sellerPhone));
       setBusinessAddress(profile.businessAddress);
       setBusinessNumber(formatBusinessNumber(profile.businessNumber));
       if (profile.businessVerified) {
@@ -76,8 +71,6 @@ export default function SellerProfileForm() {
         setCertificateUrl(profile.businessCertificateUrl);
         setCertificatePreview(profile.businessCertificateUrl);
       }
-    } else if (user?.email) {
-      setSellerEmail(user.email);
     }
     setFilled(true);
   }, [profile, profileReady, user, filled]);
@@ -131,12 +124,8 @@ export default function SellerProfileForm() {
       setLookupError('사업자등록번호를 검증해 주세요. 계속사업자만 등록할 수 있습니다.');
       return;
     }
-    if (!sellerName.trim() || !representativeName.trim() || !sellerPhone.trim() || !businessAddress.trim()) {
-      setError('상호, 대표자, 전화, 사업장 주소를 입력해 주세요.');
-      return;
-    }
-    if (!isValidEmail(sellerEmail)) {
-      setError('올바른 이메일 주소를 입력해 주세요.');
+    if (!sellerName.trim() || !representativeName.trim() || !sellerMobile.trim() || !businessAddress.trim()) {
+      setError('상호, 대표자, 핸드폰 번호, 사업장 주소를 입력해 주세요.');
       return;
     }
     if (!certificateFile && !certificateUrl) {
@@ -154,8 +143,9 @@ export default function SellerProfileForm() {
         sellerId: user.uid,
         sellerName: sellerName.trim(),
         representativeName: representativeName.trim(),
-        sellerPhone: sellerPhone.trim(),
-        sellerEmail: sellerEmail.trim(),
+        sellerMobile: formatPhoneNumber(sellerMobile),
+        sellerPhone: sellerPhone.trim() ? formatPhoneNumber(sellerPhone) : '',
+        sellerEmail: user.email ?? '',
         businessAddress: businessAddress.trim(),
         businessNumber: formatBusinessNumber(verifiedNumber),
         businessVerified: true,
@@ -181,10 +171,7 @@ export default function SellerProfileForm() {
           {done === 'created' ? '판매자 정보 등록이 완료되었습니다.' : '판매자 정보 수정이 완료되었습니다.'}
         </p>
         <div className="action-row mt-0">
-          <Link href="/sell/new" className="btn-primary">
-            팝니다 등록
-          </Link>
-          <Link href="/mypage" className="btn-secondary">
+          <Link href="/mypage" className="btn-primary">
             마이페이지
           </Link>
         </div>
@@ -254,22 +241,30 @@ export default function SellerProfileForm() {
           required
         />
       </label>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-ink">전화</span>
-          <input value={sellerPhone} onChange={(event) => setSellerPhone(event.target.value)} className={inputClassName} required />
-        </label>
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-ink">이메일</span>
-          <input
-            type="email"
-            value={sellerEmail}
-            onChange={(event) => setSellerEmail(event.target.value)}
-            className={inputClassName}
-            required
-          />
-        </label>
-      </div>
+      <label className="block space-y-1.5">
+        <span className="text-sm font-semibold text-ink">핸드폰 번호</span>
+        <input
+          type="tel"
+          autoComplete="tel"
+          value={sellerMobile}
+          onChange={(event) => setSellerMobile(formatPhoneNumber(event.target.value))}
+          className={inputClassName}
+          inputMode="numeric"
+          required
+        />
+        <span className="block text-xs text-subtle">{PHONE_HYPHEN_HINT}</span>
+      </label>
+      <label className="block space-y-1.5">
+        <span className="text-sm font-semibold text-ink">사업장 전화</span>
+        <input
+          type="tel"
+          value={sellerPhone}
+          onChange={(event) => setSellerPhone(formatPhoneNumber(event.target.value))}
+          className={inputClassName}
+          inputMode="numeric"
+        />
+        <span className="block text-xs text-subtle">없으면 비워 두세요. {PHONE_HYPHEN_HINT}</span>
+      </label>
 
       <div className="space-y-1.5">
         <span className="block text-sm font-semibold text-ink">사업자등록증</span>

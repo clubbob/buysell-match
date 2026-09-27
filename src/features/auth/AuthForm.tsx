@@ -4,9 +4,16 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/features/auth/auth-context';
-import { getAuthErrorMessage, inputClassName, isAsciiPassword, isValidEmail } from '@/features/auth/auth-errors';
+import {
+  getAuthErrorMessage,
+  inputClassName,
+  isAsciiPassword,
+  isValidEmail,
+  isValidPersonName,
+  normalizePersonName,
+} from '@/features/auth/auth-errors';
 import { useUserMode } from '@/features/mode/mode-context';
-import { safeNextPath, safeUserMode } from '@/lib/auth-redirect';
+import { safeNextPath } from '@/lib/auth-redirect';
 
 type AuthFormMode = 'login' | 'signup';
 
@@ -21,12 +28,12 @@ export default function AuthForm({ mode }: { mode: AuthFormMode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading, configured, signInWithEmail, signUpWithEmail } = useAuth();
-  const { setMode } = useUserMode();
+  const { resetMode } = useUserMode();
   const isSignup = mode === 'signup';
   const nextPath = safeNextPath(searchParams.get('next'));
-  const intentMode = safeUserMode(searchParams.get('mode'));
   const authQuery = searchParams.toString();
-  const otherAuthHref = `${isSignup ? '/login' : '/signup'}${authQuery ? `?${authQuery}` : ''}`;
+  const otherAuthHref = isSignup ? `/login${authQuery ? `?${authQuery}` : ''}` : '/signup';
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -35,8 +42,8 @@ export default function AuthForm({ mode }: { mode: AuthFormMode }) {
   const [pending, setPending] = useState(false);
 
   function finishAuth() {
-    if (intentMode) setMode(intentMode);
-    router.replace(nextPath ?? '/');
+    resetMode();
+    router.replace(isSignup ? '/' : (nextPath ?? '/'));
   }
 
   useEffect(() => {
@@ -64,6 +71,11 @@ export default function AuthForm({ mode }: { mode: AuthFormMode }) {
       setError('Firebase가 아직 연결되지 않았습니다.');
       return;
     }
+    const displayName = normalizePersonName(name);
+    if (isSignup && !isValidPersonName(displayName)) {
+      setError('이름은 한글 또는 영문 2~20자로 입력해 주세요.');
+      return;
+    }
     if (!isValidEmail(email)) {
       setError('올바른 이메일 주소를 입력해 주세요.');
       return;
@@ -84,7 +96,7 @@ export default function AuthForm({ mode }: { mode: AuthFormMode }) {
     setPending(true);
     try {
       if (isSignup) {
-        await signUpWithEmail(email, password);
+        await signUpWithEmail(displayName, email, password);
       } else {
         await signInWithEmail(email, password);
         if (rememberEmail) {
@@ -107,12 +119,25 @@ export default function AuthForm({ mode }: { mode: AuthFormMode }) {
         <h1 className="text-xl font-bold tracking-tight text-ink">{isSignup ? '회원가입' : '로그인'}</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">
           {isSignup
-            ? '이메일과 비밀번호만 등록합니다. 서비스 이용 역할은 로그인 후에 고릅니다.'
+            ? '이름, 이메일, 비밀번호를 등록합니다. 서비스 이용 역할은 로그인 후에 고릅니다.'
             : '가입한 이메일과 비밀번호로 로그인합니다.'}
         </p>
       </div>
 
       <div className="mt-6 space-y-4">
+        {isSignup ? (
+          <label className="block space-y-1.5">
+            <span className="text-sm font-semibold text-ink">이름</span>
+            <input
+              type="text"
+              autoComplete="name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              className={inputClassName}
+              required
+            />
+          </label>
+        ) : null}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-ink">이메일</span>
           <input

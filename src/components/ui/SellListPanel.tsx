@@ -2,8 +2,16 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { deadlineParts, discountRate, formatQuantityNumber, formatWon, isRemainingShort } from '@/lib/sell-display';
+import { useSellJoinTotals } from '@/features/sell/use-sell-join-totals';
+import { deadlineParts, discountRate, formatJoinParticipants, formatQuantityNumber, formatWon, isRemainingShort } from '@/lib/sell-display';
 import { sellCoverImage, type SellListing } from '@/types/sell';
+import type { OpenJoinSummary } from '@/types/sell-join';
+
+function JoinNote({ summary }: { summary?: OpenJoinSummary }) {
+  const text = summary ? formatJoinParticipants(summary.buyers, summary.quantity) : '';
+  if (!text) return null;
+  return <span className="mt-0.5 block text-xs font-medium text-muted">{text}</span>;
+}
 
 function PhotoSlot({ src, alt }: { src?: string | null; alt: string }) {
   if (src) {
@@ -20,7 +28,7 @@ function PhotoSlot({ src, alt }: { src?: string | null; alt: string }) {
   );
 }
 
-function DesktopRow({ item }: { item: SellListing }) {
+function DesktopRow({ item, join }: { item: SellListing; join?: OpenJoinSummary }) {
   const router = useRouter();
   const rate = discountRate(item.regularPrice, item.salePrice);
   const deadline = deadlineParts(item.deadline);
@@ -40,7 +48,10 @@ function DesktopRow({ item }: { item: SellListing }) {
         <span className="font-semibold">{formatWon(item.salePrice)}</span>
         {rate > 0 ? <span className="mt-0.5 block text-xs font-medium text-muted">(할인율 {rate}%)</span> : null}
       </td>
-      <td className="px-3 py-3 align-middle text-sm tabular-nums text-ink">{formatQuantityNumber(item.minPurchaseLabel)}</td>
+      <td className="px-3 py-3 align-middle text-sm tabular-nums text-ink">
+        <span>{formatQuantityNumber(item.minPurchaseLabel)}</span>
+        <JoinNote summary={join} />
+      </td>
       <td className="px-3 py-3 align-middle text-sm text-ink">
         <span className="tabular-nums">{formatQuantityNumber(item.remainingLabel)}</span>
         {isRemainingShort(item.minPurchaseLabel, item.remainingLabel) ? (
@@ -55,9 +66,10 @@ function DesktopRow({ item }: { item: SellListing }) {
   );
 }
 
-function MobileRow({ item }: { item: SellListing }) {
+function MobileRow({ item, join }: { item: SellListing; join?: OpenJoinSummary }) {
   const rate = discountRate(item.regularPrice, item.salePrice);
   const deadline = deadlineParts(item.deadline);
+  const joinNote = formatJoinParticipants(join?.buyers ?? 0, join?.quantity ?? 0);
 
   return (
     <li className="border-t border-line">
@@ -73,7 +85,8 @@ function MobileRow({ item }: { item: SellListing }) {
               {rate > 0 ? <span className="ml-1 text-xs text-muted">(할인율 {rate}%)</span> : null}
             </p>
             <p className="text-sm text-ink">
-              {item.minPurchaseLabel ? `공동구매 최소 주문 ${formatQuantityNumber(item.minPurchaseLabel)}` : null}
+              {item.minPurchaseLabel ? `공구 최소 주문 ${formatQuantityNumber(item.minPurchaseLabel)}` : null}
+              {joinNote ? <span className="ml-1 text-xs font-medium text-muted">{joinNote}</span> : null}
               {item.minPurchaseLabel ? <span className="mx-1.5 text-subtle">·</span> : null}
               {formatQuantityNumber(item.remainingLabel)}
               {isRemainingShort(item.minPurchaseLabel, item.remainingLabel) ? (
@@ -103,6 +116,8 @@ export default function SellListPanel({
   actionLabel?: string;
   items?: SellListing[];
 }) {
+  const joinTotals = useSellJoinTotals(items.map((item) => item.id));
+
   return (
     <section className="panel min-w-0 overflow-hidden">
       <header className="flex flex-col gap-2 border-b border-line px-4 py-3.5 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
@@ -128,10 +143,10 @@ export default function SellListPanel({
               <col className="w-[72px]" />
               <col className="w-[12%]" />
               <col className="w-[11%]" />
-              <col className="w-[14%]" />
-              <col className="w-[12%]" />
-              <col className="w-[12%]" />
+              <col className="w-[13%]" />
               <col className="w-[15%]" />
+              <col className="w-[11%]" />
+              <col className="w-[14%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-line bg-slate-50 text-left text-[11px] font-semibold tracking-wide text-subtle">
@@ -140,21 +155,21 @@ export default function SellListPanel({
                 <th className="px-3 py-2">판매자</th>
                 <th className="px-3 py-2">정상 가격</th>
                 <th className="px-3 py-2">특판 가격</th>
-                <th className="px-3 py-2">공동구매 최소 주문</th>
+                <th className="px-3 py-2">공구 최소 주문</th>
                 <th className="px-3 py-2">잔여 수량</th>
                 <th className="px-4 py-2">마감</th>
               </tr>
             </thead>
             <tbody>
               {items.map((item) => (
-                <DesktopRow key={item.id} item={item} />
+                <DesktopRow key={item.id} item={item} join={joinTotals[item.id]} />
               ))}
             </tbody>
           </table>
 
           <ul className="lg:hidden">
             {items.map((item) => (
-              <MobileRow key={item.id} item={item} />
+              <MobileRow key={item.id} item={item} join={joinTotals[item.id]} />
             ))}
           </ul>
         </>

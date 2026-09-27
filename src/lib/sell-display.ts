@@ -4,9 +4,18 @@ export function quantityAmount(label: string): number | null {
   return Number(match[0]);
 }
 
+export function formatCount(amount: number): string {
+  return `${amount.toLocaleString('ko-KR')}개`;
+}
+
 export function formatQuantityNumber(label: string): string {
   const amount = quantityAmount(label);
-  return amount == null ? '—' : amount.toLocaleString('ko-KR');
+  return amount == null ? '—' : formatCount(amount);
+}
+
+export function formatJoinParticipants(buyers: number, quantity: number): string {
+  if (buyers <= 0 || quantity <= 0) return '';
+  return `구매 참여 ${buyers.toLocaleString('ko-KR')}명 (${quantity.toLocaleString('ko-KR')}개)`;
 }
 
 export function joinAvailable(limit: number, remaining: number, gathered: number): number {

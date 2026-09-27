@@ -40,7 +40,10 @@ export default async function SellerVerifyPage({ params, searchParams }: PagePro
         <p className="text-xs font-semibold tracking-wide text-subtle">사업자 인증</p>
         <h1 className="mt-1 text-xl font-bold text-ink">{sellerName}</h1>
         <p className="mt-2 text-sm font-semibold text-ink">사업자 정보를 확인한 판매자입니다.</p>
-        <p className="mt-3 text-sm text-muted">전화 {listing.sellerPhone}</p>
+        {listing.sellerMobile ? <p className="mt-3 text-sm text-muted">핸드폰 {listing.sellerMobile}</p> : null}
+        {listing.sellerPhone ? (
+          <p className={`text-sm text-muted ${listing.sellerMobile ? 'mt-1' : 'mt-3'}`}>사업장 전화 {listing.sellerPhone}</p>
+        ) : null}
         <p className="mt-1 text-sm text-muted">이메일 {listing.sellerEmail}</p>
       </section>
 

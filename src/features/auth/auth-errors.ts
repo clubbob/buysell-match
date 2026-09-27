@@ -4,6 +4,7 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   'auth/email-already-in-use': '이미 사용 중인 이메일입니다.',
   'auth/invalid-email': '올바른 이메일 주소를 입력해 주세요.',
   'auth/weak-password': '비밀번호는 6자 이상이어야 합니다.',
+  'auth/requires-recent-login': '다시 로그인한 뒤 비밀번호를 바꿔 주세요.',
   'auth/user-not-found': '이메일 또는 비밀번호가 올바르지 않습니다.',
   'auth/wrong-password': '이메일 또는 비밀번호가 올바르지 않습니다.',
   'auth/invalid-credential': '이메일 또는 비밀번호가 올바르지 않습니다.',
@@ -23,6 +24,16 @@ export function getAuthErrorMessage(error: unknown, fallback = '요청에 실패
 
 export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+export function normalizePersonName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ');
+}
+
+export function isValidPersonName(name: string): boolean {
+  const value = normalizePersonName(name);
+  if (value.length < 2 || value.length > 20) return false;
+  return /^[가-힣a-zA-Z]+(?:[ ·-][가-힣a-zA-Z]+)*$/.test(value);
 }
 
 export function isAsciiPassword(password: string): boolean {

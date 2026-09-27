@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/features/auth/auth-context';
-import { useUserMode } from '@/features/mode/mode-context';
 import { createRemoteSellListing, resolveSellImages, updateRemoteSellListing } from '@/lib/sell-remote';
 import type { SellListing } from '@/types/sell';
 import { inputClassName } from '@/features/auth/auth-errors';
@@ -32,7 +31,6 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
   const isEdit = Boolean(listing);
   const router = useRouter();
   const { user, loading } = useAuth();
-  const { mode, ready: modeReady, setMode } = useUserMode();
   const { profile, ready: profileReady } = useSellerProfile(user?.uid);
   const [cover, setCover] = useState<ImageItem | null>(
     listing?.images[0] ? { id: 'cover', url: listing.images[0], file: null } : null,
@@ -55,12 +53,8 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
   const returnPath = isEdit && listing ? `/sell/${listing.id}/edit` : '/sell/new';
 
   useEffect(() => {
-    if (!loading && !user) router.replace(loginHref('seller', returnPath));
+    if (!loading && !user) router.replace(loginHref(returnPath));
   }, [loading, user, router, returnPath]);
-
-  useEffect(() => {
-    if (user && modeReady && mode !== 'seller') setMode('seller');
-  }, [user, modeReady, mode, setMode]);
 
   useEffect(() => {
     if (!loading && user && profileReady && !isSellerProfileComplete(profile)) {
@@ -164,8 +158,9 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
           sellerName: profile.sellerName,
           representativeName: profile.representativeName,
           businessVerified: profile.businessVerified,
+          sellerMobile: profile.sellerMobile,
           sellerPhone: profile.sellerPhone,
-          sellerEmail: profile.sellerEmail,
+          sellerEmail: user.email || profile.sellerEmail,
           regularPrice: regular,
           salePrice: sale,
           minPurchaseLabel: minPurchaseLabel.trim(),

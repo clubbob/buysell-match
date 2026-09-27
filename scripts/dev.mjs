@@ -60,7 +60,7 @@ if (stopped > 0) {
   fs.rmSync(path.join(root, '.next'), { recursive: true, force: true });
 }
 
-const child = spawn(process.execPath, [nextBin, 'dev'], {
+const child = spawn(process.execPath, [nextBin, 'dev', '--turbopack'], {
   cwd: root,
   stdio: 'inherit',
   env: process.env,

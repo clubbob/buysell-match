@@ -31,7 +31,7 @@ export default function SellIndexClient({ seller }: { seller?: string }) {
             전체 보기
           </Link>
         ) : showSellCreate ? (
-          <Link href={user ? '/sell/new' : loginHref('seller')} className="btn-primary">
+          <Link href={user ? '/sell/new' : loginHref('/sell/new')} className="btn-primary">
             팝니다 등록
           </Link>
         ) : null}

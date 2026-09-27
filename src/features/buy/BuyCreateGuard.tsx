@@ -10,7 +10,7 @@ export default function BuyCreateGuard({ children }: { children: React.ReactNode
   const { user, loading } = useAuth();
 
   useEffect(() => {
-    if (!loading && !user) router.replace(loginHref('buyer'));
+    if (!loading && !user) router.replace(loginHref('/buy/new'));
   }, [loading, user, router]);
 
   if (loading || !user) {

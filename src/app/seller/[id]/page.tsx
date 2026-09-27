@@ -45,7 +45,9 @@ export default async function SellerReviewsPage({ params, searchParams }: PagePr
         </p>
         {listing ? (
           <p className="mt-2 text-sm text-muted">
-            전화 {listing.sellerPhone} · 이메일 {listing.sellerEmail}
+            {listing.sellerMobile ? `핸드폰 ${listing.sellerMobile} · ` : null}
+            {listing.sellerPhone ? `사업장 전화 ${listing.sellerPhone} · ` : null}
+            이메일 {listing.sellerEmail}
           </p>
         ) : null}
       </section>

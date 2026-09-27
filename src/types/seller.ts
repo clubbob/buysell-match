@@ -2,6 +2,7 @@ export type SellerProfile = {
   sellerId: string;
   sellerName: string;
   representativeName: string;
+  sellerMobile: string;
   sellerPhone: string;
   sellerEmail: string;
   businessAddress: string;
@@ -15,8 +16,7 @@ export function hasSellerProfile(profile: SellerProfile | null | undefined): pro
   return Boolean(
     profile?.sellerName.trim() &&
       profile.representativeName.trim() &&
-      profile.sellerPhone.trim() &&
-      profile.sellerEmail.trim() &&
+      profile.sellerMobile.trim() &&
       profile.businessAddress.trim() &&
       profile.businessNumber.trim() &&
       profile.businessVerified,

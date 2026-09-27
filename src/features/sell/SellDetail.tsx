@@ -4,8 +4,10 @@ import Link from 'next/link';
 import SellImageGallery from '@/features/sell/SellImageGallery';
 import SellJoinSection from '@/features/sell/SellJoinSection';
 import PageBack from '@/components/ui/PageBack';
+import { useState } from 'react';
 import { useAuth } from '@/features/auth/auth-context';
-import { deadlineParts, discountRate, formatQuantityNumber, formatWon, isRemainingShort } from '@/lib/sell-display';
+import { deadlineParts, discountRate, formatJoinParticipants, formatQuantityNumber, formatWon, isRemainingShort } from '@/lib/sell-display';
+import type { OpenJoinSummary } from '@/types/sell-join';
 import { countSellerReviews, getSellerReviews } from '@/lib/seller-reviews';
 import type { SellListing } from '@/types/sell';
 
@@ -20,6 +22,8 @@ function Spec({ label, children }: { label: string; children: React.ReactNode })
 
 export default function SellDetail({ item, onRemainingChange }: { item: SellListing; onRemainingChange?: () => void }) {
   const { user } = useAuth();
+  const [join, setJoin] = useState<OpenJoinSummary>({ quantity: 0, buyers: 0 });
+  const joinNote = formatJoinParticipants(join.buyers, join.quantity);
   const rate = discountRate(item.regularPrice, item.salePrice);
   const reviews = getSellerReviews(item.sellerId);
   const remainingShort = isRemainingShort(item.minPurchaseLabel, item.remainingLabel);
@@ -63,7 +67,12 @@ export default function SellDetail({ item, onRemainingChange }: { item: SellList
                   <Link href={`/seller/${item.sellerId}?from=${item.id}`} className="btn-chip">
                     구매자 후기 {countSellerReviews(item.sellerId)}건
                   </Link>
-                  <span className="whitespace-nowrap text-muted">전화 {item.sellerPhone}</span>
+                  {item.sellerMobile ? (
+                    <span className="whitespace-nowrap text-muted">핸드폰 {item.sellerMobile}</span>
+                  ) : null}
+                  {item.sellerPhone ? (
+                    <span className="whitespace-nowrap text-muted">사업장 전화 {item.sellerPhone}</span>
+                  ) : null}
                   <span className="whitespace-nowrap text-muted">이메일 {item.sellerEmail}</span>
                 </div>
               </Spec>
@@ -76,7 +85,12 @@ export default function SellDetail({ item, onRemainingChange }: { item: SellList
                   {rate > 0 ? <span className="mt-0.5 block text-xs font-medium text-muted">(할인율 {rate}%)</span> : null}
                 </span>
               </Spec>
-              <Spec label="공동구매 최소 주문">{formatQuantityNumber(item.minPurchaseLabel)}</Spec>
+              <Spec label="공구 최소 주문">
+                <span>
+                  <span className="tabular-nums">{formatQuantityNumber(item.minPurchaseLabel)}</span>
+                  {joinNote ? <span className="mt-0.5 block text-xs font-medium text-muted">{joinNote}</span> : null}
+                </span>
+              </Spec>
               <Spec label="잔여 수량">
                 <span>
                   <span className="tabular-nums">{formatQuantityNumber(item.remainingLabel)}</span>
@@ -93,7 +107,7 @@ export default function SellDetail({ item, onRemainingChange }: { item: SellList
           </div>
         </div>
 
-        <SellJoinSection item={item} onRemainingChange={onRemainingChange} />
+        <SellJoinSection item={item} onRemainingChange={onRemainingChange} onJoinChange={setJoin} />
       </article>
 
       <section className="panel px-4 py-5 sm:px-6">

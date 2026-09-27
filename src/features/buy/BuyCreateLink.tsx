@@ -13,7 +13,7 @@ export default function BuyCreateLink() {
   if (!showBuyCreate) return null;
 
   return (
-    <Link href={user ? '/buy/new' : loginHref('buyer')} className="btn-primary">
+    <Link href={user ? '/buy/new' : loginHref('/buy/new')} className="btn-primary">
       삽니다 등록
     </Link>
   );

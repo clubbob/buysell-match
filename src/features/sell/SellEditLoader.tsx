@@ -16,7 +16,7 @@ export default function SellEditLoader({ id }: { id: string }) {
   const item = ready ? getById(id) : undefined;
 
   useEffect(() => {
-    if (!loading && !user) router.replace(loginHref('seller', `/sell/${id}/edit`));
+    if (!loading && !user) router.replace(loginHref(`/sell/${id}/edit`));
   }, [id, loading, router, user]);
 
   if (loading || !user || !ready) {

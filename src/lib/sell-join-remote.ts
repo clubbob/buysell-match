@@ -1,7 +1,7 @@
 import { collection, doc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { getClientFirestore } from '@/lib/firebase';
 import { loadLocalJoins, saveLocalJoin, saveLocalJoins } from '@/lib/sell-join-store';
-import type { SellJoin } from '@/types/sell-join';
+import { openJoinSummary, type OpenJoinSummary, type SellJoin } from '@/types/sell-join';
 
 const COLLECTION = 'sellJoins';
 
@@ -13,6 +13,7 @@ function toJoin(id: string, data: Record<string, unknown>): SellJoin | null {
     sellerId: String(data.sellerId ?? ''),
     buyerId: String(data.buyerId),
     buyerEmail: String(data.buyerEmail ?? ''),
+    buyerAddress: String(data.buyerAddress ?? ''),
     quantity: Number(data.quantity) || 0,
     status: data.status === 'confirmed' ? 'confirmed' : 'open',
     createdAt: String(data.createdAt ?? ''),
@@ -39,6 +40,14 @@ export async function fetchSellJoins(listingId: string): Promise<SellJoin[]> {
   } catch {
     return local;
   }
+}
+
+export async function fetchOpenJoinSummaries(listingIds: string[]): Promise<Record<string, OpenJoinSummary>> {
+  const unique = [...new Set(listingIds.filter(Boolean))];
+  const entries = await Promise.all(
+    unique.map(async (id) => [id, openJoinSummary(await fetchSellJoins(id))] as const),
+  );
+  return Object.fromEntries(entries);
 }
 
 export async function createSellJoin(join: SellJoin): Promise<SellJoin> {

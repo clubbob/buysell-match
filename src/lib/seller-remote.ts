@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { getClientFirestore, getClientStorage } from '@/lib/firebase';
 import { isSellerProfileComplete, type SellerProfile } from '@/types/seller';
@@ -10,6 +10,7 @@ function toProfile(id: string, data: Record<string, unknown>): SellerProfile {
     sellerId: id,
     sellerName: String(data.sellerName ?? ''),
     representativeName: String(data.representativeName ?? ''),
+    sellerMobile: String(data.sellerMobile ?? ''),
     sellerPhone: String(data.sellerPhone ?? ''),
     sellerEmail: String(data.sellerEmail ?? ''),
     businessAddress: String(data.businessAddress ?? ''),
@@ -27,6 +28,13 @@ export async function uploadBusinessCertificate(sellerId: string, file: File): P
   const fileRef = ref(storage, `sell/${sellerId}/business-certificate/${Date.now()}-${safeName}`);
   await uploadBytes(fileRef, file);
   return getDownloadURL(fileRef);
+}
+
+export async function fetchSellerProfiles(): Promise<SellerProfile[]> {
+  const db = getClientFirestore();
+  if (!db) return [];
+  const snapshot = await getDocs(collection(db, COLLECTION));
+  return snapshot.docs.map((entry) => toProfile(entry.id, entry.data() as Record<string, unknown>));
 }
 
 export async function fetchSellerProfile(sellerId: string): Promise<SellerProfile | null> {
