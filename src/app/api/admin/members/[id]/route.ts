@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getAdminAuth, getAdminFirestore } from '@/lib/firebase-admin';
 import { getAdminSession } from '@/lib/admin-session';
+import {
+  deleteAuthUser,
+  deleteDocument,
+  getAuthUser,
+  getDocument,
+  hasFirebaseAdminConfig,
+  queryDocumentIds,
+} from '@/lib/firebase-rest-admin';
 import { toBuyerProfile } from '@/types/buyer';
 import type { MemberRecord } from '@/types/member';
 import { toSellerProfile } from '@/types/seller';
@@ -52,33 +59,30 @@ async function getMember(context: RouteContext) {
     return NextResponse.json({ ok: false, message: '잘못된 회원입니다.' }, { status: 400 });
   }
 
-  const auth = getAdminAuth();
-  const db = getAdminFirestore();
-  if (!auth || !db) {
+  if (!hasFirebaseAdminConfig()) {
     return NextResponse.json({ ok: false, message: '관리자 DB가 연결되지 않았습니다.' }, { status: 503 });
   }
 
-  const [user, memberDoc, buyerDoc, sellerDoc] = await Promise.all([
-    auth.getUser(id).catch(() => null),
-    db.collection('members').doc(id).get(),
-    db.collection('buyerProfiles').doc(id).get(),
-    db.collection('sellerProfiles').doc(id).get(),
+  const [user, memberData, buyerData, sellerData] = await Promise.all([
+    getAuthUser(id),
+    getDocument('members', id),
+    getDocument('buyerProfiles', id),
+    getDocument('sellerProfiles', id),
   ]);
 
-  const seller = sellerDoc.exists ? toSellerProfile(id, sellerDoc.data() as Record<string, unknown>) : null;
-  const buyer = buyerDoc.exists ? toBuyerProfile(id, buyerDoc.data() as Record<string, unknown>) : null;
-  const memberData = memberDoc.exists ? (memberDoc.data() as Record<string, unknown>) : {};
+  const seller = sellerData ? toSellerProfile(id, sellerData) : null;
+  const buyer = buyerData ? toBuyerProfile(id, buyerData) : null;
 
-  if (!user && !memberDoc.exists && !buyer && !seller) {
+  if (!user && !memberData && !buyer && !seller) {
     return NextResponse.json({ ok: false, message: '없는 회원입니다.' }, { status: 404 });
   }
 
   const item: MemberRecord = {
     member: {
       id,
-      name: String(memberData.name ?? user?.displayName ?? seller?.representativeName ?? seller?.sellerName ?? ''),
-      email: String(memberData.email ?? user?.email ?? seller?.sellerEmail ?? ''),
-      createdAt: String(memberData.createdAt || user?.metadata.creationTime || ''),
+      name: String(memberData?.name ?? user?.displayName ?? seller?.representativeName ?? seller?.sellerName ?? ''),
+      email: String(memberData?.email ?? user?.email ?? seller?.sellerEmail ?? ''),
+      createdAt: String(memberData?.createdAt || user?.createdAt || ''),
     },
     buyer,
     seller,
@@ -98,21 +102,15 @@ export async function DELETE(request: Request, context: RouteContext) {
     return NextResponse.json({ ok: false, message: '잘못된 회원입니다.' }, { status: 400 });
   }
 
-  const db = getAdminFirestore();
-  if (db) {
-    await db.collection('members').doc(id).delete();
-    await db.collection('buyerProfiles').doc(id).delete();
-    await db.collection('sellerProfiles').doc(id).delete();
-    const listings = await db.collection('sellListings').where('sellerId', '==', id).get();
-    await Promise.all(listings.docs.map((entry) => entry.ref.delete()));
-    const auth = getAdminAuth();
-    if (auth) {
-      try {
-        await auth.deleteUser(id);
-      } catch {
-        // Auth 계정이 없을 수 있음
-      }
-    }
+  if (hasFirebaseAdminConfig()) {
+    const listingIds = await queryDocumentIds('sellListings', 'sellerId', id);
+    await Promise.all([
+      deleteDocument('members', id),
+      deleteDocument('buyerProfiles', id),
+      deleteDocument('sellerProfiles', id),
+      ...listingIds.map((listingId) => deleteDocument('sellListings', listingId)),
+    ]);
+    await deleteAuthUser(id).catch(() => undefined);
     return NextResponse.json({ ok: true });
   }
 
@@ -130,7 +128,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   }
 
   return NextResponse.json(
-    { ok: false, message: '회원 정보를 삭제할 권한이 없습니다. Firebase 서비스 계정을 설정해 주세요.' },
+    { ok: false, message: '회원 정보를 삭제할 권한이 없습니다. Firebase 서비스 계정 키를 설정해 주세요.' },
     { status: 503 },
   );
 }
