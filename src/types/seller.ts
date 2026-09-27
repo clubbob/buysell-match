@@ -12,6 +12,22 @@ export type SellerProfile = {
   businessCertificateUrl: string;
 };
 
+export function toSellerProfile(id: string, data: Record<string, unknown>): SellerProfile {
+  return {
+    sellerId: id,
+    sellerName: String(data.sellerName ?? ''),
+    representativeName: String(data.representativeName ?? ''),
+    sellerMobile: String(data.sellerMobile ?? ''),
+    sellerPhone: String(data.sellerPhone ?? ''),
+    sellerEmail: String(data.sellerEmail ?? ''),
+    businessAddress: String(data.businessAddress ?? ''),
+    businessNumber: String(data.businessNumber ?? ''),
+    businessVerified: Boolean(data.businessVerified),
+    businessVerifiedAt: String(data.businessVerifiedAt ?? ''),
+    businessCertificateUrl: String(data.businessCertificateUrl ?? ''),
+  };
+}
+
 export function hasSellerProfile(profile: SellerProfile | null | undefined): profile is SellerProfile {
   return Boolean(
     profile?.sellerName.trim() &&

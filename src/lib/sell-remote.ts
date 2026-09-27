@@ -109,6 +109,6 @@ export async function updateSellRemaining(id: string, remainingLabel: string): P
   try {
     await updateDoc(doc(db, COLLECTION, id), { remainingLabel });
   } catch {
-    // sample listings are local-only
+    // remaining is already stored locally when Firestore write fails
   }
 }

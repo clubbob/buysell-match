@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getAdminAuth, getAdminFirestore } from '@/lib/firebase-admin';
 import { getAdminSession } from '@/lib/admin-session';
+import { toBuyerProfile } from '@/types/buyer';
+import type { MemberRecord } from '@/types/member';
+import { toSellerProfile } from '@/types/seller';
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -25,6 +28,52 @@ async function deleteWithUserToken(id: string, idToken: string) {
       throw new Error('회원 정보를 삭제하지 못했습니다.');
     }
   }
+}
+
+export async function GET(_request: Request, context: RouteContext) {
+  const session = await getAdminSession();
+  if (!session) {
+    return NextResponse.json({ ok: false, message: '관리자 로그인이 필요합니다.' }, { status: 401 });
+  }
+
+  const { id } = await context.params;
+  if (!isSafeId(id)) {
+    return NextResponse.json({ ok: false, message: '잘못된 회원입니다.' }, { status: 400 });
+  }
+
+  const auth = getAdminAuth();
+  const db = getAdminFirestore();
+  if (!auth || !db) {
+    return NextResponse.json({ ok: false, message: '관리자 DB가 연결되지 않았습니다.' }, { status: 503 });
+  }
+
+  const [user, memberDoc, buyerDoc, sellerDoc] = await Promise.all([
+    auth.getUser(id).catch(() => null),
+    db.collection('members').doc(id).get(),
+    db.collection('buyerProfiles').doc(id).get(),
+    db.collection('sellerProfiles').doc(id).get(),
+  ]);
+
+  const seller = sellerDoc.exists ? toSellerProfile(id, sellerDoc.data() as Record<string, unknown>) : null;
+  const buyer = buyerDoc.exists ? toBuyerProfile(id, buyerDoc.data() as Record<string, unknown>) : null;
+  const memberData = memberDoc.exists ? (memberDoc.data() as Record<string, unknown>) : {};
+
+  if (!user && !memberDoc.exists && !buyer && !seller) {
+    return NextResponse.json({ ok: false, message: '없는 회원입니다.' }, { status: 404 });
+  }
+
+  const item: MemberRecord = {
+    member: {
+      id,
+      name: String(memberData.name ?? user?.displayName ?? seller?.representativeName ?? seller?.sellerName ?? ''),
+      email: String(memberData.email ?? user?.email ?? seller?.sellerEmail ?? ''),
+      createdAt: String(memberData.createdAt || user?.metadata.creationTime || ''),
+    },
+    buyer,
+    seller,
+  };
+
+  return NextResponse.json({ ok: true, item });
 }
 
 export async function DELETE(request: Request, context: RouteContext) {

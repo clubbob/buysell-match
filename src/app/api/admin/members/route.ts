@@ -3,23 +3,7 @@ import { getAdminAuth, getAdminFirestore } from '@/lib/firebase-admin';
 import { getAdminSession } from '@/lib/admin-session';
 import { toBuyerProfile } from '@/types/buyer';
 import type { MemberRecord } from '@/types/member';
-import type { SellerProfile } from '@/types/seller';
-
-function toSeller(id: string, data: Record<string, unknown>): SellerProfile {
-  return {
-    sellerId: id,
-    sellerName: String(data.sellerName ?? ''),
-    representativeName: String(data.representativeName ?? ''),
-    sellerMobile: String(data.sellerMobile ?? ''),
-    sellerPhone: String(data.sellerPhone ?? ''),
-    sellerEmail: String(data.sellerEmail ?? ''),
-    businessAddress: String(data.businessAddress ?? ''),
-    businessNumber: String(data.businessNumber ?? ''),
-    businessVerified: Boolean(data.businessVerified),
-    businessVerifiedAt: String(data.businessVerifiedAt ?? ''),
-    businessCertificateUrl: String(data.businessCertificateUrl ?? ''),
-  };
-}
+import { toSellerProfile } from '@/types/seller';
 
 export async function GET() {
   const session = await getAdminSession();
@@ -54,7 +38,7 @@ export async function GET() {
     members.set(entry.id, {
       name: String(data.name ?? current?.name ?? ''),
       email: String(data.email ?? current?.email ?? ''),
-      createdAt: String(data.createdAt ?? current?.createdAt ?? ''),
+      createdAt: String(data.createdAt || current?.createdAt || ''),
     });
   }
 
@@ -62,7 +46,7 @@ export async function GET() {
     buyerDocs.docs.map((entry) => [entry.id, toBuyerProfile(entry.id, entry.data() as Record<string, unknown>)]),
   );
   const sellers = new Map(
-    sellerDocs.docs.map((entry) => [entry.id, toSeller(entry.id, entry.data() as Record<string, unknown>)]),
+    sellerDocs.docs.map((entry) => [entry.id, toSellerProfile(entry.id, entry.data() as Record<string, unknown>)]),
   );
   for (const [id, buyer] of buyers) {
     if (!members.has(id)) {

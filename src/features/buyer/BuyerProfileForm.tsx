@@ -173,9 +173,14 @@ export default function BuyerProfileForm() {
         </p>
       ) : null}
 
-      <button type="submit" className="btn-primary" disabled={pending}>
-        {pending ? '저장 중…' : hasBuyerProfile(profile) ? '수정하기' : '등록하기'}
-      </button>
+      <div className="action-row">
+        <button type="submit" className="btn-primary" disabled={pending}>
+          {pending ? '저장 중…' : '저장'}
+        </button>
+        <Link href="/mypage" className="btn-secondary">
+          마이페이지
+        </Link>
+      </div>
     </form>
   );
 }

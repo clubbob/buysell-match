@@ -1,4 +1,3 @@
-import { SAMPLE_SELL_LISTINGS } from '@/lib/sell-samples';
 import type { SellListing } from '@/types/sell';
 
 const STORAGE_KEY = 'buysell.sellListings';
@@ -54,11 +53,8 @@ export function removeUserSellListing(id: string) {
 }
 
 export function mergeSellListings(userItems: SellListing[]): SellListing[] {
-  const sampleIds = new Set(SAMPLE_SELL_LISTINGS.map((item) => item.id));
   const overrides = loadRemainingOverrides();
-  return [...userItems.filter((item) => !sampleIds.has(item.id)), ...SAMPLE_SELL_LISTINGS].map((item) =>
-    overrides[item.id] ? { ...item, remainingLabel: overrides[item.id] } : item,
-  );
+  return userItems.map((item) => (overrides[item.id] ? { ...item, remainingLabel: overrides[item.id] } : item));
 }
 
 export function findSellListing(id: string, userItems: SellListing[]): SellListing | undefined {

@@ -5,8 +5,8 @@ import PageIntro from '@/components/ui/PageIntro';
 import { useAuth } from '@/features/auth/auth-context';
 import { useUserMode } from '@/features/mode/mode-context';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
+import { useSellListings } from '@/features/sell/use-sell-listings';
 import { formatWon } from '@/lib/sell-display';
-import { SAMPLE_SELL_LISTINGS } from '@/lib/sell-samples';
 import { SITE_NAME, SITE_TAGLINE } from '@/lib/site';
 import { isSellerProfileComplete } from '@/types/seller';
 import { sellCoverImage } from '@/types/sell';
@@ -15,7 +15,8 @@ export default function SiteHome() {
   const { user } = useAuth();
   const { mode } = useUserMode();
   const { profile, ready: profileReady } = useSellerProfile(user?.uid);
-  const highlights = SAMPLE_SELL_LISTINGS.slice(0, 3);
+  const { items, ready: listingsReady } = useSellListings();
+  const highlights = items.slice(0, 3);
   const canPostSell = Boolean(user) && mode === 'seller' && profileReady && isSellerProfileComplete(profile);
   const canPostBuy = Boolean(user) && mode === 'buyer';
 
@@ -73,28 +74,34 @@ export default function SiteHome() {
             팝니다 목록
           </Link>
         </header>
-        <ul className="grid sm:grid-cols-3">
-          {highlights.map((item) => {
-            const cover = sellCoverImage(item);
-            return (
-              <li key={item.id} className="border-t border-line sm:border-t-0 sm:border-r sm:last:border-r-0">
-                <Link href={`/sell/${item.id}`} className="block hover:bg-slate-50">
-                  {cover ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={cover} alt="" className="aspect-[4/3] w-full object-cover" />
-                  ) : (
-                    <div className="flex aspect-[4/3] items-center justify-center bg-slate-50 text-xs text-subtle">사진 없음</div>
-                  )}
-                  <div className="px-4 py-3">
-                    <p className="text-sm font-semibold text-ink">{item.title}</p>
-                    <p className="mt-1 text-sm text-muted">{item.sellerName}</p>
-                    <p className="mt-1 text-sm font-bold tabular-nums text-ink">{formatWon(item.salePrice)}</p>
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        {!listingsReady ? (
+          <p className="px-4 py-10 text-center text-sm text-muted sm:px-6">불러오는 중…</p>
+        ) : highlights.length > 0 ? (
+          <ul className="grid sm:grid-cols-3">
+            {highlights.map((item) => {
+              const cover = sellCoverImage(item);
+              return (
+                <li key={item.id} className="border-t border-line sm:border-t-0 sm:border-r sm:last:border-r-0">
+                  <Link href={`/sell/${item.id}`} className="block hover:bg-slate-50">
+                    {cover ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={cover} alt="" className="aspect-[4/3] w-full object-cover" />
+                    ) : (
+                      <div className="flex aspect-[4/3] items-center justify-center bg-slate-50 text-xs text-subtle">사진 없음</div>
+                    )}
+                    <div className="px-4 py-3">
+                      <p className="text-sm font-semibold text-ink">{item.title}</p>
+                      <p className="mt-1 text-sm text-muted">{item.sellerName}</p>
+                      <p className="mt-1 text-sm font-bold tabular-nums text-ink">{formatWon(item.salePrice)}</p>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="px-4 py-10 text-center text-sm text-muted sm:px-6">아직 올라온 팝니다가 없습니다.</p>
+        )}
       </section>
 
       <section className="panel px-4 py-5 sm:px-6">
