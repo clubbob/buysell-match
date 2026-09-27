@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import PageIntro from '@/components/ui/PageIntro';
+import { readApiJson } from '@/lib/api-json';
 import { hasBuyerProfile } from '@/types/buyer';
 import { formatMemberJoinedAt, type MemberRecord } from '@/types/member';
 import { hasSellerProfile } from '@/types/seller';
@@ -66,7 +67,10 @@ export default function AdminMembers() {
     let cancelled = false;
     void fetch('/api/admin/members')
       .then(async (response) => {
-        const data = (await response.json()) as { ok?: boolean; items?: MemberRecord[]; message?: string };
+        const data = await readApiJson<{ ok?: boolean; items?: MemberRecord[]; message?: string }>(
+          response,
+          '목록을 불러오지 못했습니다.',
+        );
         if (!response.ok || !data.ok) throw new Error(data.message ?? '목록을 불러오지 못했습니다.');
         return data.items ?? [];
       })
@@ -94,7 +98,7 @@ export default function AdminMembers() {
       ) : null}
       {!ready ? (
         <p className="text-sm text-muted">불러오는 중…</p>
-      ) : items.length === 0 ? (
+      ) : error ? null : items.length === 0 ? (
         <p className="panel px-4 py-10 text-center text-sm text-muted">아직 등록된 회원이 없습니다.</p>
       ) : (
         <section className="panel min-w-0 overflow-hidden">

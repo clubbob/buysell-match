@@ -31,6 +31,14 @@ async function deleteWithUserToken(id: string, idToken: string) {
 }
 
 export async function GET(_request: Request, context: RouteContext) {
+  try {
+    return await getMember(context);
+  } catch {
+    return NextResponse.json({ ok: false, message: '회원 정보를 불러오지 못했습니다.' }, { status: 500 });
+  }
+}
+
+async function getMember(context: RouteContext) {
   const session = await getAdminSession();
   if (!session) {
     return NextResponse.json({ ok: false, message: '관리자 로그인이 필요합니다.' }, { status: 401 });

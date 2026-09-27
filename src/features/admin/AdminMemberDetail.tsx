@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import DefaultAddressBadge from '@/components/ui/DefaultAddressBadge';
 import PageBack from '@/components/ui/PageBack';
+import { readApiJson } from '@/lib/api-json';
 import { getClientAuth } from '@/lib/firebase';
 import type { BuyerProfile } from '@/types/buyer';
 import { formatMemberJoinedAt, type MemberRecord } from '@/types/member';
@@ -47,7 +48,10 @@ export default function AdminMemberDetail({ id }: { id: string }) {
     let cancelled = false;
     void fetch(`/api/admin/members/${id}`)
       .then(async (response) => {
-        const data = (await response.json()) as { ok?: boolean; item?: MemberRecord; message?: string };
+        const data = await readApiJson<{ ok?: boolean; item?: MemberRecord; message?: string }>(
+          response,
+          '회원 정보를 불러오지 못했습니다.',
+        );
         if (!response.ok || !data.ok || !data.item) throw new Error(data.message ?? '회원 정보를 불러오지 못했습니다.');
         return data.item;
       })
