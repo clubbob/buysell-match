@@ -3,7 +3,7 @@
 import { useSellListings } from '@/features/sell/use-sell-listings';
 import SellDetail from '@/features/sell/SellDetail';
 
-export default function SellDetailLoader({ id }: { id: string }) {
+export default function SellDetailLoader({ id, from }: { id: string; from?: string }) {
   const { getById, ready, refreshRemaining } = useSellListings();
 
   if (!ready) {
@@ -15,5 +15,5 @@ export default function SellDetailLoader({ id }: { id: string }) {
     return <p className="panel px-4 py-10 text-center text-sm text-muted">없는 상품입니다.</p>;
   }
 
-  return <SellDetail item={item} onRemainingChange={refreshRemaining} />;
+  return <SellDetail item={item} from={from} onRemainingChange={refreshRemaining} />;
 }

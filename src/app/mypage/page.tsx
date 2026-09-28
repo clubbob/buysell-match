@@ -176,7 +176,7 @@ export default function MyPage() {
         </div>
 
         {postTab === 'sell' ? (
-          <MyPageSellPosts sellerId={user.uid} listings={myListings} ready={ready} />
+          <MyPageSellPosts listings={myListings} ready={ready} />
         ) : (
           <p className="px-4 py-10 text-center text-sm text-muted">아직 올린 삽니다가 없습니다.</p>
         )}

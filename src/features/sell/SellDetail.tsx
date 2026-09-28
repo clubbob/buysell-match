@@ -1,34 +1,36 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
+import PageBack from '@/components/ui/PageBack';
+import { useAuth } from '@/features/auth/auth-context';
 import SellImageGallery from '@/features/sell/SellImageGallery';
 import SellGuidePanel from '@/features/sell/SellGuidePanel';
 import SellJoinSection from '@/features/sell/SellJoinSection';
-import PageBack from '@/components/ui/PageBack';
-import { useState } from 'react';
-import { deadlineParts, discountRate, formatJoinParticipants, formatQuantityNumber, formatWon, isRemainingShort } from '@/lib/sell-display';
-import type { OpenJoinSummary } from '@/types/sell-join';
+import SellListingSpecs from '@/features/sell/SellListingSpecs';
+import type { OpenJoinSummary, SellJoin } from '@/types/sell-join';
 import type { SellListing } from '@/types/sell';
 
-function Spec({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-3 border-b border-line py-3 text-sm">
-      <dt className="leading-snug text-subtle">{label}</dt>
-      <dd className="flex min-h-[1.75rem] items-center text-ink">{children}</dd>
-    </div>
-  );
-}
-
-export default function SellDetail({ item, onRemainingChange }: { item: SellListing; onRemainingChange?: () => void }) {
+export default function SellDetail({
+  item,
+  from,
+  onRemainingChange,
+}: {
+  item: SellListing;
+  from?: string;
+  onRemainingChange?: () => void;
+}) {
+  const { user } = useAuth();
   const [join, setJoin] = useState<OpenJoinSummary>({ quantity: 0, buyers: 0 });
-  const joinNote = formatJoinParticipants(join.buyers, join.quantity);
-  const rate = discountRate(item.regularPrice, item.salePrice);
-  const remainingShort = isRemainingShort(item.minPurchaseLabel, item.remainingLabel);
-  const deadline = deadlineParts(item.deadline);
+  const [joins, setJoins] = useState<SellJoin[] | null>(null);
+  const fromMypage = from === 'mypage';
+  const isOwner = Boolean(user && user.uid === item.sellerId);
+  const canEdit = Boolean(fromMypage && isOwner && joins && joins.length === 0);
+  const editLocked = Boolean(fromMypage && isOwner && joins && joins.length > 0);
 
   return (
     <div className="space-y-5">
-      <PageBack href="/sell" />
+      <PageBack href={fromMypage ? '/mypage' : '/sell'} />
 
       <article className="panel overflow-hidden">
         <div className="flex flex-col lg:flex-row">
@@ -37,63 +39,23 @@ export default function SellDetail({ item, onRemainingChange }: { item: SellList
           </div>
 
           <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6">
-            <h1 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">{item.title}</h1>
-
-            <dl className="mt-5">
-              <Spec label="판매자">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="whitespace-nowrap font-semibold">{item.sellerName}</span>
-                  {item.businessVerified ? (
-                    <Link
-                      href={`/seller/${item.sellerId}/verify?from=${item.id}`}
-                      className="btn-chip"
-                    >
-                      사업자 인증
-                    </Link>
-                  ) : (
-                    <span className="whitespace-nowrap text-xs text-subtle">인증 대기</span>
-                  )}
-                  {item.sellerMobile ? (
-                    <span className="whitespace-nowrap text-muted">핸드폰 {item.sellerMobile}</span>
-                  ) : null}
-                  {item.sellerPhone ? (
-                    <span className="whitespace-nowrap text-muted">사업장 전화 {item.sellerPhone}</span>
-                  ) : null}
-                  <span className="whitespace-nowrap text-muted">이메일 {item.sellerEmail}</span>
-                </div>
-              </Spec>
-              <Spec label="정상 가격">
-                <span className="text-subtle line-through tabular-nums">{formatWon(item.regularPrice)}</span>
-              </Spec>
-              <Spec label="특판 가격">
-                <span>
-                  <span className="font-semibold tabular-nums">{formatWon(item.salePrice)}</span>
-                  {rate > 0 ? <span className="mt-0.5 block text-xs font-medium text-muted">(할인율 {rate}%)</span> : null}
-                </span>
-              </Spec>
-              <Spec label="공구 최소 주문">
-                <span>
-                  <span className="tabular-nums">{formatQuantityNumber(item.minPurchaseLabel)}</span>
-                  {joinNote ? <span className="mt-0.5 block text-xs font-medium text-muted">{joinNote}</span> : null}
-                </span>
-              </Spec>
-              <Spec label="잔여 수량">
-                <span>
-                  <span className="tabular-nums">{formatQuantityNumber(item.remainingLabel)}</span>
-                  {remainingShort ? <span className="mt-0.5 block text-xs font-medium text-muted">잔여 부족</span> : null}
-                </span>
-              </Spec>
-              <Spec label="마감">
-                <span>
-                  <span className="tabular-nums">{deadline.date}</span>
-                  <span className="mt-0.5 block text-xs font-medium text-muted">{deadline.note}</span>
-                </span>
-              </Spec>
-            </dl>
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">{item.title}</h1>
+              {canEdit ? (
+                <Link href={`/sell/${item.id}/edit`} className="btn-chip shrink-0">
+                  수정
+                </Link>
+              ) : editLocked ? (
+                <span className="shrink-0 text-xs text-subtle">수정 불가 (참여자 존재)</span>
+              ) : null}
+            </div>
+            <div className="mt-5">
+              <SellListingSpecs item={item} join={join} showTitle={false} showSellerContact />
+            </div>
           </div>
         </div>
 
-        <SellJoinSection item={item} onRemainingChange={onRemainingChange} onJoinChange={setJoin} />
+        <SellJoinSection item={item} onRemainingChange={onRemainingChange} onJoinChange={setJoin} onJoinsLoaded={setJoins} />
       </article>
 
       <SellGuidePanel item={item} />

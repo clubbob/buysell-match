@@ -1,16 +1,17 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/features/auth/auth-context';
-import { createRemoteSellListing, resolveSellImages, updateRemoteSellListing } from '@/lib/sell-remote';
-import type { SellListing } from '@/types/sell';
 import { inputClassName } from '@/features/auth/auth-errors';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
 import { loginHref } from '@/lib/auth-redirect';
 import { listingGuide } from '@/lib/sell-guide';
 import { quantityAmount } from '@/lib/sell-display';
+import { createRemoteSellListing, resolveSellImages, updateRemoteSellListing } from '@/lib/sell-remote';
+import { cn } from '@/lib/utils';
 import { isSellerProfileComplete } from '@/types/seller';
+import type { SellListing } from '@/types/sell';
 
 const EXTRA_COUNT = 4;
 
@@ -20,12 +21,46 @@ type ImageItem = {
   file: File | null;
 };
 
+type GuideTab = 'guide' | 'reviews' | 'inquiries';
+
 function toImageItem(file: File): ImageItem {
   return {
     id: `${file.name}-${file.size}-${file.lastModified}`,
     url: URL.createObjectURL(file),
     file,
   };
+}
+
+function SpecField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-3 border-b border-line py-3 text-sm">
+      <dt className="leading-snug text-subtle">{label}</dt>
+      <dd className="min-w-0">{children}</dd>
+    </div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'relative min-h-12 flex-1 whitespace-nowrap px-2 text-sm font-semibold sm:px-4',
+        active ? 'text-ink after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-ink sm:after:inset-x-4' : 'text-muted',
+      )}
+    >
+      {children}
+    </button>
+  );
 }
 
 export default function SellCreateForm({ listing }: { listing?: SellListing }) {
@@ -39,22 +74,27 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
   const [extras, setExtras] = useState<ImageItem[]>(
     (listing?.images.slice(1) ?? []).map((url, index) => ({ id: `extra-${index}`, url, file: null })),
   );
+  const [activeImage, setActiveImage] = useState(0);
   const [title, setTitle] = useState(listing?.title ?? '');
   const [regularPrice, setRegularPrice] = useState(listing ? String(listing.regularPrice) : '');
   const [salePrice, setSalePrice] = useState(listing ? String(listing.salePrice) : '');
   const [minPurchaseLabel, setMinPurchaseLabel] = useState(listing?.minPurchaseLabel ?? '');
-  const [limitLabel, setLimitLabel] = useState(listing?.limitLabel ?? listing?.quantityLabel ?? '');
-  const [quantityLabel, setQuantityLabel] = useState(listing?.quantityLabel ?? '');
   const [remainingLabel, setRemainingLabel] = useState(listing?.remainingLabel ?? '');
   const [deadline, setDeadline] = useState(listing?.deadline ?? '');
   const initialGuide = listing ? listingGuide(listing) : { intro: '', spec: '', trade: '' };
   const [description, setDescription] = useState(initialGuide.intro);
   const [specText, setSpecText] = useState(initialGuide.spec);
   const [tradeText, setTradeText] = useState(initialGuide.trade);
+  const [guideTab, setGuideTab] = useState<GuideTab>('guide');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const pickSlot = useRef(0);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const guidePanel = useRef<HTMLElement>(null);
 
   const returnPath = isEdit && listing ? `/sell/${listing.id}/edit` : '/sell/new';
+  const images = [cover, ...extras];
+  const current = images[activeImage] ?? images[0];
 
   useEffect(() => {
     if (!loading && !user) router.replace(loginHref(returnPath));
@@ -66,17 +106,40 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
     }
   }, [loading, user, profile, profileReady, router, returnPath]);
 
-  function handleCover(fileList: FileList | null) {
-    const file = fileList?.[0];
-    if (!file) return;
-    setCover(toImageItem(file));
+  function openPicker(slot: number) {
+    pickSlot.current = slot;
+    if (fileInput.current) {
+      fileInput.current.value = '';
+      fileInput.current.click();
+    }
   }
 
-  function handleExtras(fileList: FileList | null) {
-    if (!fileList?.length) return;
-    const remaining = EXTRA_COUNT - extras.length;
-    const files = Array.from(fileList).slice(0, remaining);
-    setExtras((current) => [...current, ...files.map(toImageItem)]);
+  function handlePicked(fileList: FileList | null) {
+    const file = fileList?.[0];
+    if (!file) return;
+    const slot = pickSlot.current;
+    const next = toImageItem(file);
+    if (slot <= 0) {
+      setCover(next);
+      setActiveImage(0);
+      return;
+    }
+    const extraIndex = Math.min(Math.max(slot - 1, extras.length), EXTRA_COUNT - 1);
+    setExtras((currentExtras) => {
+      if (currentExtras.length >= EXTRA_COUNT) return currentExtras;
+      if (extraIndex < currentExtras.length) {
+        const copy = [...currentExtras];
+        copy[extraIndex] = next;
+        return copy;
+      }
+      return [...currentExtras, next];
+    });
+    setActiveImage(extraIndex + 1);
+  }
+
+  function removeExtra(index: number) {
+    setExtras((currentExtras) => currentExtras.filter((_, extraIndex) => extraIndex !== index));
+    setActiveImage((value) => (value === index + 1 ? 0 : value > index + 1 ? value - 1 : value));
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -103,7 +166,7 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
       return;
     }
     if (!title.trim()) {
-      setError('상품명을 입력해 주세요.');
+      setError('상품을 입력해 주세요.');
       return;
     }
     const regular = Number(regularPrice);
@@ -112,40 +175,30 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
       setError('가격은 0보다 큰 숫자로 입력해 주세요.');
       return;
     }
-    if (!minPurchaseLabel.trim() || !limitLabel.trim() || !quantityLabel.trim() || !remainingLabel.trim()) {
-      setError('공동구매 최소 주문, 한계 수량, 수량, 잔여 수량을 입력해 주세요.');
+    if (!minPurchaseLabel.trim() || !remainingLabel.trim()) {
+      setError('공구 최소 주문, 잔여 수량을 입력해 주세요.');
       return;
     }
     const minPurchase = quantityAmount(minPurchaseLabel);
-    const limit = quantityAmount(limitLabel);
-    const totalQuantity = quantityAmount(quantityLabel);
     const remaining = quantityAmount(remainingLabel);
-    if (minPurchase == null || minPurchase <= 0 || limit == null || totalQuantity == null || remaining == null) {
-      setError('공동구매 최소 주문, 한계 수량, 수량, 잔여 수량은 숫자로 입력해 주세요.');
-      return;
-    }
-    if (limit < minPurchase) {
-      setError('한계 수량은 공동구매 최소 주문보다 적을 수 없습니다.');
+    if (minPurchase == null || minPurchase <= 0 || remaining == null) {
+      setError('공구 최소 주문, 잔여 수량은 숫자로 입력해 주세요.');
       return;
     }
     if (!isEdit && remaining < minPurchase) {
-      setError('등록할 때 잔여 수량은 공동구매 최소 주문보다 적을 수 없습니다.');
-      return;
-    }
-    if (remaining > limit) {
-      setError('잔여 수량은 한계 수량보다 많을 수 없습니다.');
-      return;
-    }
-    if (totalQuantity < remaining) {
-      setError('잔여 수량은 전체 수량보다 많을 수 없습니다.');
+      setError('등록할 때 잔여 수량은 공구 최소 주문보다 적을 수 없습니다.');
       return;
     }
     if (!deadline) {
-      setError('마감일을 선택해 주세요.');
+      setError('마감을 선택해 주세요.');
       return;
     }
     if (!description.trim() || !specText.trim() || !tradeText.trim()) {
+      setGuideTab('guide');
       setError('소개, 구성·규격, 결제·배송·교환을 모두 입력해 주세요.');
+      window.requestAnimationFrame(() => {
+        guidePanel.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
       return;
     }
     if (!isSellerProfileComplete(profile)) {
@@ -168,8 +221,8 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
           regularPrice: regular,
           salePrice: sale,
           minPurchaseLabel: minPurchaseLabel.trim(),
-          limitLabel: limitLabel.trim(),
-          quantityLabel: quantityLabel.trim(),
+          limitLabel: remainingLabel.trim(),
+          quantityLabel: remainingLabel.trim(),
           remainingLabel: remainingLabel.trim(),
           deadline,
           description: description.trim(),
@@ -200,189 +253,232 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
   }
 
   return (
-    <form className="space-y-8" onSubmit={handleSubmit}>
-      <section>
-        <h2 className="text-sm font-bold text-ink">상품 사진</h2>
-        <p className="mt-1 text-sm text-muted">대표 이미지 1장과 추가 이미지 {EXTRA_COUNT}장을 올려 주세요.</p>
+    <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+      <input ref={fileInput} type="file" accept="image/*" className="sr-only" onChange={(event) => handlePicked(event.target.files)} />
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <label className="block">
-            <span className="mb-2 block text-sm font-semibold text-ink">대표 이미지</span>
-            <span className="flex min-h-40 cursor-pointer flex-col items-center justify-center border border-dashed border-line bg-slate-50">
-              {cover ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={cover.url} alt="대표 이미지" className="h-40 w-full object-cover" />
-              ) : (
-                <span className="px-4 py-8 text-center text-sm text-subtle">클릭해서 대표 사진을 넣으세요</span>
-              )}
-            </span>
-            <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleCover(event.target.files)} />
-          </label>
-
-          <div>
-            <span className="mb-2 block text-sm font-semibold text-ink">추가 이미지</span>
-            <div className="grid grid-cols-4 gap-2">
-              {extras.map((item) => (
-                <div key={item.id} className="relative">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.url} alt="" className="h-24 w-full border border-line object-cover" />
-                  <button
-                    type="button"
-                    className="absolute right-1 top-1 bg-ink px-1.5 py-0.5 text-[10px] text-white"
-                    onClick={() => setExtras((current) => current.filter((entry) => entry.id !== item.id))}
-                  >
-                    삭제
-                  </button>
-                </div>
-              ))}
-              {extras.length < EXTRA_COUNT ? (
-                <label className="flex h-24 cursor-pointer items-center justify-center border border-dashed border-line text-xs text-subtle">
-                  + 추가
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="sr-only"
-                    onChange={(event) => handleExtras(event.target.files)}
+      <article className="panel overflow-hidden">
+        <div className="flex flex-col lg:flex-row">
+          <div className="w-full border-b border-line lg:w-[22rem] lg:shrink-0 lg:self-stretch lg:border-b-0 lg:border-r">
+            <div className="flex h-full flex-col bg-slate-50">
+              <button
+                type="button"
+                className="relative min-h-0 flex-1"
+                onClick={() => openPicker(activeImage)}
+              >
+                {current ? (
+                  <img
+                    src={current.url}
+                    alt=""
+                    className="aspect-square w-full object-contain bg-slate-50 p-3 lg:absolute lg:inset-0 lg:h-full lg:w-full lg:aspect-auto"
                   />
-                </label>
-              ) : null}
+                ) : (
+                  <span className="flex aspect-square w-full items-center justify-center px-4 text-center text-sm text-subtle lg:absolute lg:inset-0 lg:aspect-auto">
+                    클릭해서 대표 사진을 넣으세요
+                  </span>
+                )}
+                {current && activeImage === 0 ? (
+                  <span className="absolute left-3 top-3 bg-ink px-2 py-1 text-[11px] font-semibold text-white">대표</span>
+                ) : null}
+              </button>
+              <ul className="grid shrink-0 grid-cols-5 gap-px border-t border-line bg-line">
+                {Array.from({ length: 1 + EXTRA_COUNT }, (_, slot) => {
+                  const item = images[slot];
+                  return (
+                    <li key={slot}>
+                      {item ? (
+                        <div className="relative">
+                          <button
+                            type="button"
+                            className={cn(
+                              'relative block w-full bg-white',
+                              slot === activeImage ? 'ring-2 ring-inset ring-ink' : 'opacity-80 hover:opacity-100',
+                            )}
+                            onClick={() => setActiveImage(slot)}
+                          >
+                            <img src={item.url} alt="" className="aspect-square w-full object-contain bg-white p-1" />
+                            {slot === 0 ? (
+                              <span className="absolute left-1 top-1 bg-ink px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                                대표
+                              </span>
+                            ) : null}
+                          </button>
+                          {slot > 0 ? (
+                            <button
+                              type="button"
+                              className="absolute right-1 top-1 bg-ink px-1.5 py-0.5 text-[10px] text-white"
+                              onClick={() => removeExtra(slot - 1)}
+                            >
+                              삭제
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="flex aspect-square w-full items-center justify-center bg-white text-xs text-subtle"
+                          onClick={() => openPicker(slot === 0 ? 0 : extras.length + 1)}
+                        >
+                          + 추가
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           </div>
+
+          <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6">
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              className="w-full border-0 bg-transparent text-xl font-bold tracking-tight text-ink outline-none placeholder:text-subtle focus:ring-0 sm:text-2xl"
+              placeholder="상품"
+              required
+            />
+            <dl className="mt-5">
+              <SpecField label="판매자">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="whitespace-nowrap font-semibold">{profile.sellerName}</span>
+                  <span className="whitespace-nowrap text-xs text-subtle">
+                    {profile.businessVerified ? '사업자 인증' : '인증 대기'}
+                  </span>
+                  {profile.sellerMobile ? (
+                    <span className="whitespace-nowrap text-muted">핸드폰 {profile.sellerMobile}</span>
+                  ) : null}
+                  {profile.sellerPhone ? (
+                    <span className="whitespace-nowrap text-muted">사업장 전화 {profile.sellerPhone}</span>
+                  ) : null}
+                  <span className="whitespace-nowrap text-muted">이메일 {user.email || profile.sellerEmail}</span>
+                </div>
+              </SpecField>
+              <SpecField label="정상 가격">
+                <input
+                  type="number"
+                  min={1}
+                  value={regularPrice}
+                  onChange={(event) => setRegularPrice(event.target.value)}
+                  className={inputClassName}
+                  placeholder="원"
+                  required
+                />
+              </SpecField>
+              <SpecField label="특판 가격">
+                <input
+                  type="number"
+                  min={1}
+                  value={salePrice}
+                  onChange={(event) => setSalePrice(event.target.value)}
+                  className={inputClassName}
+                  placeholder="원"
+                  required
+                />
+              </SpecField>
+              <SpecField label="공구 최소 주문">
+                <input
+                  value={minPurchaseLabel}
+                  onChange={(event) => setMinPurchaseLabel(event.target.value)}
+                  className={inputClassName}
+                  placeholder="예: 20개"
+                  required
+                />
+              </SpecField>
+              <SpecField label="잔여 수량">
+                <input
+                  value={remainingLabel}
+                  onChange={(event) => setRemainingLabel(event.target.value)}
+                  className={inputClassName}
+                  placeholder="예: 80개"
+                  required
+                />
+              </SpecField>
+              <SpecField label="마감">
+                <input
+                  type="date"
+                  value={deadline}
+                  onChange={(event) => setDeadline(event.target.value)}
+                  className={inputClassName}
+                  required
+                />
+              </SpecField>
+            </dl>
+          </div>
+        </div>
+      </article>
+
+      <section ref={guidePanel} className="panel overflow-hidden">
+        <div className="flex border-b border-line">
+          <TabButton active={guideTab === 'guide'} onClick={() => setGuideTab('guide')}>
+            상품 안내
+          </TabButton>
+          <TabButton active={guideTab === 'reviews'} onClick={() => setGuideTab('reviews')}>
+            구매자 후기 0
+          </TabButton>
+          <TabButton active={guideTab === 'inquiries'} onClick={() => setGuideTab('inquiries')}>
+            상품 문의 0
+          </TabButton>
+        </div>
+
+        <div hidden={guideTab !== 'guide'}>
+          <div className="space-y-5 px-4 py-6 sm:px-6 sm:py-7">
+            {error?.includes('소개') ? (
+              <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger" role="alert">
+                {error}
+              </p>
+            ) : null}
+            <label className="block space-y-2">
+              <span className="text-sm font-bold text-ink">소개</span>
+              <textarea
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                className={`${inputClassName} h-28 py-3`}
+                placeholder="어떤 상품인지 한눈에 보이게 적어 주세요."
+              />
+            </label>
+            <label className="block space-y-2 border-t border-line pt-5">
+              <span className="text-sm font-bold text-ink">구성·규격</span>
+              <textarea
+                value={specText}
+                onChange={(event) => setSpecText(event.target.value)}
+                className={`${inputClassName} h-32 py-3`}
+                placeholder="구성품, 수량, 크기, 소재처럼 확인에 필요한 내용을 적습니다."
+              />
+            </label>
+            <label className="block space-y-2 border-t border-line pt-5">
+              <span className="text-sm font-bold text-ink">결제·배송·교환</span>
+              <textarea
+                value={tradeText}
+                onChange={(event) => setTradeText(event.target.value)}
+                className={`${inputClassName} h-32 py-3`}
+                placeholder="입금 방법, 배송, 교환·반품은 판매자 조건을 구체적으로 적습니다."
+              />
+            </label>
+          </div>
+        </div>
+        <div hidden={guideTab !== 'reviews'}>
+          <p className="px-4 py-10 text-center text-sm text-muted sm:px-6">아직 구매자 후기가 없습니다.</p>
+        </div>
+        <div hidden={guideTab !== 'inquiries'}>
+          <p className="px-4 py-10 text-center text-sm text-muted sm:px-6">아직 상품 문의가 없습니다.</p>
         </div>
       </section>
 
-      <section className="space-y-4">
-        <h2 className="text-sm font-bold text-ink">상품 정보</h2>
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-ink">상품명</span>
-          <input value={title} onChange={(event) => setTitle(event.target.value)} className={inputClassName} required />
-        </label>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block space-y-1.5">
-            <span className="text-sm font-semibold text-ink">정상가 (원)</span>
-            <input
-              type="number"
-              min={1}
-              value={regularPrice}
-              onChange={(event) => setRegularPrice(event.target.value)}
-              className={inputClassName}
-              required
-            />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="text-sm font-semibold text-ink">특판가 (원)</span>
-            <input
-              type="number"
-              min={1}
-              value={salePrice}
-              onChange={(event) => setSalePrice(event.target.value)}
-              className={inputClassName}
-              required
-            />
-          </label>
+      <div className="panel px-4 py-4 sm:px-6">
+        {error ? (
+          <p className="mb-3 text-center text-sm text-danger" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <div className="flex justify-center">
+          <button type="submit" className="btn-primary" disabled={pending}>
+            {pending ? (isEdit ? '수정 중…' : '등록 중…') : isEdit ? '수정하기' : '등록하기'}
+          </button>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block space-y-1.5">
-            <span className="text-sm font-semibold text-ink">공동구매 최소 주문</span>
-            <input
-              value={minPurchaseLabel}
-              onChange={(event) => setMinPurchaseLabel(event.target.value)}
-              className={inputClassName}
-              placeholder="예: 20포"
-              required
-            />
-            <span className="block text-xs text-subtle">마감 전까지 이 수량이 모일 때마다 거래합니다. 잔여가 이 수량 이상이면 추가 거래할 수 있습니다.</span>
-          </label>
-          <label className="block space-y-1.5">
-            <span className="text-sm font-semibold text-ink">한계 수량</span>
-            <input
-              value={limitLabel}
-              onChange={(event) => setLimitLabel(event.target.value)}
-              className={inputClassName}
-              placeholder="예: 100포"
-              required
-            />
-            <span className="block text-xs text-subtle">마감까지 이 공구에서 받을 수 있는 전체 한도입니다. 한 번만 파는 수량이 아닙니다.</span>
-          </label>
-          <label className="block space-y-1.5">
-            <span className="text-sm font-semibold text-ink">수량</span>
-            <input
-              value={quantityLabel}
-              onChange={(event) => setQuantityLabel(event.target.value)}
-              className={inputClassName}
-              placeholder="예: 100포"
-              required
-            />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="text-sm font-semibold text-ink">잔여 수량</span>
-            <input
-              value={remainingLabel}
-              onChange={(event) => setRemainingLabel(event.target.value)}
-              className={inputClassName}
-              placeholder="예: 100포"
-              required
-            />
-            <span className="block text-xs text-subtle">
-              판매 확정 때만 줄어듭니다. 최소 주문보다 적으면 잔여 부족으로 구매 참여를 받지 않습니다.
-            </span>
-          </label>
-        </div>
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-ink">마감일</span>
-          <input
-            type="date"
-            value={deadline}
-            onChange={(event) => setDeadline(event.target.value)}
-            className={inputClassName}
-            required
-          />
-        </label>
-        <div className="space-y-4 border-t border-line pt-4">
-          <h2 className="text-sm font-bold text-ink">상품 안내</h2>
-          <label className="block space-y-1.5">
-            <span className="text-sm font-semibold text-ink">소개</span>
-            <p className="text-sm text-muted">어떤 상품인지 한눈에 보이게 적어 주세요.</p>
-            <textarea
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              className={`${inputClassName} h-28 py-3`}
-              required
-            />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="text-sm font-semibold text-ink">구성·규격</span>
-            <p className="text-sm text-muted">구성품, 수량, 크기, 소재처럼 확인에 필요한 내용을 적습니다.</p>
-            <textarea
-              value={specText}
-              onChange={(event) => setSpecText(event.target.value)}
-              className={`${inputClassName} h-32 py-3`}
-              required
-            />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="text-sm font-semibold text-ink">결제·배송·교환</span>
-            <p className="text-sm text-muted">입금 방법, 배송, 교환·반품은 판매자 조건을 구체적으로 적습니다.</p>
-            <textarea
-              value={tradeText}
-              onChange={(event) => setTradeText(event.target.value)}
-              className={`${inputClassName} h-32 py-3`}
-              required
-            />
-          </label>
-        </div>
-      </section>
+      </div>
 
-      {error ? (
-        <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger" role="alert">
-          {error}
-        </p>
-      ) : null}
-
-      <button type="submit" className="btn-primary" disabled={pending}>
-        {pending ? (isEdit ? '수정 중…' : '등록 중…') : isEdit ? '수정하기' : '등록하기'}
-      </button>
+      <p className="text-xs leading-relaxed text-subtle">
+        공구매칭은 통신판매중개자이며 결제·정산·배송의 당사자가 아닙니다. 거래는 판매자와 구매자 사이에서 이루어집니다.
+      </p>
     </form>
   );
 }

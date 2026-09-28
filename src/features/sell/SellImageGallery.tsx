@@ -44,7 +44,7 @@ export default function SellImageGallery({ images, alt }: { images: string[]; al
         <img
           src={current}
           alt={alt}
-          className="aspect-square w-full object-cover lg:absolute lg:inset-0 lg:h-full lg:w-full lg:aspect-auto"
+          className="aspect-square w-full object-contain bg-slate-50 p-3 lg:absolute lg:inset-0 lg:h-full lg:w-full lg:aspect-auto"
         />
         {active === 0 ? (
           <span className="absolute left-3 top-3 bg-ink px-2 py-1 text-[11px] font-semibold text-white">대표</span>
@@ -64,7 +64,7 @@ export default function SellImageGallery({ images, alt }: { images: string[]; al
                 aria-label={index === 0 ? '대표 이미지' : `추가 이미지 ${index}`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt="" className="aspect-square w-full object-cover" />
+                <img src={src} alt="" className="aspect-square w-full object-contain bg-white p-1" />
                 {index === 0 ? (
                   <span className="absolute left-1 top-1 bg-ink px-1.5 py-0.5 text-[10px] font-semibold text-white">
                     대표

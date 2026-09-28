@@ -14,7 +14,6 @@ import { confirmSellJoins, createSellJoin, fetchSellJoins } from '@/lib/sell-joi
 import { updateSellRemaining } from '@/lib/sell-remote';
 import {
   formatCount,
-  formatJoinParticipants,
   isDeadlinePassed,
   isRemainingShort,
   joinAvailable,
@@ -23,15 +22,18 @@ import {
 } from '@/lib/sell-display';
 import { openJoinSummary, openJoinTotal, type OpenJoinSummary, type SellJoin } from '@/types/sell-join';
 import type { SellListing } from '@/types/sell';
+import SellJoinHistoryTable from '@/features/sell/SellJoinHistoryTable';
 
 export default function SellJoinSection({
   item,
   onRemainingChange,
   onJoinChange,
+  onJoinsLoaded,
 }: {
   item: SellListing;
   onRemainingChange?: () => void;
   onJoinChange?: (summary: OpenJoinSummary) => void;
+  onJoinsLoaded?: (joins: SellJoin[]) => void;
 }) {
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -49,10 +51,6 @@ export default function SellJoinSection({
   const deadlinePassed = isDeadlinePassed(item.deadline);
   const joinSummary = useMemo(() => openJoinSummary(joins), [joins]);
   const gathered = joinSummary.quantity;
-  const confirmedTotal = useMemo(
-    () => joins.filter((join) => join.status === 'confirmed').reduce((sum, join) => sum + join.quantity, 0),
-    [joins],
-  );
   const available = joinAvailable(limit, remaining, gathered);
   const canMoreTrade = remaining >= min && min > 0 && !deadlinePassed;
   const canConfirm = gathered >= min && min > 0 && canMoreTrade;
@@ -81,6 +79,10 @@ export default function SellJoinSection({
   useEffect(() => {
     onJoinChange?.(joinSummary);
   }, [joinSummary, onJoinChange]);
+
+  useEffect(() => {
+    if (ready) onJoinsLoaded?.(joins);
+  }, [ready, joins, onJoinsLoaded]);
 
   async function handleJoin() {
     setError(null);
@@ -156,23 +158,8 @@ export default function SellJoinSection({
     }
   }
 
-  const people = formatJoinParticipants(joinSummary.buyers, gathered);
-  const currentJoin = people ? `현재 ${people}` : '현재 구매 참여 없음';
-  const need = Math.max(0, min - gathered);
-  const joinStatus = remainingShort
-    ? '잔여가 공구 최소 주문보다 적어 구매 참여를 받을 수 없습니다.'
-    : deadlinePassed
-      ? '마감된 상품입니다.'
-      : available === 0 && gathered > 0
-        ? `${currentJoin}. 이번 수량이 찼습니다.`
-        : gathered >= min
-          ? `${currentJoin}. 최소 주문을 채웠습니다.`
-          : `${currentJoin}. 최소 주문까지 ${formatCount(need)} 남음.`;
-  const statusText = joinStatus;
-
   return (
     <div className="border-t border-line px-4 py-4 sm:px-6">
-      <p className="mb-3 text-center text-sm text-muted">{ready ? statusText : '참여 현황을 불러오는 중…'}</p>
       {error ? (
         <p className="mb-3 text-center text-sm text-danger" role="alert">
           {error}
@@ -180,7 +167,17 @@ export default function SellJoinSection({
       ) : null}
 
       <div className="flex w-full flex-col items-center gap-2">
-        {myJoin ? (
+        {isOwner ? (
+          !ready ? (
+            <p className="mb-2 w-full text-center text-sm text-muted">참여 내역을 불러오는 중…</p>
+          ) : joins.length === 0 ? (
+            <p className="mb-2 w-full text-center text-sm text-muted">아직 구매 참여가 없습니다.</p>
+          ) : (
+            <div className="mb-2 w-full">
+              <SellJoinHistoryTable joins={joins} />
+            </div>
+          )
+        ) : myJoin ? (
           <div className="mb-2 w-full overflow-x-auto border border-line">
             <p className="border-b border-line bg-slate-50 px-3 py-2 text-center text-sm font-semibold text-ink">
               내 구매 참여
