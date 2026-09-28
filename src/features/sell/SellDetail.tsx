@@ -55,7 +55,13 @@ export default function SellDetail({
           </div>
         </div>
 
-        <SellJoinSection item={item} onRemainingChange={onRemainingChange} onJoinChange={setJoin} onJoinsLoaded={setJoins} />
+        <SellJoinSection
+          item={item}
+          from={from}
+          onRemainingChange={onRemainingChange}
+          onJoinChange={setJoin}
+          onJoinsLoaded={setJoins}
+        />
       </article>
 
       <SellGuidePanel item={item} />

@@ -18,6 +18,12 @@ export function formatJoinParticipants(buyers: number, quantity: number): string
   return `구매 참여 ${buyers.toLocaleString('ko-KR')}명 (${quantity.toLocaleString('ko-KR')}개)`;
 }
 
+export function joinTotalNote(total: number, min: number | null): string {
+  if (min == null || min <= 0) return '접수된 참여 수량입니다.';
+  if (total >= min) return `공구 최소 주문 ${formatCount(min)}을 충족했습니다.`;
+  return `공구 최소 주문까지 ${formatCount(min - total)} 남았습니다.`;
+}
+
 export function joinAvailable(limit: number, remaining: number, gathered: number): number {
   return Math.max(0, Math.min(limit, remaining) - gathered);
 }

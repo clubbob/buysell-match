@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { getClientFirestore } from '@/lib/firebase';
+import { getClientAuth, getClientFirestore } from '@/lib/firebase';
 import { EMPTY_MEMBER_CONSENTS, toMember, type Member } from '@/types/member';
 
 const COLLECTION = 'members';
@@ -7,9 +7,29 @@ const COLLECTION = 'members';
 export async function fetchMember(id: string): Promise<Member | null> {
   const db = getClientFirestore();
   if (!db) return null;
-  const snapshot = await getDoc(doc(db, COLLECTION, id));
-  if (!snapshot.exists()) return null;
-  return toMember(snapshot.id, snapshot.data() as Record<string, unknown>);
+  try {
+    const snapshot = await getDoc(doc(db, COLLECTION, id));
+    if (!snapshot.exists()) return null;
+    return toMember(snapshot.id, snapshot.data() as Record<string, unknown>);
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchMemberNames(ids: string[]): Promise<Record<string, string>> {
+  const unique = [...new Set(ids.filter(Boolean))].slice(0, 40);
+  if (unique.length === 0) return {};
+  try {
+    const token = await getClientAuth()?.currentUser?.getIdToken();
+    if (!token) return {};
+    const response = await fetch(`/api/members/names?ids=${unique.map(encodeURIComponent).join(',')}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = (await response.json()) as { ok?: boolean; names?: Record<string, string> };
+    return data.ok && data.names ? data.names : {};
+  } catch {
+    return {};
+  }
 }
 
 export async function saveMember(member: Member): Promise<Member> {

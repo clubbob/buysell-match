@@ -6,6 +6,7 @@ export type SellJoin = {
   sellerId: string;
   buyerId: string;
   buyerEmail: string;
+  buyerName?: string;
   buyerAddress: string;
   quantity: number;
   status: SellJoinStatus;

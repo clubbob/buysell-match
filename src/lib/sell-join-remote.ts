@@ -13,6 +13,7 @@ function toJoin(id: string, data: Record<string, unknown>): SellJoin | null {
     sellerId: String(data.sellerId ?? ''),
     buyerId: String(data.buyerId),
     buyerEmail: String(data.buyerEmail ?? ''),
+    buyerName: String(data.buyerName ?? ''),
     buyerAddress: String(data.buyerAddress ?? ''),
     quantity: Number(data.quantity) || 0,
     status: data.status === 'confirmed' ? 'confirmed' : 'open',
