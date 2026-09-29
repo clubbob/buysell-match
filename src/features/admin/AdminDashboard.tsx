@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import PageIntro from '@/components/ui/PageIntro';
-import MemberCompareChart from '@/features/admin/MemberCompareChart';
 import Sparkline, { type SparkTone } from '@/features/admin/Sparkline';
 import { readApiJson } from '@/lib/api-json';
 import type { AdminDashboardData, SignupTrendPoint } from '@/lib/admin-dashboard';
@@ -36,16 +35,14 @@ function StatCard({
   value,
   points,
   tone,
-  nested = false,
 }: {
   label: string;
   value: string;
   points?: SignupTrendPoint[];
   tone: keyof typeof TONES;
-  nested?: boolean;
 }) {
   return (
-    <article className={`${nested ? 'px-4 py-5 sm:px-5' : 'panel px-4 py-5 sm:px-5'} ${WASH[tone]}`}>
+    <article className={`panel px-4 py-5 sm:px-5 ${WASH[tone]}`}>
       <div className="flex items-end justify-between gap-3">
         <h2 className="text-base font-bold tracking-tight text-ink">{label}</h2>
         <p className="text-2xl font-bold tabular-nums tracking-tight" style={{ color: TONES[tone].stroke }}>
@@ -112,44 +109,25 @@ export default function AdminDashboard() {
         <p className="text-sm text-muted">불러오는 중…</p>
       ) : data ? (
         <section className="space-y-4">
-          <section className="panel overflow-hidden">
-            <header className="border-b border-line px-5 py-4">
-              <h2 className="text-base font-bold tracking-tight text-ink">가입 회원</h2>
-            </header>
-            <MemberCompareChart
-              members={data.series?.members ?? []}
-              buyers={data.series?.buyers ?? []}
-              sellers={data.series?.sellers ?? []}
-              memberTotal={data.totals.members ?? 0}
-              buyerTotal={data.totals.buyers ?? 0}
-              sellerTotal={data.totals.sellers ?? 0}
-              tones={{ members: TONES.members, buyers: TONES.buyers, sellers: TONES.sellers }}
-            />
-            <div className="grid divide-y divide-line border-t border-line md:grid-cols-3 md:divide-x md:divide-y-0">
-              <StatCard
-                label="가입 회원"
-                value={`${data.totals.members ?? 0}명`}
-                points={data.series?.members}
-                tone="members"
-                nested
-              />
-              <StatCard
-                label="구매자 등록"
-                value={`${data.totals.buyers ?? 0}명`}
-                points={data.series?.buyers}
-                tone="buyers"
-                nested
-              />
-              <StatCard
-                label="판매자 등록"
-                value={`${data.totals.sellers ?? 0}명`}
-                points={data.series?.sellers}
-                tone="sellers"
-                nested
-              />
-            </div>
-          </section>
           <div className="grid gap-4 sm:grid-cols-2">
+          <StatCard
+            label="가입 회원"
+            value={`${data.totals.members ?? 0}명`}
+            points={data.series?.members}
+            tone="members"
+          />
+          <StatCard
+            label="구매자 등록"
+            value={`${data.totals.buyers ?? 0}명`}
+            points={data.series?.buyers}
+            tone="buyers"
+          />
+          <StatCard
+            label="판매자 등록"
+            value={`${data.totals.sellers ?? 0}명`}
+            points={data.series?.sellers}
+            tone="sellers"
+          />
           <StatCard
             label="팝니다"
             value={`${data.totals.listings ?? 0}건`}

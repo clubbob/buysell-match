@@ -8,6 +8,8 @@ import SellImageGallery from '@/features/sell/SellImageGallery';
 import SellGuidePanel from '@/features/sell/SellGuidePanel';
 import SellJoinSection from '@/features/sell/SellJoinSection';
 import SellListingSpecs from '@/features/sell/SellListingSpecs';
+import SellYoutubeEmbed from '@/features/sell/SellYoutubeEmbed';
+import { SPEC_PANEL_PAD } from '@/features/sell/sell-spec-ui';
 import type { OpenJoinSummary, SellJoin } from '@/types/sell-join';
 import type { SellListing } from '@/types/sell';
 
@@ -38,22 +40,26 @@ export default function SellDetail({
             <SellImageGallery images={item.images} alt={item.title} />
           </div>
 
-          <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6">
-            <div className="flex items-start justify-between gap-3">
-              <h1 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">{item.title}</h1>
-              {canEdit ? (
-                <Link href={`/sell/${item.id}/edit`} className="btn-chip shrink-0">
-                  수정
-                </Link>
-              ) : editLocked ? (
-                <span className="shrink-0 text-xs text-subtle">수정 불가 (참여자 존재)</span>
-              ) : null}
-            </div>
-            <div className="mt-5">
-              <SellListingSpecs item={item} join={join} showTitle={false} showSellerContact />
-            </div>
+          <div className={`min-w-0 flex-1 ${SPEC_PANEL_PAD}`}>
+            <SellListingSpecs
+              item={item}
+              join={join}
+              showSeller
+              showSellerContact
+              titleAction={
+                canEdit ? (
+                  <Link href={`/sell/${item.id}/edit`} className="btn-chip shrink-0">
+                    수정
+                  </Link>
+                ) : editLocked ? (
+                  <span className="shrink-0 text-xs text-subtle">수정 불가 (참여자 존재)</span>
+                ) : null
+              }
+            />
           </div>
         </div>
+
+        {item.youtubeUrl ? <SellYoutubeEmbed url={item.youtubeUrl} /> : null}
 
         <SellJoinSection
           item={item}

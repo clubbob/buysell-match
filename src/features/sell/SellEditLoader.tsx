@@ -62,7 +62,7 @@ export default function SellEditLoader({ id }: { id: string }) {
       <PageIntro
         eyebrow="판매자"
         title="팝니다 수정"
-        description="마감 전까지 여러 번 거래할 수 있습니다. 최소 수량이 모이면 거래하고, 잔여가 최소 주문보다 적으면 구매 참여를 받지 않습니다."
+        description="마감 전까지 여러 번 거래할 수 있습니다. 쿠팡·스마트스토어·유튜브 주소를 각각 넣을 수 있습니다."
       />
       <SellCreateForm listing={item} />
     </div>

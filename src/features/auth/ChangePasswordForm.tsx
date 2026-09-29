@@ -112,9 +112,14 @@ export default function ChangePasswordForm() {
         </p>
       ) : null}
 
-      <button type="submit" className="btn-primary" disabled={pending}>
-        {pending ? '변경 중…' : '비밀번호 변경'}
-      </button>
+      <div className="action-row">
+        <button type="submit" className="btn-primary" disabled={pending}>
+          {pending ? '변경 중…' : '비밀번호 변경'}
+        </button>
+        <Link href="/mypage" className="btn-secondary">
+          마이페이지
+        </Link>
+      </div>
     </form>
   );
 }

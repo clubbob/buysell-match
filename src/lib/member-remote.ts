@@ -1,6 +1,16 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { readApiJson } from '@/lib/api-json';
 import { getClientAuth, getClientFirestore } from '@/lib/firebase';
 import { EMPTY_MEMBER_CONSENTS, toMember, type Member } from '@/types/member';
+
+async function authHeaders(): Promise<HeadersInit> {
+  const token = await getClientAuth()?.currentUser?.getIdToken();
+  if (!token) throw new Error('로그인 후 이용할 수 있습니다.');
+  return {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  };
+}
 
 const COLLECTION = 'members';
 
@@ -30,6 +40,36 @@ export async function fetchMemberNames(ids: string[]): Promise<Record<string, st
   } catch {
     return {};
   }
+}
+
+export async function fetchMyMember(): Promise<Member> {
+  const headers = await authHeaders();
+  const response = await fetch('/api/me/member', { headers });
+  const data = await readApiJson<{ ok?: boolean; member?: Member; message?: string }>(
+    response,
+    '회원 정보를 불러오지 못했습니다.',
+  );
+  if (!response.ok || !data.ok || !data.member) {
+    throw new Error(data.message ?? '회원 정보를 불러오지 못했습니다.');
+  }
+  return data.member;
+}
+
+export async function saveMyMarketingConsent(marketingAgreed: boolean): Promise<Member> {
+  const headers = await authHeaders();
+  const response = await fetch('/api/me/member', {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({ marketingAgreed }),
+  });
+  const data = await readApiJson<{ ok?: boolean; member?: Member; message?: string }>(
+    response,
+    '마케팅 수신 동의를 저장하지 못했습니다.',
+  );
+  if (!response.ok || !data.ok || !data.member) {
+    throw new Error(data.message ?? '마케팅 수신 동의를 저장하지 못했습니다.');
+  }
+  return data.member;
 }
 
 export async function saveMember(member: Member): Promise<Member> {

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSellJoinTotals } from '@/features/sell/use-sell-join-totals';
 import { deadlineParts, discountRate, formatJoinParticipants, formatQuantityNumber, formatWon, isRemainingShort } from '@/lib/sell-display';
+import { listingSourceLabel } from '@/lib/sell-source';
 import { sellCoverImage, type SellListing } from '@/types/sell';
 import type { OpenJoinSummary } from '@/types/sell-join';
 
@@ -48,13 +49,17 @@ function DesktopRow({
   const router = useRouter();
   const rate = discountRate(item.regularPrice, item.salePrice);
   const deadline = deadlineParts(item.deadline);
+  const sourceLabel = listingSourceLabel(item);
 
   return (
     <tr
       className="cursor-pointer border-t border-line hover:bg-slate-50"
       onClick={() => router.push(listingHref(item.id, from))}
     >
-      <td className="px-4 py-3 align-middle text-sm font-semibold text-ink">{item.title}</td>
+      <td className="px-4 py-3 align-middle text-sm font-semibold text-ink">
+        {item.title}
+        {sourceLabel ? <span className="mt-0.5 block text-xs font-medium text-muted">{sourceLabel}</span> : null}
+      </td>
       <td className="py-3 align-middle">
         <PhotoSlot src={sellCoverImage(item)} alt={item.title} />
       </td>
@@ -98,11 +103,13 @@ function MobileRow({
   const rate = discountRate(item.regularPrice, item.salePrice);
   const deadline = deadlineParts(item.deadline);
   const joinNote = formatJoinParticipants(join?.buyers ?? 0, join?.quantity ?? 0);
+  const sourceLabel = listingSourceLabel(item);
 
   return (
     <li className="border-t border-line">
       <Link href={listingHref(item.id, from)} className="block px-4 py-3">
         <p className="text-sm font-semibold text-ink">{item.title}</p>
+        {sourceLabel ? <p className="mt-0.5 text-xs font-medium text-muted">{sourceLabel}</p> : null}
         <div className="mt-2 flex gap-3">
           <PhotoSlot src={sellCoverImage(item)} alt={item.title} />
           <div className="min-w-0 space-y-1">

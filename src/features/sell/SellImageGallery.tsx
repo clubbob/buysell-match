@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
+import { IMAGE_SLOT_COUNT } from '@/features/sell/sell-spec-ui';
 
 export default function SellImageGallery({ images, alt }: { images: string[]; alt: string }) {
   const [active, setActive] = useState(0);
@@ -28,7 +29,18 @@ export default function SellImageGallery({ images, alt }: { images: string[]; al
 
   if (!current) {
     return (
-      <div className="flex aspect-square items-center justify-center bg-slate-50 text-sm text-subtle">사진 없음</div>
+      <div className="flex h-full flex-col bg-slate-50">
+        <div className="flex aspect-square items-center justify-center text-sm text-subtle lg:min-h-0 lg:flex-1">
+          사진 없음
+        </div>
+        <ul className="grid shrink-0 grid-cols-5 gap-px border-t border-line bg-line">
+          {Array.from({ length: IMAGE_SLOT_COUNT }, (_, index) => (
+            <li key={`empty-${index}`}>
+              <span className="block aspect-square w-full bg-white" aria-hidden />
+            </li>
+          ))}
+        </ul>
+      </div>
     );
   }
 
@@ -50,31 +62,36 @@ export default function SellImageGallery({ images, alt }: { images: string[]; al
           <span className="absolute left-3 top-3 bg-ink px-2 py-1 text-[11px] font-semibold text-white">대표</span>
         ) : null}
       </button>
-      {images.length > 1 ? (
-        <ul className="grid shrink-0 grid-cols-5 gap-px border-t border-line bg-line">
-          {images.map((src, index) => (
-            <li key={`${src}-${index}`}>
-              <button
-                type="button"
-                className={cn(
-                  'relative block w-full bg-white',
-                  index === active ? 'ring-2 ring-inset ring-ink' : 'opacity-80 hover:opacity-100',
-                )}
-                onClick={() => setActive(index)}
-                aria-label={index === 0 ? '대표 이미지' : `추가 이미지 ${index}`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt="" className="aspect-square w-full object-contain bg-white p-1" />
-                {index === 0 ? (
-                  <span className="absolute left-1 top-1 bg-ink px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                    대표
-                  </span>
-                ) : null}
-              </button>
+      <ul className="grid shrink-0 grid-cols-5 gap-px border-t border-line bg-line">
+        {Array.from({ length: IMAGE_SLOT_COUNT }, (_, index) => {
+          const src = images[index];
+          return (
+            <li key={src ? `${src}-${index}` : `empty-${index}`}>
+              {src ? (
+                <button
+                  type="button"
+                  className={cn(
+                    'relative block w-full bg-white',
+                    index === active ? 'ring-2 ring-inset ring-ink' : 'opacity-80 hover:opacity-100',
+                  )}
+                  onClick={() => setActive(index)}
+                  aria-label={index === 0 ? '대표 이미지' : `추가 이미지 ${index}`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={src} alt="" className="aspect-square w-full bg-white object-contain p-1" />
+                  {index === 0 ? (
+                    <span className="absolute left-1 top-1 bg-ink px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                      대표
+                    </span>
+                  ) : null}
+                </button>
+              ) : (
+                <span className="block aspect-square w-full bg-white" aria-hidden />
+              )}
             </li>
-          ))}
-        </ul>
-      ) : null}
+          );
+        })}
+      </ul>
 
       {open
         ? createPortal(

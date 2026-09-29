@@ -1,4 +1,4 @@
-import type { SellListing } from '@/types/sell';
+import { withSellSource, type SellListing } from '@/types/sell';
 
 const STORAGE_KEY = 'buysell.sellListings';
 const REMAINING_KEY = 'buysell.sellRemaining';
@@ -54,12 +54,14 @@ export function removeUserSellListing(id: string) {
 
 export function mergeSellListings(userItems: SellListing[]): SellListing[] {
   const overrides = loadRemainingOverrides();
-  return userItems.map((item) => ({
-    ...item,
-    specText: item.specText ?? '',
-    tradeText: item.tradeText ?? '',
-    remainingLabel: overrides[item.id] || item.remainingLabel,
-  }));
+  return userItems.map((item) =>
+    withSellSource({
+      ...item,
+      specText: item.specText ?? '',
+      tradeText: item.tradeText ?? '',
+      remainingLabel: overrides[item.id] || item.remainingLabel,
+    }),
+  );
 }
 
 export function findSellListing(id: string, userItems: SellListing[]): SellListing | undefined {

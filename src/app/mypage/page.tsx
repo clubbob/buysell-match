@@ -8,6 +8,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { useBuyerProfile } from '@/features/buyer/use-buyer-profile';
 import { useUserMode } from '@/features/mode/mode-context';
 import MyPageInquiries from '@/features/mypage/MyPageInquiries';
+import MyPageMarketingConsent from '@/features/mypage/MyPageMarketingConsent';
 import MyPageSellPosts from '@/features/mypage/MyPageSellPosts';
 import { useSellListings } from '@/features/sell/use-sell-listings';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
@@ -73,7 +74,9 @@ export default function MyPage() {
   const sellerDetail = !profileReady
     ? '불러오는 중…'
     : profile
-      ? `${profile.sellerName} · ${profile.representativeName}`
+      ? [profile.sellerName, profile.representativeName, profile.businessNumber, profile.businessAddress]
+          .filter(Boolean)
+          .join(' · ')
       : '아직 등록하지 않았습니다.';
   const joinedAt = formatMemberJoinedAt(user.metadata.creationTime);
   const memberDetail = [user.displayName || '이름 없음', user.email || '—', joinedAt ? `가입 ${joinedAt}` : null]
@@ -128,12 +131,20 @@ export default function MyPage() {
       <section className="panel px-4 py-5 sm:px-5">
         <h2 className="text-sm font-bold text-ink">회원 정보</h2>
         <div className="mt-4">
-          <SummaryRow
-            title="기본 정보"
-            detail={memberDetail}
-            href="/mypage/password"
-            action="비밀번호 변경"
-          />
+          <div className="-mx-4 border-t border-line px-4 py-4 first:border-t-0 first:pt-0 sm:-mx-5 sm:px-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-ink">기본 정보</h3>
+                <div className="mt-1 flex items-center gap-x-4 text-sm text-muted">
+                  <p className="min-w-0 truncate">{memberDetail}</p>
+                  <MyPageMarketingConsent />
+                </div>
+              </div>
+              <Link href="/mypage/password" className="btn-secondary shrink-0">
+                비밀번호 변경
+              </Link>
+            </div>
+          </div>
           <SummaryRow
             title={BUYER_DETAIL_LABEL}
             detail={buyerDetail}

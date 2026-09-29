@@ -8,12 +8,20 @@ import { useSellerProfile } from '@/features/seller/use-seller-profile';
 import { loginHref } from '@/lib/auth-redirect';
 import { listingGuide } from '@/lib/sell-guide';
 import { quantityAmount } from '@/lib/sell-display';
+import { isHttpUrl, normalizeHttpUrl, sourceTypeFromUrls, youtubeVideoId } from '@/lib/sell-source';
 import { createRemoteSellListing, resolveSellImages, updateRemoteSellListing } from '@/lib/sell-remote';
 import { cn } from '@/lib/utils';
 import { isSellerProfileComplete } from '@/types/seller';
 import type { SellListing } from '@/types/sell';
-
-const EXTRA_COUNT = 4;
+import {
+  EXTRA_IMAGE_COUNT,
+  IMAGE_SLOT_COUNT,
+  SPEC_GRID,
+  SPEC_PANEL_PAD,
+  SPEC_PRICE_FIELDS,
+  SPEC_QTY_FIELDS,
+  SPEC_ROW,
+} from '@/features/sell/sell-spec-ui';
 
 type ImageItem = {
   id: string;
@@ -33,8 +41,8 @@ function toImageItem(file: File): ImageItem {
 
 function SpecField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-3 border-b border-line py-3 text-sm">
-      <dt className="leading-snug text-subtle">{label}</dt>
+    <div className={`${SPEC_ROW} border-b border-line py-3`}>
+      <dt className="whitespace-nowrap text-subtle">{label}</dt>
       <dd className="min-w-0">{children}</dd>
     </div>
   );
@@ -81,6 +89,9 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
   const [minPurchaseLabel, setMinPurchaseLabel] = useState(listing?.minPurchaseLabel ?? '');
   const [remainingLabel, setRemainingLabel] = useState(listing?.remainingLabel ?? '');
   const [deadline, setDeadline] = useState(listing?.deadline ?? '');
+  const [coupangUrl, setCoupangUrl] = useState(listing?.coupangUrl ?? '');
+  const [smartstoreUrl, setSmartstoreUrl] = useState(listing?.smartstoreUrl ?? '');
+  const [youtubeUrl, setYoutubeUrl] = useState(listing?.youtubeUrl ?? '');
   const initialGuide = listing ? listingGuide(listing) : { intro: '', spec: '', trade: '' };
   const [description, setDescription] = useState(initialGuide.intro);
   const [specText, setSpecText] = useState(initialGuide.spec);
@@ -124,9 +135,9 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
       setActiveImage(0);
       return;
     }
-    const extraIndex = Math.min(Math.max(slot - 1, extras.length), EXTRA_COUNT - 1);
+    const extraIndex = Math.min(Math.max(slot - 1, extras.length), EXTRA_IMAGE_COUNT - 1);
     setExtras((currentExtras) => {
-      if (currentExtras.length >= EXTRA_COUNT) return currentExtras;
+      if (currentExtras.length >= EXTRA_IMAGE_COUNT) return currentExtras;
       if (extraIndex < currentExtras.length) {
         const copy = [...currentExtras];
         copy[extraIndex] = next;
@@ -135,6 +146,11 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
       return [...currentExtras, next];
     });
     setActiveImage(extraIndex + 1);
+  }
+
+  function removeCover() {
+    setCover(null);
+    setActiveImage(0);
   }
 
   function removeExtra(index: number) {
@@ -157,8 +173,8 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
       setError('대표 이미지를 넣어 주세요.');
       return;
     }
-    if (!isEdit && extras.length !== EXTRA_COUNT) {
-      setError(`추가 이미지는 ${EXTRA_COUNT}장 올려 주세요.`);
+    if (!isEdit && extras.length !== EXTRA_IMAGE_COUNT) {
+      setError(`추가 이미지는 ${EXTRA_IMAGE_COUNT}장 올려 주세요.`);
       return;
     }
     if (isEdit && extras.length < 1) {
@@ -166,7 +182,7 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
       return;
     }
     if (!title.trim()) {
-      setError('상품을 입력해 주세요.');
+      setError('상품명을 입력해 주세요.');
       return;
     }
     const regular = Number(regularPrice);
@@ -191,6 +207,21 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
     }
     if (!deadline) {
       setError('마감을 선택해 주세요.');
+      return;
+    }
+    const nextCoupangUrl = coupangUrl.trim() ? normalizeHttpUrl(coupangUrl) : '';
+    const nextSmartstoreUrl = smartstoreUrl.trim() ? normalizeHttpUrl(smartstoreUrl) : '';
+    const nextYoutubeUrl = youtubeUrl.trim() ? normalizeHttpUrl(youtubeUrl) : '';
+    if (nextCoupangUrl && !isHttpUrl(nextCoupangUrl)) {
+      setError('쿠팡 URL을 확인해 주세요.');
+      return;
+    }
+    if (nextSmartstoreUrl && !isHttpUrl(nextSmartstoreUrl)) {
+      setError('스마트스토어 URL을 확인해 주세요.');
+      return;
+    }
+    if (nextYoutubeUrl && !youtubeVideoId(nextYoutubeUrl)) {
+      setError('유튜브 판매상품 URL을 확인해 주세요.');
       return;
     }
     if (!description.trim() || !specText.trim() || !tradeText.trim()) {
@@ -225,6 +256,12 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
           quantityLabel: remainingLabel.trim(),
           remainingLabel: remainingLabel.trim(),
           deadline,
+          sourceType: sourceTypeFromUrls(Boolean(nextCoupangUrl || nextSmartstoreUrl), nextYoutubeUrl),
+          coupangUrl: nextCoupangUrl,
+          smartstoreUrl: nextSmartstoreUrl,
+          productUrl: nextCoupangUrl || nextSmartstoreUrl,
+          productUrls: [nextCoupangUrl, nextSmartstoreUrl].filter(Boolean),
+          youtubeUrl: nextYoutubeUrl,
           description: description.trim(),
           specText: specText.trim(),
           tradeText: tradeText.trim(),
@@ -269,7 +306,7 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
                   <img
                     src={current.url}
                     alt=""
-                    className="aspect-square w-full object-contain bg-slate-50 p-3 lg:absolute lg:inset-0 lg:h-full lg:w-full lg:aspect-auto"
+                    className="aspect-square w-full bg-slate-50 object-contain p-3 lg:absolute lg:inset-0 lg:aspect-auto lg:h-full lg:w-full"
                   />
                 ) : (
                   <span className="flex aspect-square w-full items-center justify-center px-4 text-center text-sm text-subtle lg:absolute lg:inset-0 lg:aspect-auto">
@@ -281,7 +318,7 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
                 ) : null}
               </button>
               <ul className="grid shrink-0 grid-cols-5 gap-px border-t border-line bg-line">
-                {Array.from({ length: 1 + EXTRA_COUNT }, (_, slot) => {
+                {Array.from({ length: IMAGE_SLOT_COUNT }, (_, slot) => {
                   const item = images[slot];
                   return (
                     <li key={slot}>
@@ -302,15 +339,17 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
                               </span>
                             ) : null}
                           </button>
-                          {slot > 0 ? (
-                            <button
-                              type="button"
-                              className="absolute right-1 top-1 bg-ink px-1.5 py-0.5 text-[10px] text-white"
-                              onClick={() => removeExtra(slot - 1)}
-                            >
-                              삭제
-                            </button>
-                          ) : null}
+                          <button
+                            type="button"
+                            className="absolute right-1 top-1 bg-ink px-1.5 py-0.5 text-[10px] text-white"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              if (slot === 0) removeCover();
+                              else removeExtra(slot - 1);
+                            }}
+                          >
+                            삭제
+                          </button>
                         </div>
                       ) : (
                         <button
@@ -328,79 +367,124 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
             </div>
           </div>
 
-          <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6">
-            <input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              className="w-full border-0 bg-transparent text-xl font-bold tracking-tight text-ink outline-none placeholder:text-subtle focus:ring-0 sm:text-2xl"
-              placeholder="상품"
-              required
-            />
-            <dl className="mt-5">
-              <SpecField label="판매자">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="whitespace-nowrap font-semibold">{profile.sellerName}</span>
-                  <span className="whitespace-nowrap text-xs text-subtle">
-                    {profile.businessVerified ? '사업자 인증' : '인증 대기'}
-                  </span>
-                  {profile.sellerMobile ? (
-                    <span className="whitespace-nowrap text-muted">핸드폰 {profile.sellerMobile}</span>
-                  ) : null}
-                  {profile.sellerPhone ? (
-                    <span className="whitespace-nowrap text-muted">사업장 전화 {profile.sellerPhone}</span>
-                  ) : null}
-                  <span className="whitespace-nowrap text-muted">이메일 {user.email || profile.sellerEmail}</span>
+          <div className={`min-w-0 flex-1 ${SPEC_PANEL_PAD}`}>
+            <dl className={SPEC_GRID}>
+              <SpecField label="상품명">
+                <input
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  className={inputClassName}
+                  placeholder="상품명"
+                  required
+                />
+              </SpecField>
+              <div className={`${SPEC_ROW} gap-y-2 border-b border-line py-3`}>
+                <p className="col-span-2 whitespace-nowrap text-subtle">온라인 판매상품 URL (선택)</p>
+                <label htmlFor="sell-coupang-url" className="whitespace-nowrap text-subtle">
+                  쿠팡
+                </label>
+                <input
+                  id="sell-coupang-url"
+                  type="text"
+                  inputMode="url"
+                  value={coupangUrl}
+                  onChange={(event) => setCoupangUrl(event.target.value)}
+                  className={inputClassName}
+                  placeholder="상품 URL 주소"
+                />
+                <label htmlFor="sell-smartstore-url" className="whitespace-nowrap text-subtle">
+                  스마트스토어
+                </label>
+                <input
+                  id="sell-smartstore-url"
+                  type="text"
+                  inputMode="url"
+                  value={smartstoreUrl}
+                  onChange={(event) => setSmartstoreUrl(event.target.value)}
+                  className={inputClassName}
+                  placeholder="상품 URL 주소"
+                />
+              </div>
+              <div className={`${SPEC_ROW} gap-y-2 border-b border-line py-3`}>
+                <p className="col-span-2 whitespace-nowrap text-subtle">유튜브 판매상품 URL (선택)</p>
+                <span aria-hidden />
+                <input
+                  type="text"
+                  inputMode="url"
+                  value={youtubeUrl}
+                  onChange={(event) => setYoutubeUrl(event.target.value)}
+                  className={inputClassName}
+                  placeholder="영상 URL 주소"
+                  aria-label="유튜브 판매상품 URL"
+                />
+              </div>
+              <div className={`${SPEC_ROW} border-b border-line py-3`}>
+                <label htmlFor="sell-regular-price" className="whitespace-nowrap text-subtle">
+                  정상 가격
+                </label>
+                <div className={SPEC_PRICE_FIELDS}>
+                  <input
+                    id="sell-regular-price"
+                    type="number"
+                    min={1}
+                    value={regularPrice}
+                    onChange={(event) => setRegularPrice(event.target.value)}
+                    className={`${inputClassName} min-w-0`}
+                    placeholder="원"
+                    required
+                  />
+                  <label htmlFor="sell-sale-price" className="whitespace-nowrap text-subtle">
+                    특판 가격
+                  </label>
+                  <input
+                    id="sell-sale-price"
+                    type="number"
+                    min={1}
+                    value={salePrice}
+                    onChange={(event) => setSalePrice(event.target.value)}
+                    className={`${inputClassName} min-w-0`}
+                    placeholder="원"
+                    required
+                  />
                 </div>
-              </SpecField>
-              <SpecField label="정상 가격">
-                <input
-                  type="number"
-                  min={1}
-                  value={regularPrice}
-                  onChange={(event) => setRegularPrice(event.target.value)}
-                  className={inputClassName}
-                  placeholder="원"
-                  required
-                />
-              </SpecField>
-              <SpecField label="특판 가격">
-                <input
-                  type="number"
-                  min={1}
-                  value={salePrice}
-                  onChange={(event) => setSalePrice(event.target.value)}
-                  className={inputClassName}
-                  placeholder="원"
-                  required
-                />
-              </SpecField>
-              <SpecField label="공구 최소 주문">
-                <input
-                  value={minPurchaseLabel}
-                  onChange={(event) => setMinPurchaseLabel(event.target.value)}
-                  className={inputClassName}
-                  placeholder="예: 20개"
-                  required
-                />
-              </SpecField>
-              <SpecField label="잔여 수량">
-                <input
-                  value={remainingLabel}
-                  onChange={(event) => setRemainingLabel(event.target.value)}
-                  className={inputClassName}
-                  placeholder="예: 80개"
-                  required
-                />
-              </SpecField>
-              <SpecField label="마감">
-                <input
-                  type="date"
-                  value={deadline}
-                  onChange={(event) => setDeadline(event.target.value)}
-                  className={inputClassName}
-                  required
-                />
-              </SpecField>
+              </div>
+              <div className={`${SPEC_ROW} py-3`}>
+                <label htmlFor="sell-min-purchase" className="whitespace-nowrap text-subtle">
+                  공구 최소 주문
+                </label>
+                <div className={SPEC_QTY_FIELDS}>
+                  <input
+                    id="sell-min-purchase"
+                    value={minPurchaseLabel}
+                    onChange={(event) => setMinPurchaseLabel(event.target.value)}
+                    className={`${inputClassName} min-w-0`}
+                    placeholder="예: 20개"
+                    required
+                  />
+                  <label htmlFor="sell-remaining" className="whitespace-nowrap text-subtle">
+                    잔여 수량
+                  </label>
+                  <input
+                    id="sell-remaining"
+                    value={remainingLabel}
+                    onChange={(event) => setRemainingLabel(event.target.value)}
+                    className={`${inputClassName} min-w-0`}
+                    placeholder="예: 80개"
+                    required
+                  />
+                  <label htmlFor="sell-deadline" className="whitespace-nowrap text-subtle">
+                    마감
+                  </label>
+                  <input
+                    id="sell-deadline"
+                    type="date"
+                    value={deadline}
+                    onChange={(event) => setDeadline(event.target.value)}
+                    className={`${inputClassName} min-w-0`}
+                    required
+                  />
+                </div>
+              </div>
             </dl>
           </div>
         </div>

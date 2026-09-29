@@ -7,6 +7,7 @@ import { useUserMode } from '@/features/mode/mode-context';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
 import { useSellListings } from '@/features/sell/use-sell-listings';
 import { formatWon } from '@/lib/sell-display';
+import { listingSourceLabel } from '@/lib/sell-source';
 import { SITE_NAME, SITE_TAGLINE } from '@/lib/site';
 import { isSellerProfileComplete } from '@/types/seller';
 import { sellCoverImage } from '@/types/sell';
@@ -91,7 +92,9 @@ export default function SiteHome() {
                     )}
                     <div className="px-4 py-3">
                       <p className="text-sm font-semibold text-ink">{item.title}</p>
-                      <p className="mt-1 text-sm text-muted">{item.sellerName}</p>
+                      <p className="mt-1 text-sm text-muted">
+                        {listingSourceLabel(item) ? `${item.sellerName} · ${listingSourceLabel(item)}` : item.sellerName}
+                      </p>
                       <p className="mt-1 text-sm font-bold tabular-nums text-ink">{formatWon(item.salePrice)}</p>
                     </div>
                   </Link>

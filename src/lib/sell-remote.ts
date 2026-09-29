@@ -3,13 +3,13 @@ import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { getClientFirestore, getClientStorage } from '@/lib/firebase';
 import { fetchSellJoins } from '@/lib/sell-join-remote';
 import { saveRemainingOverride } from '@/lib/sell-store';
-import type { SellListing } from '@/types/sell';
+import { withSellSource, type SellListing } from '@/types/sell';
 
 const COLLECTION = 'sellListings';
 
 function toListing(id: string, data: Record<string, unknown>): SellListing | null {
   if (!data.title || !Array.isArray(data.images) || !data.sellerId) return null;
-  return {
+  return withSellSource({
     id,
     title: String(data.title),
     images: data.images.map(String),
@@ -20,6 +20,12 @@ function toListing(id: string, data: Record<string, unknown>): SellListing | nul
     sellerMobile: String(data.sellerMobile ?? ''),
     sellerPhone: String(data.sellerPhone ?? ''),
     sellerEmail: String(data.sellerEmail ?? ''),
+    sourceType: data.sourceType as SellListing['sourceType'],
+    coupangUrl: String(data.coupangUrl ?? ''),
+    smartstoreUrl: String(data.smartstoreUrl ?? ''),
+    productUrl: String(data.productUrl ?? ''),
+    productUrls: Array.isArray(data.productUrls) ? data.productUrls.map(String) : undefined,
+    youtubeUrl: String(data.youtubeUrl ?? ''),
     regularPrice: Number(data.regularPrice) || 0,
     salePrice: Number(data.salePrice) || 0,
     minPurchaseLabel: String(data.minPurchaseLabel ?? data.minOrderLabel ?? ''),
@@ -30,7 +36,7 @@ function toListing(id: string, data: Record<string, unknown>): SellListing | nul
     description: String(data.description ?? ''),
     specText: String(data.specText ?? ''),
     tradeText: String(data.tradeText ?? ''),
-  };
+  });
 }
 
 async function uploadImages(sellerId: string, listingId: string, files: File[]) {
