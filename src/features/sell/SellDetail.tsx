@@ -8,7 +8,6 @@ import SellImageGallery from '@/features/sell/SellImageGallery';
 import SellGuidePanel from '@/features/sell/SellGuidePanel';
 import SellJoinSection from '@/features/sell/SellJoinSection';
 import SellListingSpecs from '@/features/sell/SellListingSpecs';
-import SellYoutubeEmbed from '@/features/sell/SellYoutubeEmbed';
 import { SPEC_PANEL_PAD } from '@/features/sell/sell-spec-ui';
 import type { OpenJoinSummary, SellJoin } from '@/types/sell-join';
 import type { SellListing } from '@/types/sell';
@@ -58,8 +57,6 @@ export default function SellDetail({
             />
           </div>
         </div>
-
-        {item.youtubeUrl ? <SellYoutubeEmbed url={item.youtubeUrl} /> : null}
 
         <SellJoinSection
           item={item}

@@ -10,7 +10,7 @@
   }
 
   body {
-    @apply min-h-dvh min-w-0 overflow-x-clip bg-background text-foreground;
+    @apply min-h-dvh min-w-0 overflow-x-hidden bg-background text-foreground;
     font-family: theme('fontFamily.sans');
     line-height: 1.55;
     letter-spacing: -0.01em;
@@ -59,7 +59,7 @@
   }
 
   .btn-chip {
-    @apply inline-flex h-7 items-center whitespace-nowrap border border-ink bg-white px-2.5 text-xs font-semibold leading-none tracking-tight hover:bg-ink hover:text-white;
+    @apply relative z-10 inline-flex min-h-11 w-fit max-w-full items-center justify-center whitespace-nowrap border border-ink bg-white px-3 text-xs font-semibold leading-none tracking-tight [touch-action:manipulation] hover:bg-ink hover:text-white sm:h-7 sm:min-h-7 sm:px-2.5;
   }
 
   .mode-select-arrow {

@@ -6,7 +6,12 @@ export default function SellProductLink({ href, label }: { href: string; label: 
   const url = normalizeHttpUrl(href);
   if (!url) return null;
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer" className="btn-chip">
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="btn-chip justify-self-start"
+    >
       {label}
     </a>
   );

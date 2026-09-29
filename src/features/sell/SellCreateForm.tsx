@@ -16,6 +16,7 @@ import type { SellListing } from '@/types/sell';
 import {
   EXTRA_IMAGE_COUNT,
   IMAGE_SLOT_COUNT,
+  SPEC_GROUP_TITLE,
   SPEC_GRID,
   SPEC_PANEL_PAD,
   SPEC_PRICE_FIELDS,
@@ -378,8 +379,8 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
                   required
                 />
               </SpecField>
-              <div className={`${SPEC_ROW} gap-y-2 border-b border-line py-3`}>
-                <p className="col-span-2 whitespace-nowrap text-subtle">온라인 판매상품 URL (선택)</p>
+              <div className={`${SPEC_ROW} border-b border-line py-3`}>
+                <p className={SPEC_GROUP_TITLE}>온라인 판매상품 URL (선택)</p>
                 <label htmlFor="sell-coupang-url" className="whitespace-nowrap text-subtle">
                   쿠팡
                 </label>
@@ -405,9 +406,9 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
                   placeholder="상품 URL 주소"
                 />
               </div>
-              <div className={`${SPEC_ROW} gap-y-2 border-b border-line py-3`}>
-                <p className="col-span-2 whitespace-nowrap text-subtle">유튜브 판매상품 URL (선택)</p>
-                <span aria-hidden />
+              <div className={`${SPEC_ROW} border-b border-line py-3`}>
+                <p className={SPEC_GROUP_TITLE}>유튜브 판매상품 URL (선택)</p>
+                <span className="hidden sm:block" aria-hidden />
                 <input
                   type="text"
                   inputMode="url"

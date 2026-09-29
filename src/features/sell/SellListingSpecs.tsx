@@ -6,7 +6,7 @@ import { deadlineParts, discountRate, formatJoinParticipants, formatQuantityNumb
 import type { OpenJoinSummary } from '@/types/sell-join';
 import type { SellListing } from '@/types/sell';
 import SellProductLink from '@/features/sell/SellProductLink';
-import { SPEC_GRID, SPEC_PRICE_FIELDS, SPEC_QTY_FIELDS, SPEC_ROW } from '@/features/sell/sell-spec-ui';
+import { SPEC_GRID, SPEC_GROUP_TITLE, SPEC_PRICE_FIELDS, SPEC_QTY_FIELDS, SPEC_ROW } from '@/features/sell/sell-spec-ui';
 
 function Spec({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -45,7 +45,7 @@ export default function SellListingSpecs({
     <dl className={SPEC_GRID}>
       {showTitle ? (
         <Spec label="상품명">
-          <h1 className="min-w-0 flex-1 text-sm font-normal text-ink">{item.title}</h1>
+          <h1 className="min-w-0 flex-1 break-words text-sm font-normal text-ink">{item.title}</h1>
           {titleAction}
         </Spec>
       ) : null}
@@ -70,16 +70,16 @@ export default function SellListingSpecs({
           </div>
         </Spec>
       ) : null}
-      <div className={`${SPEC_ROW} gap-y-2 border-b border-line py-3`}>
-        <p className="col-span-2 whitespace-nowrap text-subtle">온라인 판매상품 URL (선택)</p>
+      <div className={`${SPEC_ROW} border-b border-line py-3`}>
+        <p className={SPEC_GROUP_TITLE}>온라인 판매상품 URL (선택)</p>
         <span className="whitespace-nowrap text-subtle">쿠팡</span>
         {item.coupangUrl ? <SellProductLink href={item.coupangUrl} label="쿠팡" /> : <EmptyValue />}
         <span className="whitespace-nowrap text-subtle">스마트스토어</span>
         {item.smartstoreUrl ? <SellProductLink href={item.smartstoreUrl} label="스마트스토어" /> : <EmptyValue />}
       </div>
-      <div className={`${SPEC_ROW} gap-y-2 border-b border-line py-3`}>
-        <p className="col-span-2 whitespace-nowrap text-subtle">유튜브 판매상품 URL (선택)</p>
-        <span aria-hidden />
+      <div className={`${SPEC_ROW} border-b border-line py-3`}>
+        <p className={SPEC_GROUP_TITLE}>유튜브 판매상품 URL (선택)</p>
+        <span className="hidden sm:block" aria-hidden />
         {item.youtubeUrl ? <SellProductLink href={item.youtubeUrl} label="유튜브" /> : <EmptyValue />}
       </div>
       <div className={`${SPEC_ROW} border-b border-line py-3`}>

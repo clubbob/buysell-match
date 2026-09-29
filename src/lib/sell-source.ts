@@ -129,8 +129,3 @@ export function youtubeVideoId(raw: string): string | null {
   }
   return null;
 }
-
-export function youtubeEmbedSrc(raw: string): string | null {
-  const id = youtubeVideoId(raw);
-  return id ? `https://www.youtube-nocookie.com/embed/${id}?rel=0` : null;
-}
