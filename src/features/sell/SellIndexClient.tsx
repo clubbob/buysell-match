@@ -23,7 +23,7 @@ export default function SellIndexClient({ seller }: { seller?: string }) {
         description={
           seller && sellerName
             ? `${sellerName}이(가) 올린 상품입니다.`
-            : '판매자가 올린 상품입니다. 쿠팡·스마트스토어·유튜브는 새 창으로 확인할 수 있습니다.'
+            : '판매자가 올린 상품입니다. 쿠팡·스마트스토어는 새 창으로, 유튜브는 상품 화면에서 확인할 수 있습니다.'
         }
       >
         {seller ? (

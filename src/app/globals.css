@@ -73,6 +73,156 @@
       animation: none;
     }
   }
+
+  .seller-guide-card {
+    animation: seller-guide-in 0.72s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    transition:
+      transform 0.35s ease,
+      border-color 0.35s ease,
+      box-shadow 0.35s ease;
+  }
+
+  .seller-guide-card:hover {
+    transform: translateY(-6px);
+    border-color: #10233a;
+    box-shadow: 0 16px 32px -20px rgba(16, 35, 58, 0.45);
+  }
+
+  .seller-guide-art {
+    overflow: hidden;
+    background:
+      radial-gradient(120px 80px at 88% -10%, rgba(16, 35, 58, 0.1), transparent 70%),
+      linear-gradient(165deg, #f7f8fb 0%, #e7edf4 100%);
+  }
+
+  .seller-guide-art::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%);
+    transform: translateX(-120%);
+    pointer-events: none;
+  }
+
+  .seller-guide-card:hover .seller-guide-art::after {
+    animation: seller-guide-shine 0.85s ease;
+  }
+
+  .seller-guide-person {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: seller-guide-walk 3.2s ease-in-out infinite;
+  }
+
+  .seller-guide-stamp {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: seller-guide-stamp 3.2s ease-in-out infinite;
+  }
+
+  .seller-guide-lid {
+    transform-box: fill-box;
+    transform-origin: 0% 100%;
+    animation: seller-guide-lid 2.6s ease-in-out infinite;
+  }
+
+  .seller-guide-tag {
+    transform-box: fill-box;
+    transform-origin: 20% 0%;
+    animation: seller-guide-tag 2.4s ease-in-out infinite;
+  }
+
+  .seller-guide-spark {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: seller-guide-spark 1.8s ease-in-out infinite;
+  }
+
+  .seller-guide-spark-b {
+    animation-delay: 0.45s;
+  }
+
+  .seller-guide-check {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 16;
+    stroke-dashoffset: 16;
+    animation: seller-guide-check 2.8s ease-in-out infinite;
+  }
+
+  .seller-guide-row-b .seller-guide-check {
+    animation-delay: 0.35s;
+  }
+
+  .seller-guide-row-c .seller-guide-check {
+    animation-delay: 0.7s;
+  }
+
+  .seller-guide-pack {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: seller-guide-pack 2.2s ease-in-out infinite;
+  }
+
+  .buyer-guide-pin {
+    transform-box: fill-box;
+    transform-origin: bottom center;
+    animation: buyer-guide-pin 2.6s ease-in-out infinite;
+  }
+
+  .buyer-guide-item {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: buyer-guide-item 2.4s ease-in-out infinite;
+  }
+
+  .buyer-guide-qty {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: buyer-guide-qty 2.2s ease-in-out infinite;
+  }
+
+  .buyer-guide-arrive {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: buyer-guide-arrive 2.6s ease-in-out infinite;
+  }
+
+  .buyer-guide-coin {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: buyer-guide-coin 2.8s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .seller-guide-card,
+    .seller-guide-card:hover .seller-guide-art::after,
+    .seller-guide-person,
+    .seller-guide-stamp,
+    .seller-guide-lid,
+    .seller-guide-tag,
+    .seller-guide-spark,
+    .seller-guide-check,
+    .seller-guide-pack,
+    .buyer-guide-pin,
+    .buyer-guide-item,
+    .buyer-guide-qty,
+    .buyer-guide-arrive,
+    .buyer-guide-coin {
+      animation: none;
+    }
+
+    .seller-guide-card:hover {
+      transform: none;
+    }
+
+    .seller-guide-check {
+      stroke-dashoffset: 0;
+    }
+  }
 }
 
 @keyframes mode-select-nudge {
@@ -82,5 +232,172 @@
   }
   50% {
     transform: translateX(6px);
+  }
+}
+
+@keyframes seller-guide-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes seller-guide-shine {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes seller-guide-walk {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(12px);
+  }
+}
+
+@keyframes seller-guide-stamp {
+  0%,
+  38% {
+    opacity: 0;
+    transform: scale(0.35) rotate(-16deg);
+  }
+  52% {
+    opacity: 1;
+    transform: scale(1.12) rotate(0deg);
+  }
+  68%,
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes seller-guide-lid {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  45% {
+    transform: rotate(-26deg);
+  }
+}
+
+@keyframes seller-guide-tag {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(8deg);
+  }
+}
+
+@keyframes seller-guide-spark {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.82);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes seller-guide-check {
+  0%,
+  12% {
+    stroke-dashoffset: 16;
+  }
+  28%,
+  72% {
+    stroke-dashoffset: 0;
+  }
+  90%,
+  100% {
+    stroke-dashoffset: 16;
+  }
+}
+
+@keyframes seller-guide-pack {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes buyer-guide-pin {
+  0%,
+  100% {
+    transform: translateY(-8px);
+  }
+  42% {
+    transform: translateY(0);
+  }
+  56% {
+    transform: translateY(-4px);
+  }
+  70% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes buyer-guide-item {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(10px);
+  }
+}
+
+@keyframes buyer-guide-qty {
+  0%,
+  100% {
+    transform: scale(0.9);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes buyer-guide-arrive {
+  0%,
+  100% {
+    transform: translateX(10px);
+  }
+  50% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes buyer-guide-coin {
+  0%,
+  18% {
+    opacity: 0.35;
+    transform: translateY(-10px) scale(0.82);
+  }
+  42% {
+    opacity: 1;
+    transform: translateY(0) scale(1.06);
+  }
+  58%,
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }

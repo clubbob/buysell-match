@@ -2,17 +2,19 @@
 
 import Link from 'next/link';
 import PageIntro from '@/components/ui/PageIntro';
+import HomeGuide from '@/features/home/HomeGuide';
 import { useUserMode } from '@/features/mode/mode-context';
 import { useSellListings } from '@/features/sell/use-sell-listings';
 import { discountRate, formatWon } from '@/lib/sell-display';
 import { listingSourceLabel } from '@/lib/sell-source';
 import { SITE_NAME, SITE_TAGLINE } from '@/lib/site';
+import { cn } from '@/lib/utils';
 import { sellCoverImage } from '@/types/sell';
 
 export default function SiteHome() {
   const { mode } = useUserMode();
   const { items, ready: listingsReady } = useSellListings();
-  const highlights = items.slice(0, 3);
+  const highlights = items.slice(0, 4);
 
   return (
     <div className="space-y-6">
@@ -61,7 +63,15 @@ export default function SiteHome() {
         {!listingsReady ? (
           <p className="px-4 py-10 text-center text-sm text-muted sm:px-6">불러오는 중…</p>
         ) : highlights.length > 0 ? (
-          <ul className="grid grid-cols-2 gap-px border-t border-line bg-line sm:grid-cols-3 lg:grid-cols-4">
+          <ul
+            className={cn(
+              'grid gap-px bg-line',
+              highlights.length <= 1 && 'grid-cols-1 sm:w-1/2 lg:w-1/4',
+              highlights.length === 2 && 'grid-cols-2',
+              highlights.length === 3 && 'grid-cols-1 sm:grid-cols-3',
+              highlights.length >= 4 && 'grid-cols-2 lg:grid-cols-4',
+            )}
+          >
             {highlights.map((item) => {
               const cover = sellCoverImage(item);
               const sourceLabel = listingSourceLabel(item);
@@ -100,27 +110,7 @@ export default function SiteHome() {
         )}
       </section>
 
-      <section className="panel px-4 py-5 sm:px-6">
-        <h2 className="text-[15px] font-bold text-ink">이용 안내</h2>
-        <ol className="mt-3 grid gap-4 text-sm text-muted sm:grid-cols-3">
-          <li>
-            <span className="font-semibold text-ink">1. 가입·역할</span>
-            <p className="mt-1">이메일로 가입합니다. 로그인 후 구매자·판매자 모드를 선택합니다.</p>
-          </li>
-          <li>
-            <span className="font-semibold text-ink">2. 구매 참여</span>
-            <p className="mt-1">
-              팝니다에서 수량을 접수합니다. 판매 확정 후 입금 기한 안에 입금하면, 판매자가 결제·배송을 확인합니다.
-            </p>
-          </li>
-          <li>
-            <span className="font-semibold text-ink">3. 판매 관리</span>
-            <p className="mt-1">
-              마이페이지에서 판매 확정과 건별 결제·배송을 관리합니다. 결제·정산은 판매자와 구매자가 직접 합니다.
-            </p>
-          </li>
-        </ol>
-      </section>
+      <HomeGuide />
     </div>
   );
 }

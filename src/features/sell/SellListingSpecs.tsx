@@ -14,6 +14,7 @@ import {
 import type { JoinListSummary } from '@/types/sell-join';
 import type { SellListing } from '@/types/sell';
 import SellProductLink from '@/features/sell/SellProductLink';
+import SellYoutubeEmbed from '@/features/sell/SellYoutubeEmbed';
 import { SPEC_GRID, SPEC_GROUP_TITLE, SPEC_PRICE_FIELDS, SPEC_QTY_FIELDS, SPEC_ROW } from '@/features/sell/sell-spec-ui';
 
 function Spec({ label, children }: { label: string; children: React.ReactNode }) {
@@ -86,10 +87,10 @@ export default function SellListingSpecs({
         <span className="whitespace-nowrap text-subtle">스마트스토어</span>
         {item.smartstoreUrl ? <SellProductLink href={item.smartstoreUrl} label="스마트스토어" /> : <EmptyValue />}
       </div>
-      <div className={`${SPEC_ROW} border-b border-line py-3`}>
+      <div className={`${SPEC_ROW} items-start border-b border-line py-3 sm:items-start`}>
         <p className={SPEC_GROUP_TITLE}>유튜브 판매상품 URL (선택)</p>
         <span className="hidden sm:block" aria-hidden />
-        {item.youtubeUrl ? <SellProductLink href={item.youtubeUrl} label="유튜브" /> : <EmptyValue />}
+        {item.youtubeUrl ? <SellYoutubeEmbed url={item.youtubeUrl} /> : <EmptyValue />}
       </div>
       <div className={`${SPEC_ROW} border-b border-line py-3`}>
         <dt className="whitespace-nowrap text-subtle">정상 가격</dt>
