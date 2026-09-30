@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { fetchOpenJoinSummaries } from '@/lib/sell-join-remote';
-import type { OpenJoinSummary } from '@/types/sell-join';
+import { fetchJoinListSummaries } from '@/lib/sell-join-remote';
+import type { JoinListSummary } from '@/types/sell-join';
 
 export function useSellJoinTotals(listingIds: string[]) {
-  const [totals, setTotals] = useState<Record<string, OpenJoinSummary>>({});
+  const [totals, setTotals] = useState<Record<string, JoinListSummary>>({});
   const key = [...listingIds].sort().join(',');
 
   useEffect(() => {
@@ -15,7 +15,7 @@ export function useSellJoinTotals(listingIds: string[]) {
       return;
     }
 
-    void fetchOpenJoinSummaries(listingIds).then((next) => {
+    void fetchJoinListSummaries(listingIds).then((next) => {
       if (!cancelled) setTotals(next);
     });
 

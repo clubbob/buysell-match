@@ -18,10 +18,50 @@ export function formatJoinParticipants(buyers: number, quantity: number): string
   return `구매 참여 ${buyers.toLocaleString('ko-KR')}명 (${quantity.toLocaleString('ko-KR')}개)`;
 }
 
+export function formatConfirmedJoinSummary(buyers: number, quantity: number): string {
+  if (quantity <= 0) return '';
+  if (buyers > 0) {
+    return `판매 확정 ${buyers.toLocaleString('ko-KR')}명 (${quantity.toLocaleString('ko-KR')}개)`;
+  }
+  return `판매 확정 ${quantity.toLocaleString('ko-KR')}개`;
+}
+
 export function joinTotalNote(total: number, min: number | null): string {
   if (min == null || min <= 0) return '접수된 참여 수량입니다.';
   if (total >= min) return `공구 최소 주문 ${formatCount(min)}을 충족했습니다.`;
   return `공구 최소 주문까지 ${formatCount(min - total)} 남았습니다.`;
+}
+
+export function joinPaymentDueDate(confirmedAt: string, days = 2): string {
+  const parsed = new Date(confirmedAt);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const due = new Date(parsed);
+  due.setDate(due.getDate() + days);
+  const year = due.getFullYear();
+  const month = String(due.getMonth() + 1).padStart(2, '0');
+  const day = String(due.getDate()).padStart(2, '0');
+  return `${year}.${month}.${day}`;
+}
+
+export function joinPaymentDueNotice(confirmedAt: string, days = 2): string {
+  const dueDate = joinPaymentDueDate(confirmedAt, days);
+  if (!dueDate) return '';
+  return `입금 기한 (${dueDate}). 입금 고객부터 배송 시작합니다.`;
+}
+
+export function joinConfirmedNote(total: number, pendingPayments = 0, pendingShipments = 0): string {
+  if (total <= 0) return '';
+  const details: string[] = [];
+  if (pendingPayments > 0) {
+    details.push(`입금 대기 ${pendingPayments.toLocaleString('ko-KR')}건`);
+  }
+  if (pendingShipments > 0) {
+    details.push(`배송 대기 ${pendingShipments.toLocaleString('ko-KR')}건`);
+  }
+  if (details.length > 0) {
+    return details.join(', ');
+  }
+  return '결제·배송이 모두 완료되었습니다.';
 }
 
 export function joinAvailable(limit: number, remaining: number, gathered: number): number {

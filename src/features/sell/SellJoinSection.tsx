@@ -10,7 +10,15 @@ import { useUserMode } from '@/features/mode/mode-context';
 import { loginHref } from '@/lib/auth-redirect';
 import { BUYER_DETAIL_LABEL } from '@/lib/profile-labels';
 import { defaultBuyerAddress, hasBuyerProfile } from '@/types/buyer';
-import { confirmSellJoins, createSellJoin, fetchSellJoins } from '@/lib/sell-join-remote';
+import {
+  confirmSellJoins,
+  createSellJoin,
+  fetchSellJoins,
+  markSellJoinPaid,
+  markSellJoinPending,
+  markSellJoinShipped,
+  markSellJoinShippingPending,
+} from '@/lib/sell-join-remote';
 import { updateSellRemaining } from '@/lib/sell-remote';
 import {
   formatCount,
@@ -20,7 +28,16 @@ import {
   quantityAmount,
   replaceQuantityNumber,
 } from '@/lib/sell-display';
-import { openJoinSummary, openJoinTotal, type OpenJoinSummary, type SellJoin } from '@/types/sell-join';
+import {
+  joinListSummary,
+  openJoinSummary,
+  openJoinTotal,
+  isJoinPaid,
+  isJoinShipped,
+  splitJoinsByStatus,
+  type JoinListSummary,
+  type SellJoin,
+} from '@/types/sell-join';
 import type { SellListing } from '@/types/sell';
 import SellJoinHistoryTable from '@/features/sell/SellJoinHistoryTable';
 
@@ -34,7 +51,7 @@ export default function SellJoinSection({
   item: SellListing;
   from?: string;
   onRemainingChange?: () => void;
-  onJoinChange?: (summary: OpenJoinSummary) => void;
+  onJoinChange?: (summary: JoinListSummary) => void;
   onJoinsLoaded?: (joins: SellJoin[]) => void;
 }) {
   const router = useRouter();
@@ -47,6 +64,8 @@ export default function SellJoinSection({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [markingPaymentJoinId, setMarkingPaymentJoinId] = useState<string | null>(null);
+  const [markingShippingJoinId, setMarkingShippingJoinId] = useState<string | null>(null);
 
   const min = quantityAmount(item.minPurchaseLabel) ?? 0;
   const remaining = quantityAmount(item.remainingLabel) ?? 0;
@@ -60,10 +79,12 @@ export default function SellJoinSection({
   const canConfirm = gathered >= min && min > 0 && canMoreTrade;
   const isOwner = Boolean(user && user.uid === item.sellerId);
   const isBuyer = mode === 'buyer';
-  const showSellerTools = isOwner && mode === 'seller';
-  const showConfirm = showSellerTools && from === 'mypage';
+  const manageListing = isOwner && mode === 'seller' && from === 'mypage';
+  const showSellerTools = manageListing;
+  const showConfirm = manageListing && canConfirm;
   const showJoinCta = !user || isBuyer;
-  const myJoins = user ? joins.filter((join) => join.buyerId === user.uid) : [];
+  const { open: openJoins, confirmed: confirmedJoins } = useMemo(() => splitJoinsByStatus(joins), [joins]);
+  const minForNote = min > 0 ? min : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -80,8 +101,8 @@ export default function SellJoinSection({
   }, [item.id]);
 
   useEffect(() => {
-    onJoinChange?.(joinSummary);
-  }, [joinSummary, onJoinChange]);
+    onJoinChange?.(joinListSummary(joins));
+  }, [joins, onJoinChange]);
 
   useEffect(() => {
     if (ready) onJoinsLoaded?.(joins);
@@ -144,18 +165,83 @@ export default function SellJoinSection({
     }
   }
 
+  async function handleMarkPaid(joinId: string) {
+    setError(null);
+    if (!manageListing) return;
+    const join = joins.find((entry) => entry.id === joinId);
+    if (!join || join.status !== 'confirmed' || isJoinPaid(join)) return;
+    setMarkingPaymentJoinId(joinId);
+    try {
+      const updated = await markSellJoinPaid(join);
+      setJoins((current) => current.map((entry) => (entry.id === joinId ? updated : entry)));
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : '결제 완료 표시에 실패했습니다.');
+    } finally {
+      setMarkingPaymentJoinId(null);
+    }
+  }
+
+  async function handleMarkPending(joinId: string) {
+    setError(null);
+    if (!manageListing) return;
+    const join = joins.find((entry) => entry.id === joinId);
+    if (!join || join.status !== 'confirmed' || !isJoinPaid(join)) return;
+    setMarkingPaymentJoinId(joinId);
+    try {
+      const updated = await markSellJoinPending(join);
+      setJoins((current) => current.map((entry) => (entry.id === joinId ? updated : entry)));
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : '입금 대기로 바꾸지 못했습니다.');
+    } finally {
+      setMarkingPaymentJoinId(null);
+    }
+  }
+
+  async function handleMarkShipped(joinId: string) {
+    setError(null);
+    if (!manageListing) return;
+    const join = joins.find((entry) => entry.id === joinId);
+    if (!join || join.status !== 'confirmed' || !isJoinPaid(join) || isJoinShipped(join)) return;
+    setMarkingShippingJoinId(joinId);
+    try {
+      const updated = await markSellJoinShipped(join);
+      setJoins((current) => current.map((entry) => (entry.id === joinId ? updated : entry)));
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : '배송 완료 표시에 실패했습니다.');
+    } finally {
+      setMarkingShippingJoinId(null);
+    }
+  }
+
+  async function handleMarkShippingPending(joinId: string) {
+    setError(null);
+    if (!manageListing) return;
+    const join = joins.find((entry) => entry.id === joinId);
+    if (!join || join.status !== 'confirmed' || !isJoinPaid(join) || !isJoinShipped(join)) return;
+    setMarkingShippingJoinId(joinId);
+    try {
+      const updated = await markSellJoinShippingPending(join);
+      setJoins((current) => current.map((entry) => (entry.id === joinId ? updated : entry)));
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : '배송 대기로 바꾸지 못했습니다.');
+    } finally {
+      setMarkingShippingJoinId(null);
+    }
+  }
+
   async function handleConfirm() {
     setError(null);
-    if (!isOwner || !canConfirm || from !== 'mypage') return;
+    if (!manageListing || !canConfirm) return;
     setPending(true);
     try {
       const openJoins = joins.filter((join) => join.status === 'open');
       const confirmedAmount = Math.min(openJoinTotal(openJoins), remaining);
-      await confirmSellJoins(openJoins);
+      const confirmedJoins = await confirmSellJoins(openJoins);
       const nextRemaining = Math.max(0, remaining - confirmedAmount);
       const nextLabel = replaceQuantityNumber(item.remainingLabel, nextRemaining);
       await updateSellRemaining(item.id, nextLabel);
-      setJoins((current) => current.map((join) => (join.status === 'open' ? { ...join, status: 'confirmed' } : join)));
+      const confirmedById = new Map(confirmedJoins.map((join) => [join.id, join]));
+      setJoins((current) => current.map((join) => confirmedById.get(join.id) ?? join));
       onRemainingChange?.();
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : '판매 확정에 실패했습니다.');
@@ -164,9 +250,69 @@ export default function SellJoinSection({
     }
   }
 
-  if (!showSellerTools && !showJoinCta && myJoins.length === 0 && !error) {
+  if (!isOwner && !showJoinCta && ready && joins.length === 0 && !error) {
     return null;
   }
+
+  const joinCta = showJoinCta ? (
+    notice ? (
+      <>
+        <p className="text-center text-sm font-semibold text-ink" role="status">
+          {notice}
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Link href="/buy" className="btn-secondary">
+            삽니다
+          </Link>
+          <Link href="/mypage" className="btn-secondary">
+            마이페이지
+          </Link>
+        </div>
+      </>
+    ) : remainingShort ? (
+      <button type="button" className="btn-primary min-w-[12rem]" disabled>
+        잔여 부족
+      </button>
+    ) : deadlinePassed ? (
+      <button type="button" className="btn-primary min-w-[12rem]" disabled>
+        마감
+      </button>
+    ) : loading ? (
+      <button type="button" className="btn-primary min-w-[12rem]" disabled>
+        불러오는 중…
+      </button>
+    ) : !user ? (
+      <Link href={loginHref(`/sell/${item.id}`)} className="btn-primary min-w-[12rem]">
+        구매 참여
+      </Link>
+    ) : available === 0 ? (
+      <button type="button" className="btn-primary min-w-[12rem]" disabled>
+        이번 수량 마감
+      </button>
+    ) : !buyerReady ? (
+      <p className="text-center text-sm text-muted">불러오는 중…</p>
+    ) : (
+      <>
+        <label className="flex items-center gap-2 text-sm text-ink">
+          <span className="whitespace-nowrap font-semibold">참여 수량</span>
+          <input
+            type="number"
+            min={1}
+            max={Math.max(available, 1)}
+            value={quantity}
+            onChange={(event) => setQuantity(event.target.value)}
+            className={`${inputClassName} w-24`}
+          />
+        </label>
+        <button type="button" className="btn-primary min-w-[12rem]" disabled={pending} onClick={() => void handleJoin()}>
+          {pending ? '처리 중…' : '구매 참여'}
+        </button>
+        {!hasBuyerProfile(buyerProfile) ? (
+          <p className="text-center text-sm text-muted">참여 전에 {BUYER_DETAIL_LABEL}이 필요합니다.</p>
+        ) : null}
+      </>
+    )
+  ) : null;
 
   return (
     <div className="border-t border-line px-4 py-4 sm:px-6">
@@ -177,86 +323,48 @@ export default function SellJoinSection({
       ) : null}
 
       <div className="flex w-full flex-col items-center gap-3">
-        {showSellerTools || showJoinCta ? (
-          !ready ? (
-            <p className="w-full text-center text-sm text-muted">참여 내역을 불러오는 중…</p>
-          ) : joins.length === 0 ? (
-            <p className="w-full text-center text-sm text-muted">아직 구매 참여가 없습니다.</p>
-          ) : (
-            <div className="w-full">
-              <SellJoinHistoryTable joins={joins} minQuantity={min > 0 ? min : null} />
-            </div>
-          )
-        ) : myJoins.length > 0 ? (
-          <div className="w-full">
-            <SellJoinHistoryTable joins={myJoins} title="내 구매 참여" minQuantity={min > 0 ? min : null} />
+        {!ready ? (
+          <p className="w-full text-center text-sm text-muted">참여 내역을 불러오는 중…</p>
+        ) : (
+          <div className="flex w-full flex-col gap-4">
+            {joins.length === 0 ? (
+              <p className="w-full text-center text-sm text-muted">아직 구매 참여가 없습니다.</p>
+            ) : openJoins.length > 0 ? (
+              <SellJoinHistoryTable joins={openJoins} minQuantity={minForNote} revealBuyerIdentity={manageListing} />
+            ) : (
+              <p className="w-full text-center text-sm text-muted">현재 접수 중인 참여가 없습니다.</p>
+            )}
+
+            {joinCta ? <div className="flex w-full flex-col items-center gap-3">{joinCta}</div> : null}
+
+            {confirmedJoins.length > 0 ? (
+              <SellJoinHistoryTable
+                joins={confirmedJoins}
+                title="판매 확정 내역"
+                variant="confirmed"
+                revealBuyerIdentity={manageListing}
+                showMarkPaid={showSellerTools}
+                  markingPaymentJoinId={markingPaymentJoinId}
+                  markingShippingJoinId={markingShippingJoinId}
+                onMarkPaid={(joinId) => void handleMarkPaid(joinId)}
+                  onMarkPending={(joinId) => void handleMarkPending(joinId)}
+                  showManageShipping={showSellerTools}
+                  onMarkShipped={(joinId) => void handleMarkShipped(joinId)}
+                  onMarkShippingPending={(joinId) => void handleMarkShippingPending(joinId)}
+              />
+            ) : null}
           </div>
-        ) : null}
+        )}
 
         {showConfirm ? (
-          canConfirm ? (
-            <button type="button" className="btn-primary min-w-[12rem]" disabled={pending} onClick={() => void handleConfirm()}>
-              {pending ? '처리 중…' : '판매 확정'}
-            </button>
-          ) : null
-        ) : showJoinCta && notice ? (
-          <>
-            <p className="text-center text-sm font-semibold text-ink" role="status">
-              {notice}
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <Link href="/buy" className="btn-secondary">
-                삽니다
-              </Link>
-              <Link href="/mypage" className="btn-secondary">
-                마이페이지
-              </Link>
-            </div>
-          </>
-        ) : showJoinCta ? (
-          remainingShort ? (
-            <button type="button" className="btn-primary min-w-[12rem]" disabled>
-              잔여 부족
-            </button>
-          ) : deadlinePassed ? (
-            <button type="button" className="btn-primary min-w-[12rem]" disabled>
-              마감
-            </button>
-          ) : loading ? (
-            <button type="button" className="btn-primary min-w-[12rem]" disabled>
-              불러오는 중…
-            </button>
-          ) : !user ? (
-            <Link href={loginHref(`/sell/${item.id}`)} className="btn-primary min-w-[12rem]">
-              구매 참여
-            </Link>
-          ) : available === 0 ? (
-            <button type="button" className="btn-primary min-w-[12rem]" disabled>
-              이번 수량 마감
-            </button>
-          ) : !buyerReady ? (
-            <p className="text-center text-sm text-muted">불러오는 중…</p>
-          ) : (
-            <>
-              <label className="flex items-center gap-2 text-sm text-ink">
-                <span className="whitespace-nowrap font-semibold">참여 수량</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={Math.max(available, 1)}
-                  value={quantity}
-                  onChange={(event) => setQuantity(event.target.value)}
-                  className={`${inputClassName} w-24`}
-                />
-              </label>
-              <button type="button" className="btn-primary min-w-[12rem]" disabled={pending} onClick={() => void handleJoin()}>
-                {pending ? '처리 중…' : '구매 참여'}
-              </button>
-              {!hasBuyerProfile(buyerProfile) ? (
-                <p className="text-center text-sm text-muted">참여 전에 {BUYER_DETAIL_LABEL}이 필요합니다.</p>
-              ) : null}
-            </>
-          )
+          <button type="button" className="btn-primary min-w-[12rem]" disabled={pending} onClick={() => void handleConfirm()}>
+            {pending ? '처리 중…' : '판매 확정'}
+          </button>
+        ) : null}
+        {isOwner && mode === 'seller' && !manageListing && joins.length > 0 ? (
+          <Link href={`/sell/${item.id}?from=mypage`} className="btn-chip">
+            마이페이지에서 관리
+          </Link>
         ) : null}
       </div>
     </div>

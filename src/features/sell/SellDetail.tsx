@@ -9,7 +9,7 @@ import SellGuidePanel from '@/features/sell/SellGuidePanel';
 import SellJoinSection from '@/features/sell/SellJoinSection';
 import SellListingSpecs from '@/features/sell/SellListingSpecs';
 import { SPEC_PANEL_PAD } from '@/features/sell/sell-spec-ui';
-import type { OpenJoinSummary, SellJoin } from '@/types/sell-join';
+import type { JoinListSummary, SellJoin } from '@/types/sell-join';
 import type { SellListing } from '@/types/sell';
 
 export default function SellDetail({
@@ -22,7 +22,10 @@ export default function SellDetail({
   onRemainingChange?: () => void;
 }) {
   const { user } = useAuth();
-  const [join, setJoin] = useState<OpenJoinSummary>({ quantity: 0, buyers: 0 });
+  const [join, setJoin] = useState<JoinListSummary>({
+    open: { quantity: 0, buyers: 0 },
+    confirmed: { quantity: 0, buyers: 0 },
+  });
   const [joins, setJoins] = useState<SellJoin[] | null>(null);
   const fromMypage = from === 'mypage';
   const isOwner = Boolean(user && user.uid === item.sellerId);

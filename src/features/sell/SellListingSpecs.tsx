@@ -2,8 +2,16 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { deadlineParts, discountRate, formatJoinParticipants, formatQuantityNumber, formatWon, isRemainingShort } from '@/lib/sell-display';
-import type { OpenJoinSummary } from '@/types/sell-join';
+import {
+  deadlineParts,
+  discountRate,
+  formatConfirmedJoinSummary,
+  formatJoinParticipants,
+  formatQuantityNumber,
+  formatWon,
+  isRemainingShort,
+} from '@/lib/sell-display';
+import type { JoinListSummary } from '@/types/sell-join';
 import type { SellListing } from '@/types/sell';
 import SellProductLink from '@/features/sell/SellProductLink';
 import { SPEC_GRID, SPEC_GROUP_TITLE, SPEC_PRICE_FIELDS, SPEC_QTY_FIELDS, SPEC_ROW } from '@/features/sell/sell-spec-ui';
@@ -30,13 +38,14 @@ export default function SellListingSpecs({
   titleAction,
 }: {
   item: SellListing;
-  join?: OpenJoinSummary;
+  join?: JoinListSummary;
   showTitle?: boolean;
   showSeller?: boolean;
   showSellerContact?: boolean;
   titleAction?: ReactNode;
 }) {
-  const joinNote = formatJoinParticipants(join?.buyers ?? 0, join?.quantity ?? 0);
+  const openNote = formatJoinParticipants(join?.open.buyers ?? 0, join?.open.quantity ?? 0);
+  const confirmedNote = formatConfirmedJoinSummary(join?.confirmed.buyers ?? 0, join?.confirmed.quantity ?? 0);
   const rate = discountRate(item.regularPrice, item.salePrice);
   const remainingShort = isRemainingShort(item.minPurchaseLabel, item.remainingLabel);
   const deadline = deadlineParts(item.deadline);
@@ -98,7 +107,8 @@ export default function SellListingSpecs({
         <dd className={SPEC_QTY_FIELDS}>
           <span className="min-w-0">
             <span className="tabular-nums">{formatQuantityNumber(item.minPurchaseLabel)}</span>
-            {joinNote ? <span className="ml-1 text-xs font-medium text-muted">{joinNote}</span> : null}
+            {openNote ? <span className="ml-1 text-xs font-medium text-muted">{openNote}</span> : null}
+            {confirmedNote ? <span className="ml-1 text-xs font-medium text-muted">{confirmedNote}</span> : null}
           </span>
           <span className="whitespace-nowrap text-subtle">잔여 수량</span>
           <span className="min-w-0">

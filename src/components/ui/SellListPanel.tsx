@@ -3,15 +3,30 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSellJoinTotals } from '@/features/sell/use-sell-join-totals';
-import { deadlineParts, discountRate, formatJoinParticipants, formatQuantityNumber, formatWon, isRemainingShort } from '@/lib/sell-display';
+import {
+  deadlineParts,
+  discountRate,
+  formatConfirmedJoinSummary,
+  formatJoinParticipants,
+  formatQuantityNumber,
+  formatWon,
+  isRemainingShort,
+} from '@/lib/sell-display';
 import { listingSourceLabel } from '@/lib/sell-source';
 import { sellCoverImage, type SellListing } from '@/types/sell';
-import type { OpenJoinSummary } from '@/types/sell-join';
+import type { JoinListSummary } from '@/types/sell-join';
 
-function JoinNote({ summary }: { summary?: OpenJoinSummary }) {
-  const text = summary ? formatJoinParticipants(summary.buyers, summary.quantity) : '';
-  if (!text) return null;
-  return <span className="mt-0.5 block text-xs font-medium text-muted">{text}</span>;
+function JoinNotes({ summary }: { summary?: JoinListSummary }) {
+  if (!summary) return null;
+  const openText = formatJoinParticipants(summary.open.buyers, summary.open.quantity);
+  const confirmedText = formatConfirmedJoinSummary(summary.confirmed.buyers, summary.confirmed.quantity);
+  if (!openText && !confirmedText) return null;
+  return (
+    <span className="mt-0.5 block text-xs font-medium text-muted">
+      {openText ? <span className="block">{openText}</span> : null}
+      {confirmedText ? <span className="block">{confirmedText}</span> : null}
+    </span>
+  );
 }
 
 function PhotoSlot({ src, alt }: { src?: string | null; alt: string }) {
@@ -42,7 +57,7 @@ function DesktopRow({
   from,
 }: {
   item: SellListing;
-  join?: OpenJoinSummary;
+  join?: JoinListSummary;
   showDeadline?: boolean;
   from?: string;
 }) {
@@ -71,7 +86,7 @@ function DesktopRow({
       </td>
       <td className="px-3 py-3 align-middle text-sm tabular-nums text-ink">
         <span>{formatQuantityNumber(item.minPurchaseLabel)}</span>
-        <JoinNote summary={join} />
+        <JoinNotes summary={join} />
       </td>
       <td className="px-3 py-3 align-middle text-sm text-ink">
         <span className="tabular-nums">{formatQuantityNumber(item.remainingLabel)}</span>
@@ -96,13 +111,12 @@ function MobileRow({
   from,
 }: {
   item: SellListing;
-  join?: OpenJoinSummary;
+  join?: JoinListSummary;
   showDeadline?: boolean;
   from?: string;
 }) {
   const rate = discountRate(item.regularPrice, item.salePrice);
   const deadline = deadlineParts(item.deadline);
-  const joinNote = formatJoinParticipants(join?.buyers ?? 0, join?.quantity ?? 0);
   const sourceLabel = listingSourceLabel(item);
 
   return (
@@ -121,7 +135,7 @@ function MobileRow({
             </p>
             <p className="text-sm text-ink">
               {item.minPurchaseLabel ? `공구 최소 주문 ${formatQuantityNumber(item.minPurchaseLabel)}` : null}
-              {joinNote ? <span className="ml-1 text-xs font-medium text-muted">{joinNote}</span> : null}
+              <JoinNotes summary={join} />
               {item.minPurchaseLabel ? <span className="mx-1.5 text-subtle">·</span> : null}
               {formatQuantityNumber(item.remainingLabel)}
               {isRemainingShort(item.minPurchaseLabel, item.remainingLabel) ? (
