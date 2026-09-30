@@ -46,7 +46,7 @@ export function joinPaymentDueDate(confirmedAt: string, days = 2): string {
 export function joinPaymentDueNotice(confirmedAt: string, days = 2): string {
   const dueDate = joinPaymentDueDate(confirmedAt, days);
   if (!dueDate) return '';
-  return `입금 기한 (${dueDate}). 입금 고객부터 배송 시작합니다.`;
+  return `입금해 주세요 (${dueDate})`;
 }
 
 export function joinConfirmedNote(total: number, pendingPayments = 0, pendingShipments = 0): string {
@@ -59,9 +59,9 @@ export function joinConfirmedNote(total: number, pendingPayments = 0, pendingShi
     details.push(`배송 대기 ${pendingShipments.toLocaleString('ko-KR')}건`);
   }
   if (details.length > 0) {
-    return details.join(', ');
+    return `판매 확정된 참여입니다. ${details.join(', ')}`;
   }
-  return '결제·배송이 모두 완료되었습니다.';
+  return '판매 확정된 참여입니다. 결제·배송이 모두 완료되었습니다.';
 }
 
 export function joinAvailable(limit: number, remaining: number, gathered: number): number {

@@ -32,9 +32,9 @@ function JoinNotes({ summary }: { summary?: JoinListSummary }) {
 function PhotoSlot({ src, alt }: { src?: string | null; alt: string }) {
   if (src) {
     return (
-      <span className="flex h-16 w-16 items-center justify-center overflow-hidden border border-line bg-white p-1">
+      <span className="flex h-16 w-16 items-center justify-center overflow-hidden border border-line bg-white p-0.5">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt={alt} className="max-h-full max-w-full object-contain" />
+        <img src={src} alt={alt} className="h-full w-full object-contain" />
       </span>
     );
   }

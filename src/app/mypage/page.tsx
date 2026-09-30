@@ -86,19 +86,14 @@ export default function MyPage() {
   return (
     <div className="space-y-6">
       <PageIntro title="마이페이지" description={mode ? `${USER_MODE_LABELS[mode]}로 이용 중입니다.` : '이용 모드는 아래에서 고릅니다.'}>
-        {canPostBuy || canPostSell ? (
-          <div className="flex flex-wrap justify-end gap-2">
-            {canPostBuy ? (
-              <Link href="/buy/new" className="btn-secondary">
-                삽니다 등록
-              </Link>
-            ) : null}
-            {canPostSell ? (
-              <Link href="/sell/new" className="btn-primary">
-                팝니다 등록
-              </Link>
-            ) : null}
-          </div>
+        {mode === 'buyer' && canPostBuy ? (
+          <Link href="/buy/new" className="btn-primary">
+            삽니다 등록
+          </Link>
+        ) : mode === 'seller' && canPostSell ? (
+          <Link href="/sell/new" className="btn-primary">
+            팝니다 등록
+          </Link>
         ) : null}
       </PageIntro>
 
