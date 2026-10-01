@@ -144,8 +144,10 @@ export async function markSellJoinPaid(join: SellJoin): Promise<SellJoin> {
 }
 
 export async function markSellJoinPending(join: SellJoin): Promise<SellJoin> {
-  const { paidAt: _paidAt, shippedAt: _shippedAt, shippingStatus: _shippingStatus, ...rest } = join;
-  const updated: SellJoin = { ...rest, paymentStatus: 'pending' };
+  const updated: SellJoin = { ...join, paymentStatus: 'pending' };
+  delete updated.paidAt;
+  delete updated.shippedAt;
+  delete updated.shippingStatus;
   saveLocalJoin(updated);
   const db = getClientFirestore();
   if (db) {
@@ -187,8 +189,8 @@ export async function markSellJoinShipped(join: SellJoin): Promise<SellJoin> {
 }
 
 export async function markSellJoinShippingPending(join: SellJoin): Promise<SellJoin> {
-  const { shippedAt: _shippedAt, ...rest } = join;
-  const updated: SellJoin = { ...rest, shippingStatus: 'pending' };
+  const updated: SellJoin = { ...join, shippingStatus: 'pending' };
+  delete updated.shippedAt;
   saveLocalJoin(updated);
   const db = getClientFirestore();
   if (db) {

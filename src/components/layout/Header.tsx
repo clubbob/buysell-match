@@ -51,7 +51,7 @@ export default function Header() {
   }, [menuOpen]);
 
   const isLoggedIn = Boolean(user);
-  const navItems = getHeaderNavItems(mode, isLoggedIn);
+  const navItems = getHeaderNavItems();
 
   async function handleLogout() {
     await logout();

@@ -13,7 +13,7 @@ export type HeaderNavItem = {
   exact?: boolean;
 };
 
-export function getHeaderNavItems(_mode: UserMode | null, _isLoggedIn: boolean): HeaderNavItem[] {
+export function getHeaderNavItems(): HeaderNavItem[] {
   return [
     { href: '/sell', label: '팝니다' },
     { href: '/buy', label: '삽니다' },

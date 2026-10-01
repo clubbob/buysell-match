@@ -10,7 +10,7 @@ import { digitsOnly, formatBusinessNumber } from '@/lib/business-number';
 import { formatPhoneNumber, PHONE_HYPHEN_HINT } from '@/lib/phone-number';
 import { SELLER_DETAIL_LABEL } from '@/lib/profile-labels';
 import { uploadBusinessCertificate } from '@/lib/seller-remote';
-import { hasSellerProfile, isSellerProfileComplete } from '@/types/seller';
+import { hasSellerProfile } from '@/types/seller';
 
 const CERT_MAX_BYTES = 8 * 1024 * 1024;
 

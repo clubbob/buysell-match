@@ -51,7 +51,7 @@ export default function CompanyInfo({
     <address className={cn('space-y-1 not-italic text-center text-xs leading-5 text-muted', className)}>
       <FooterLine
         items={[
-          <span className="font-semibold text-ink">{SITE_COMPANY.legalName}</span>,
+          <span key="legalName" className="font-semibold text-ink">{SITE_COMPANY.legalName}</span>,
           '통신판매중개자',
           `대표 ${SITE_COMPANY.representative}`,
           `사업자등록번호 ${SITE_COMPANY.businessNumber}`,
@@ -61,14 +61,14 @@ export default function CompanyInfo({
       <FooterLine
         items={[
           `주소 ${SITE_COMPANY.address}`,
-          <>
+          <Fragment key="email">
             이메일{' '}
             <a href={`mailto:${SITE_COMPANY.email}`} className="text-ink hover:underline">
               {SITE_COMPANY.email}
             </a>
-          </>,
+          </Fragment>,
           `전화 ${SITE_COMPANY.phone}`,
-          <span className="text-subtle">개인정보보호책임자 {SITE_COMPANY.privacyOfficer}</span>,
+          <span key="privacyOfficer" className="text-subtle">개인정보보호책임자 {SITE_COMPANY.privacyOfficer}</span>,
         ]}
       />
     </address>
