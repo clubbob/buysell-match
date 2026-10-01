@@ -1,4 +1,4 @@
-const ALLOWED_NEXT = new Set(['/', '/sell', '/buy', '/sell/new', '/buy/new', '/mypage', '/mypage/password']);
+const ALLOWED_NEXT = new Set(['/', '/sell', '/buy', '/sell/new', '/buy/new', '/mypage', '/mypage/password', '/contact']);
 
 export function loginHref(next?: string): string {
   const path = safeNextPath(next ?? null);

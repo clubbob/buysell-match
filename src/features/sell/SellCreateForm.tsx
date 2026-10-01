@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import IntermediaryNotice from '@/components/legal/IntermediaryNotice';
 import { useAuth } from '@/features/auth/auth-context';
 import { inputClassName } from '@/features/auth/auth-errors';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
@@ -246,6 +247,8 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
           sellerId: user.uid,
           sellerName: profile.sellerName,
           representativeName: profile.representativeName,
+          businessAddress: profile.businessAddress,
+          businessNumber: profile.businessNumber,
           businessVerified: profile.businessVerified,
           sellerMobile: profile.sellerMobile,
           sellerPhone: profile.sellerPhone,
@@ -561,9 +564,7 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
         </div>
       </div>
 
-      <p className="text-xs leading-relaxed text-subtle">
-        공구매칭은 통신판매중개자이며 결제·정산·배송의 당사자가 아닙니다. 거래는 판매자와 구매자 사이에서 이루어집니다.
-      </p>
+      <IntermediaryNotice />
     </form>
   );
 }

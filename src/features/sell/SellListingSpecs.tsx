@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 import {
   deadlineParts,
@@ -13,6 +12,7 @@ import {
 } from '@/lib/sell-display';
 import type { JoinListSummary } from '@/types/sell-join';
 import type { SellListing } from '@/types/sell';
+import SellerIdentityBlock from '@/features/sell/SellerIdentityBlock';
 import SellProductLink from '@/features/sell/SellProductLink';
 import SellYoutubeEmbed from '@/features/sell/SellYoutubeEmbed';
 import { SPEC_GRID, SPEC_GROUP_TITLE, SPEC_PRICE_FIELDS, SPEC_QTY_FIELDS, SPEC_ROW } from '@/features/sell/sell-spec-ui';
@@ -60,25 +60,12 @@ export default function SellListingSpecs({
         </Spec>
       ) : null}
       {showSeller ? (
-        <Spec label="판매자">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="whitespace-nowrap font-semibold">{item.sellerName}</span>
-            {showSellerContact ? (
-              <>
-                {item.businessVerified ? (
-                  <Link href={`/seller/${item.sellerId}/verify?from=${item.id}`} className="btn-chip">
-                    사업자 인증
-                  </Link>
-                ) : (
-                  <span className="whitespace-nowrap text-xs text-subtle">인증 대기</span>
-                )}
-                {item.sellerMobile ? <span className="whitespace-nowrap text-muted">핸드폰 {item.sellerMobile}</span> : null}
-                {item.sellerPhone ? <span className="whitespace-nowrap text-muted">사업장 전화 {item.sellerPhone}</span> : null}
-                <span className="whitespace-nowrap text-muted">이메일 {item.sellerEmail}</span>
-              </>
-            ) : null}
-          </div>
-        </Spec>
+        <div className={`${SPEC_ROW} items-start border-b border-line py-3 sm:items-start`}>
+          <dt className="whitespace-nowrap text-subtle">판매자</dt>
+          <dd className="flex min-w-0 items-start text-ink">
+            {showSellerContact ? <SellerIdentityBlock item={item} /> : <span className="font-semibold">{item.sellerName}</span>}
+          </dd>
+        </div>
       ) : null}
       <div className={`${SPEC_ROW} border-b border-line py-3`}>
         <p className={SPEC_GROUP_TITLE}>온라인 판매상품 URL (선택)</p>

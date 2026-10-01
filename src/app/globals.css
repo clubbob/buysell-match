@@ -84,15 +84,34 @@
 
   .seller-guide-card:hover {
     transform: translateY(-6px);
-    border-color: #10233a;
-    box-shadow: 0 16px 32px -20px rgba(16, 35, 58, 0.45);
   }
 
   .seller-guide-art {
     overflow: hidden;
+  }
+
+  .home-guide-art--seller {
     background:
-      radial-gradient(120px 80px at 88% -10%, rgba(16, 35, 58, 0.1), transparent 70%),
-      linear-gradient(165deg, #f7f8fb 0%, #e7edf4 100%);
+      radial-gradient(120px 80px at 88% -10%, rgba(217, 119, 6, 0.24), transparent 70%),
+      radial-gradient(80px 60px at 8% 90%, rgba(251, 191, 36, 0.18), transparent 70%),
+      linear-gradient(165deg, #fffbeb 0%, #fef3c7 52%, #fde68a 100%);
+  }
+
+  .home-guide-art--buyer {
+    background:
+      radial-gradient(120px 80px at 88% -10%, rgba(2, 132, 199, 0.22), transparent 70%),
+      radial-gradient(80px 60px at 8% 90%, rgba(56, 189, 248, 0.16), transparent 70%),
+      linear-gradient(165deg, #f0f9ff 0%, #e0f2fe 52%, #bae6fd 100%);
+  }
+
+  .home-guide-card--seller:hover {
+    border-color: #d97706;
+    box-shadow: 0 16px 32px -20px rgba(217, 119, 6, 0.38);
+  }
+
+  .home-guide-card--buyer:hover {
+    border-color: #0284c7;
+    box-shadow: 0 16px 32px -20px rgba(2, 132, 199, 0.38);
   }
 
   .seller-guide-art::after {

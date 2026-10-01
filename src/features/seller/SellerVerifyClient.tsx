@@ -1,21 +1,33 @@
 'use client';
 
 import PageBack from '@/components/ui/PageBack';
+import IntermediaryNotice from '@/components/legal/IntermediaryNotice';
+import { formatSellerPhone, resolveSellerIdentity } from '@/lib/seller-identity';
 import { useSellListings } from '@/features/sell/use-sell-listings';
+import { useSellerProfile } from '@/features/seller/use-seller-profile';
+import { hasSellerProfile } from '@/types/seller';
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <p className="text-sm text-muted">
+      <span className="text-subtle">{label}</span> {value}
+    </p>
+  );
+}
 
 export default function SellerVerifyClient({ sellerId, from }: { sellerId: string; from?: string }) {
-  const { items, ready } = useSellListings();
+  const { items, ready: listingsReady } = useSellListings();
+  const { profile, ready: profileReady } = useSellerProfile(sellerId);
 
-  if (!ready) {
-    return <p className="text-sm text-muted">불러오는 중…</p>;
-  }
-
-  const listing = items.find((item) => item.sellerId === sellerId);
   const fromProduct = from ? items.find((item) => item.id === from) : undefined;
   const backHref = fromProduct ? `/sell/${fromProduct.id}` : '/sell';
   const backLabel = fromProduct ? `← ${fromProduct.title}` : '← 이전 목록';
 
-  if (!listing || !listing.businessVerified) {
+  if (!profileReady || (from && !listingsReady)) {
+    return <p className="text-sm text-muted">불러오는 중…</p>;
+  }
+
+  if (!hasSellerProfile(profile)) {
     return (
       <div className="space-y-5">
         <PageBack href={backHref}>{backLabel}</PageBack>
@@ -24,25 +36,29 @@ export default function SellerVerifyClient({ sellerId, from }: { sellerId: strin
     );
   }
 
+  const listing = fromProduct ?? items.find((item) => item.sellerId === sellerId);
+  const identity = resolveSellerIdentity(profile, listing);
+  const phones = formatSellerPhone(identity.sellerPhone, identity.sellerMobile);
+
   return (
     <div className="space-y-5">
       <PageBack href={backHref}>{backLabel}</PageBack>
 
       <section className="panel px-4 py-5 sm:px-6">
-        <p className="text-xs font-semibold tracking-wide text-subtle">사업자 인증</p>
-        <h1 className="mt-1 text-xl font-bold text-ink">{listing.sellerName}</h1>
+        <p className="text-xs font-semibold tracking-wide text-subtle">판매자 신원 정보</p>
+        <h1 className="mt-1 text-xl font-bold text-ink">{identity.sellerName}</h1>
         <p className="mt-2 text-sm font-semibold text-ink">사업자 정보를 확인한 판매자입니다.</p>
-        {listing.sellerMobile ? <p className="mt-3 text-sm text-muted">핸드폰 {listing.sellerMobile}</p> : null}
-        {listing.sellerPhone ? (
-          <p className={`text-sm text-muted ${listing.sellerMobile ? 'mt-1' : 'mt-3'}`}>사업장 전화 {listing.sellerPhone}</p>
-        ) : null}
-        <p className="mt-1 text-sm text-muted">이메일 {listing.sellerEmail}</p>
+        <div className="mt-4 space-y-1">
+          <Field label="대표자" value={identity.representativeName} />
+          <Field label="사업장 주소" value={identity.businessAddress} />
+          {phones.phone ? <Field label="사업장 전화" value={phones.phone} /> : null}
+          {phones.mobile ? <Field label="핸드폰" value={phones.mobile} /> : null}
+          <Field label="사업자등록번호" value={identity.businessNumber} />
+          {identity.sellerEmail ? <Field label="이메일" value={identity.sellerEmail} /> : null}
+        </div>
       </section>
 
-      <p className="text-xs leading-relaxed text-subtle">
-        공구매칭은 판매자의 사업자 등록 여부를 확인합니다. 사업자등록번호는 공개하지 않으며, 거래는 판매자와 구매자
-        사이에서 이루어집니다.
-      </p>
+      <IntermediaryNotice />
     </div>
   );
 }

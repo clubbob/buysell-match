@@ -1,4 +1,5 @@
 import PageBack from '@/components/ui/PageBack';
+import { LEGAL_EFFECTIVE_DATE } from '@/lib/legal-notice';
 
 export function LegalDoc({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -6,7 +7,7 @@ export function LegalDoc({ title, children }: { title: string; children: React.R
       <PageBack href="/">← 홈</PageBack>
       <article className="panel px-4 py-6 text-sm leading-relaxed text-muted sm:px-6 sm:py-8">
         <h1 className="text-xl font-bold tracking-tight text-ink">{title}</h1>
-        <p className="mt-2 text-xs text-subtle">시행일 2026.09.27</p>
+        <p className="mt-2 text-xs text-subtle">시행일 {LEGAL_EFFECTIVE_DATE.replaceAll('-', '.')}</p>
         {children}
       </article>
       <PageBack href="/">← 홈</PageBack>

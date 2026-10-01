@@ -16,6 +16,8 @@ function toListing(id: string, data: Record<string, unknown>): SellListing | nul
     sellerId: String(data.sellerId),
     sellerName: String(data.sellerName ?? ''),
     representativeName: String(data.representativeName ?? ''),
+    businessAddress: String(data.businessAddress ?? ''),
+    businessNumber: String(data.businessNumber ?? ''),
     businessVerified: Boolean(data.businessVerified),
     sellerMobile: String(data.sellerMobile ?? ''),
     sellerPhone: String(data.sellerPhone ?? ''),

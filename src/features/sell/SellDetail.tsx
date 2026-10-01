@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import IntermediaryNotice from '@/components/legal/IntermediaryNotice';
 import PageBack from '@/components/ui/PageBack';
 import { useAuth } from '@/features/auth/auth-context';
 import SellImageGallery from '@/features/sell/SellImageGallery';
@@ -43,6 +44,7 @@ export default function SellDetail({
           </div>
 
           <div className={`min-w-0 flex-1 ${SPEC_PANEL_PAD}`}>
+            <IntermediaryNotice variant="panel" className="mb-4" />
             <SellListingSpecs
               item={item}
               join={join}
@@ -71,10 +73,6 @@ export default function SellDetail({
       </article>
 
       <SellGuidePanel item={item} />
-
-      <p className="text-xs leading-relaxed text-subtle">
-        공구매칭은 통신판매중개자이며 결제·정산·배송의 당사자가 아닙니다. 거래는 판매자와 구매자 사이에서 이루어집니다.
-      </p>
     </div>
   );
 }

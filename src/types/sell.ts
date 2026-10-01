@@ -7,6 +7,8 @@ export type SellListing = {
   sellerId: string;
   sellerName: string;
   representativeName: string;
+  businessAddress: string;
+  businessNumber: string;
   businessVerified: boolean;
   sellerMobile: string;
   sellerPhone: string;

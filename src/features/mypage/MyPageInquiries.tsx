@@ -4,16 +4,23 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { inputClassName } from '@/features/auth/auth-errors';
 import { answerSellInquiry, fetchSellInquiriesBySeller } from '@/lib/sell-inquiry-remote';
+import { cn } from '@/lib/utils';
 import { formatMemberJoinedAt } from '@/types/member';
 import { isInquiryAnswered, type SellInquiry } from '@/types/sell-inquiry';
 import type { SellListing } from '@/types/sell';
 
+function sectionClass(embedded: boolean) {
+  return cn('overflow-hidden', embedded ? 'border border-line bg-white' : 'panel');
+}
+
 export default function MyPageInquiries({
   sellerId,
   listings,
+  embedded = false,
 }: {
   sellerId: string;
   listings: SellListing[];
+  embedded?: boolean;
 }) {
   const [items, setItems] = useState<SellInquiry[]>([]);
   const [ready, setReady] = useState(false);
@@ -56,17 +63,28 @@ export default function MyPageInquiries({
 
   if (!ready) {
     return (
-      <section className="panel px-4 py-5 sm:px-5">
+      <section className={cn(sectionClass(embedded), 'px-4 py-5 sm:px-5')}>
         <h2 className="text-sm font-bold text-ink">받은 상품 문의</h2>
         <p className="mt-4 text-sm text-muted">불러오는 중…</p>
       </section>
     );
   }
 
-  if (items.length === 0) return null;
+  if (items.length === 0) {
+    if (!embedded) return null;
+    return (
+      <section className={sectionClass(embedded)}>
+        <div className="px-4 py-4 sm:px-5">
+          <h2 className="text-sm font-bold text-ink">받은 상품 문의</h2>
+          <p className="mt-1 text-sm text-muted">판매 상품에 올라온 문의는 여기서 답합니다.</p>
+        </div>
+        <p className="border-t border-line px-4 py-8 text-center text-sm text-muted sm:px-5">아직 받은 상품 문의가 없습니다.</p>
+      </section>
+    );
+  }
 
   return (
-    <section className="panel overflow-hidden">
+    <section className={sectionClass(embedded)}>
       <div className="px-4 py-4 sm:px-5">
         <h2 className="text-sm font-bold text-ink">받은 상품 문의 {waiting.length ? `· 미답변 ${waiting.length}` : ''}</h2>
         <p className="mt-1 text-sm text-muted">판매 상품에 올라온 문의는 여기서 답합니다.</p>

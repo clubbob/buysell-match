@@ -39,6 +39,7 @@ import {
   type SellJoin,
 } from '@/types/sell-join';
 import type { SellListing } from '@/types/sell';
+import IntermediaryNotice from '@/components/legal/IntermediaryNotice';
 import SellJoinHistoryTable from '@/features/sell/SellJoinHistoryTable';
 
 export default function SellJoinSection({
@@ -335,7 +336,17 @@ export default function SellJoinSection({
               <p className="w-full text-center text-sm text-muted">현재 접수 중인 참여가 없습니다.</p>
             )}
 
-            {joinCta ? <div className="flex w-full flex-col items-center gap-3">{joinCta}</div> : null}
+            {joinCta ? (
+              <div className="flex w-full flex-col items-center gap-3">
+                <IntermediaryNotice className="w-full max-w-xl text-center" />
+                <p className="text-center text-xs text-subtle">
+                  <Link href="/dispute" className="font-semibold text-ink underline-offset-2 hover:underline">
+                    분쟁 해결 안내
+                  </Link>
+                </p>
+                {joinCta}
+              </div>
+            ) : null}
 
             {confirmedJoins.length > 0 ? (
               <SellJoinHistoryTable
