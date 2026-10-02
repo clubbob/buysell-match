@@ -1,8 +1,10 @@
 import { parseSellSourceType, parseShopUrls, sourceTypeFromUrls, type SellSourceType } from '@/lib/sell-source';
+import { parseSellCategory, type SellCategory } from '@/types/sell-category';
 
 export type SellListing = {
   id: string;
   title: string;
+  category: SellCategory;
   images: string[];
   sellerId: string;
   sellerName: string;
@@ -26,9 +28,14 @@ export type SellListing = {
   quantityLabel: string;
   remainingLabel: string;
   deadline: string;
+  closedAt: string;
   description: string;
   specText: string;
   tradeText: string;
+  depositBank: string;
+  depositAccount: string;
+  depositHolder: string;
+  createdAt: string;
 };
 
 export function sellCoverImage(item: Pick<SellListing, 'images'>): string | null {
@@ -44,6 +51,7 @@ export function withSellSource(
   const youtubeUrl = String(item.youtubeUrl ?? '').trim();
   return {
     ...item,
+    category: parseSellCategory(item.category),
     ...shops,
     productUrls,
     productUrl: productUrls[0] ?? '',

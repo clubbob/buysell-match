@@ -1,13 +1,31 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import PageBack from '@/components/ui/PageBack';
 import { useSellListings } from '@/features/sell/use-sell-listings';
-import { countSellerReviews, getSellerReviews } from '@/lib/seller-reviews';
+import { getSellerReviews } from '@/lib/seller-reviews';
+import type { SellerReview } from '@/types/review';
 
 export default function SellerReviewsClient({ sellerId, from }: { sellerId: string; from?: string }) {
   const { items, ready } = useSellListings();
+  const [reviews, setReviews] = useState<SellerReview[]>([]);
+  const [reviewsReady, setReviewsReady] = useState(false);
 
-  if (!ready) {
+  useEffect(() => {
+    let cancelled = false;
+    void getSellerReviews(sellerId)
+      .then((next) => {
+        if (!cancelled) setReviews(next);
+      })
+      .finally(() => {
+        if (!cancelled) setReviewsReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sellerId]);
+
+  if (!ready || !reviewsReady) {
     return <p className="text-sm text-muted">불러오는 중…</p>;
   }
 
@@ -25,8 +43,6 @@ export default function SellerReviewsClient({ sellerId, from }: { sellerId: stri
     );
   }
 
-  const reviews = getSellerReviews(sellerId);
-
   return (
     <div className="space-y-5">
       <PageBack href={backHref}>{backLabel}</PageBack>
@@ -36,7 +52,7 @@ export default function SellerReviewsClient({ sellerId, from }: { sellerId: stri
         <h1 className="mt-1 text-xl font-bold text-ink">{listing.sellerName}</h1>
         <p className="mt-2 text-sm text-muted">
           {listing.businessVerified ? '사업자 인증 · ' : null}
-          후기 {countSellerReviews(sellerId)}건
+          후기 {reviews.length}건
         </p>
         <p className="mt-2 text-sm text-muted">
           {listing.sellerMobile ? `핸드폰 ${listing.sellerMobile} · ` : null}

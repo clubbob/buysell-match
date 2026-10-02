@@ -5,6 +5,11 @@ export const metadata: Metadata = {
   title: '삽니다',
 };
 
-export default function BuyPage() {
-  return <BuyIndexClient />;
+export default async function BuyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  return <BuyIndexClient q={q} />;
 }

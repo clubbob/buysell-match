@@ -126,10 +126,10 @@ function SellerInquiryRow({
   return (
     <li className="px-4 py-4 sm:px-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Link href={`/sell/${inquiry.listingId}?tab=inquiries`} className="min-w-0 truncate text-sm font-semibold text-ink hover:underline">
+        <Link href={`/sell/${inquiry.listingId}?from=mypage&tab=inquiries`} className="min-w-0 truncate text-sm font-semibold text-ink hover:underline">
           {title}
         </Link>
-        <Link href={`/sell/${inquiry.listingId}?tab=inquiries`} className="btn-chip shrink-0">
+        <Link href={`/sell/${inquiry.listingId}?from=mypage&tab=inquiries`} className="btn-chip shrink-0">
           상품에서 보기
         </Link>
       </div>

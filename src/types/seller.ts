@@ -10,6 +10,9 @@ export type SellerProfile = {
   businessVerified: boolean;
   businessVerifiedAt: string;
   businessCertificateUrl: string;
+  depositBank: string;
+  depositAccount: string;
+  depositHolder: string;
 };
 
 export function toSellerProfile(id: string, data: Record<string, unknown>): SellerProfile {
@@ -25,6 +28,9 @@ export function toSellerProfile(id: string, data: Record<string, unknown>): Sell
     businessVerified: Boolean(data.businessVerified),
     businessVerifiedAt: String(data.businessVerifiedAt ?? ''),
     businessCertificateUrl: String(data.businessCertificateUrl ?? ''),
+    depositBank: String(data.depositBank ?? ''),
+    depositAccount: String(data.depositAccount ?? ''),
+    depositHolder: String(data.depositHolder ?? ''),
   };
 }
 

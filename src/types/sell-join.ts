@@ -1,3 +1,5 @@
+export const OPEN_JOIN_STATUS_LABEL = '공구 구매 신청';
+
 export type SellJoinStatus = 'open' | 'confirmed';
 export type SellJoinPaymentStatus = 'pending' | 'paid';
 export type SellJoinShippingStatus = 'pending' | 'shipped';
@@ -30,6 +32,12 @@ export function joinShippingLabel(join: SellJoin): string {
   return isJoinShipped(join) ? '배송 완료' : '배송 대기';
 }
 
+export function joinBuyerStatusLabel(join: SellJoin): string {
+  if (join.status === 'open') return OPEN_JOIN_STATUS_LABEL;
+  const parts = ['판매 확정', joinPaymentLabel(join), joinShippingLabel(join)].filter(Boolean);
+  return parts.join(' · ');
+}
+
 export function normalizeSellJoin(join: SellJoin): SellJoin {
   let next = ensureConfirmedAt(join);
   if (next.status === 'confirmed' && !next.paymentStatus) {
@@ -57,6 +65,7 @@ export type SellJoin = {
   paidAt?: string;
   shippingStatus?: SellJoinShippingStatus;
   shippedAt?: string;
+  trackingNumber?: string;
 };
 
 export type OpenJoinSummary = {

@@ -10,12 +10,13 @@ import {
   formatWon,
   isRemainingShort,
 } from '@/lib/sell-display';
+import { sellCategoryLabel } from '@/lib/sell-filters';
 import type { JoinListSummary } from '@/types/sell-join';
 import type { SellListing } from '@/types/sell';
 import SellerIdentityBlock from '@/features/sell/SellerIdentityBlock';
 import SellProductLink from '@/features/sell/SellProductLink';
 import SellYoutubeEmbed from '@/features/sell/SellYoutubeEmbed';
-import { SPEC_GRID, SPEC_GROUP_TITLE, SPEC_PRICE_FIELDS, SPEC_QTY_FIELDS, SPEC_ROW } from '@/features/sell/sell-spec-ui';
+import { SPEC_GRID, SPEC_PRICE_FIELDS, SPEC_QTY_FIELDS, SPEC_ROW } from '@/features/sell/sell-spec-ui';
 
 function Spec({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -27,7 +28,7 @@ function Spec({ label, children }: { label: string; children: React.ReactNode })
 }
 
 function EmptyValue() {
-  return <span className="text-muted">—</span>;
+  return <span className="text-muted">없음</span>;
 }
 
 export default function SellListingSpecs({
@@ -54,30 +55,39 @@ export default function SellListingSpecs({
   return (
     <dl className={SPEC_GRID}>
       {showTitle ? (
-        <Spec label="상품명">
-          <h1 className="min-w-0 flex-1 break-words text-sm font-normal text-ink">{item.title}</h1>
-          {titleAction}
-        </Spec>
+        <>
+          <Spec label="상품명">
+            <h1 className="min-w-0 flex-1 break-words text-sm font-bold text-ink">{item.title}</h1>
+            {titleAction}
+          </Spec>
+          <Spec label="카테고리">
+            <span>{sellCategoryLabel(item.category)}</span>
+          </Spec>
+        </>
       ) : null}
       {showSeller ? (
-        <div className={`${SPEC_ROW} items-start border-b border-line py-3 sm:items-start`}>
-          <dt className="whitespace-nowrap text-subtle">판매자</dt>
-          <dd className="flex min-w-0 items-start text-ink">
-            {showSellerContact ? <SellerIdentityBlock item={item} /> : <span className="font-semibold">{item.sellerName}</span>}
-          </dd>
-        </div>
+        showSellerContact ? (
+          <div className="border-b border-line py-3 sm:col-span-2">
+            <SellerIdentityBlock item={item} />
+          </div>
+        ) : (
+          <Spec label="판매자">
+            <span>{item.sellerName}</span>
+          </Spec>
+        )
       ) : null}
-      <div className={`${SPEC_ROW} border-b border-line py-3`}>
-        <p className={SPEC_GROUP_TITLE}>온라인 판매상품 URL (선택)</p>
-        <span className="whitespace-nowrap text-subtle">쿠팡</span>
-        {item.coupangUrl ? <SellProductLink href={item.coupangUrl} label="쿠팡" /> : <EmptyValue />}
-        <span className="whitespace-nowrap text-subtle">스마트스토어</span>
-        {item.smartstoreUrl ? <SellProductLink href={item.smartstoreUrl} label="스마트스토어" /> : <EmptyValue />}
-      </div>
-      <div className={`${SPEC_ROW} items-start border-b border-line py-3 sm:items-start`}>
-        <p className={SPEC_GROUP_TITLE}>유튜브 판매상품 URL (선택)</p>
-        <span className="hidden sm:block" aria-hidden />
-        {item.youtubeUrl ? <SellYoutubeEmbed url={item.youtubeUrl} /> : <EmptyValue />}
+      <div className="border-b border-line py-3 sm:col-span-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+          <span className="shrink-0 whitespace-nowrap text-subtle">판매상품 URL</span>
+          <span className="whitespace-nowrap text-subtle">쿠팡</span>
+          {item.coupangUrl ? <SellProductLink href={item.coupangUrl} label="쿠팡" /> : <EmptyValue />}
+          <span className="whitespace-nowrap text-subtle">스마트스토어</span>
+          {item.smartstoreUrl ? <SellProductLink href={item.smartstoreUrl} label="스마트스토어" /> : <EmptyValue />}
+          <span className="flex shrink-0 items-center gap-x-2">
+            <span className="whitespace-nowrap text-subtle">유튜브</span>
+            {item.youtubeUrl ? <SellYoutubeEmbed url={item.youtubeUrl} /> : <EmptyValue />}
+          </span>
+        </div>
       </div>
       <div className={`${SPEC_ROW} border-b border-line py-3`}>
         <dt className="whitespace-nowrap text-subtle">정상 가격</dt>

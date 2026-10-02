@@ -23,6 +23,7 @@ function toJoin(id: string, data: Record<string, unknown>): SellJoin | null {
     paidAt: data.paidAt ? String(data.paidAt) : undefined,
     shippingStatus: data.shippingStatus === 'shipped' ? 'shipped' : data.shippingStatus === 'pending' ? 'pending' : undefined,
     shippedAt: data.shippedAt ? String(data.shippedAt) : undefined,
+    trackingNumber: data.trackingNumber ? String(data.trackingNumber) : undefined,
   };
 }
 
@@ -55,6 +56,22 @@ export async function fetchSellJoins(listingId: string): Promise<SellJoin[]> {
   }
 }
 
+export async function fetchSellJoinsByBuyer(buyerId: string): Promise<SellJoin[]> {
+  const local = loadLocalJoins().filter((item) => item.buyerId === buyerId);
+  const db = getClientFirestore();
+  if (!db) return finalizeJoins(local);
+
+  try {
+    const snapshot = await getDocs(query(collection(db, COLLECTION), where('buyerId', '==', buyerId)));
+    const remote = snapshot.docs
+      .map((entry) => toJoin(entry.id, entry.data() as Record<string, unknown>))
+      .filter((item): item is SellJoin => Boolean(item));
+    return finalizeJoins(mergeJoins(remote, local));
+  } catch {
+    return finalizeJoins(local);
+  }
+}
+
 export async function fetchSellJoinsBySeller(sellerId: string): Promise<SellJoin[]> {
   const local = loadLocalJoins().filter((item) => item.sellerId === sellerId);
   const db = getClientFirestore();
@@ -71,12 +88,17 @@ export async function fetchSellJoinsBySeller(sellerId: string): Promise<SellJoin
   }
 }
 
-export async function fetchJoinListSummaries(listingIds: string[]): Promise<Record<string, JoinListSummary>> {
+export async function fetchSellJoinsByListings(listingIds: string[]): Promise<Record<string, SellJoin[]>> {
   const unique = [...new Set(listingIds.filter(Boolean))];
-  const entries = await Promise.all(
-    unique.map(async (id) => [id, joinListSummary(await fetchSellJoins(id))] as const),
-  );
+  const entries = await Promise.all(unique.map(async (id) => [id, await fetchSellJoins(id)] as const));
   return Object.fromEntries(entries);
+}
+
+export async function fetchJoinListSummaries(listingIds: string[]): Promise<Record<string, JoinListSummary>> {
+  const joinsByListing = await fetchSellJoinsByListings(listingIds);
+  return Object.fromEntries(
+    Object.entries(joinsByListing).map(([id, joins]) => [id, joinListSummary(joins)]),
+  );
 }
 
 export async function createSellJoin(join: SellJoin): Promise<SellJoin> {
@@ -124,6 +146,30 @@ export async function confirmSellJoins(joins: SellJoin[]): Promise<SellJoin[]> {
   return confirmed;
 }
 
+export async function markSellJoinShipped(join: SellJoin, trackingNumber?: string): Promise<SellJoin> {
+  const shippedAt = new Date().toISOString();
+  const tracking = trackingNumber?.trim() || undefined;
+  const updated: SellJoin = { ...join, shippingStatus: 'shipped', shippedAt, trackingNumber: tracking };
+  saveLocalJoin(updated);
+  const db = getClientFirestore();
+  if (db) {
+    try {
+      await updateDoc(doc(db, COLLECTION, join.id), {
+        shippingStatus: 'shipped',
+        shippedAt,
+        ...(tracking ? { trackingNumber: tracking } : {}),
+      });
+    } catch {
+      try {
+        await setDoc(doc(db, COLLECTION, join.id), updated);
+      } catch {
+        // keep local
+      }
+    }
+  }
+  return updated;
+}
+
 export async function markSellJoinPaid(join: SellJoin): Promise<SellJoin> {
   const paidAt = new Date().toISOString();
   const updated: SellJoin = { ...join, paymentStatus: 'paid', paidAt, shippingStatus: 'pending' };
@@ -148,6 +194,7 @@ export async function markSellJoinPending(join: SellJoin): Promise<SellJoin> {
   delete updated.paidAt;
   delete updated.shippedAt;
   delete updated.shippingStatus;
+  delete updated.trackingNumber;
   saveLocalJoin(updated);
   const db = getClientFirestore();
   if (db) {
@@ -157,26 +204,8 @@ export async function markSellJoinPending(join: SellJoin): Promise<SellJoin> {
         paidAt: deleteField(),
         shippingStatus: deleteField(),
         shippedAt: deleteField(),
+        trackingNumber: deleteField(),
       });
-    } catch {
-      try {
-        await setDoc(doc(db, COLLECTION, join.id), updated);
-      } catch {
-        // keep local
-      }
-    }
-  }
-  return updated;
-}
-
-export async function markSellJoinShipped(join: SellJoin): Promise<SellJoin> {
-  const shippedAt = new Date().toISOString();
-  const updated: SellJoin = { ...join, shippingStatus: 'shipped', shippedAt };
-  saveLocalJoin(updated);
-  const db = getClientFirestore();
-  if (db) {
-    try {
-      await updateDoc(doc(db, COLLECTION, join.id), { shippingStatus: 'shipped', shippedAt });
     } catch {
       try {
         await setDoc(doc(db, COLLECTION, join.id), updated);
@@ -191,11 +220,16 @@ export async function markSellJoinShipped(join: SellJoin): Promise<SellJoin> {
 export async function markSellJoinShippingPending(join: SellJoin): Promise<SellJoin> {
   const updated: SellJoin = { ...join, shippingStatus: 'pending' };
   delete updated.shippedAt;
+  delete updated.trackingNumber;
   saveLocalJoin(updated);
   const db = getClientFirestore();
   if (db) {
     try {
-      await updateDoc(doc(db, COLLECTION, join.id), { shippingStatus: 'pending', shippedAt: deleteField() });
+      await updateDoc(doc(db, COLLECTION, join.id), {
+        shippingStatus: 'pending',
+        shippedAt: deleteField(),
+        trackingNumber: deleteField(),
+      });
     } catch {
       try {
         await setDoc(doc(db, COLLECTION, join.id), updated);

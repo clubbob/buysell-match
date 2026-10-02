@@ -12,7 +12,7 @@ const CARDS: MarketplaceCard[] = [
   {
     href: '/sell',
     title: '팝니다',
-    description: '판매자가 올린 공동구매 상품을 보고 참여합니다.',
+    description: '판매자가 올린 공동구매 상품을 보고 공구 구매 신청합니다.',
     tone: 'sell',
   },
   {

@@ -10,6 +10,7 @@ import { useUserMode } from '@/features/mode/mode-context';
 import { loginHref } from '@/lib/auth-redirect';
 import { BUYER_DETAIL_LABEL } from '@/lib/profile-labels';
 import { defaultBuyerAddress, hasBuyerProfile } from '@/types/buyer';
+import DepositAccountNotice from '@/components/ui/DepositAccountNotice';
 import {
   confirmSellJoins,
   createSellJoin,
@@ -22,7 +23,7 @@ import {
 import { updateSellRemaining } from '@/lib/sell-remote';
 import {
   formatCount,
-  isDeadlinePassed,
+  isListingClosed,
   isRemainingShort,
   joinAvailable,
   quantityAmount,
@@ -39,8 +40,8 @@ import {
   type SellJoin,
 } from '@/types/sell-join';
 import type { SellListing } from '@/types/sell';
-import IntermediaryNotice from '@/components/legal/IntermediaryNotice';
 import SellJoinHistoryTable from '@/features/sell/SellJoinHistoryTable';
+import SellReviewWrite from '@/features/sell/SellReviewWrite';
 
 export default function SellJoinSection({
   item,
@@ -48,12 +49,14 @@ export default function SellJoinSection({
   onRemainingChange,
   onJoinChange,
   onJoinsLoaded,
+  onReviewCreated,
 }: {
   item: SellListing;
   from?: string;
   onRemainingChange?: () => void;
   onJoinChange?: (summary: JoinListSummary) => void;
   onJoinsLoaded?: (joins: SellJoin[]) => void;
+  onReviewCreated?: () => void;
 }) {
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -67,12 +70,11 @@ export default function SellJoinSection({
   const [pending, setPending] = useState(false);
   const [markingPaymentJoinId, setMarkingPaymentJoinId] = useState<string | null>(null);
   const [markingShippingJoinId, setMarkingShippingJoinId] = useState<string | null>(null);
-
   const min = quantityAmount(item.minPurchaseLabel) ?? 0;
   const remaining = quantityAmount(item.remainingLabel) ?? 0;
   const limit = quantityAmount(item.limitLabel || item.quantityLabel || item.remainingLabel) ?? remaining;
   const remainingShort = isRemainingShort(item.minPurchaseLabel, item.remainingLabel);
-  const deadlinePassed = isDeadlinePassed(item.deadline);
+  const deadlinePassed = isListingClosed(item);
   const joinSummary = useMemo(() => openJoinSummary(joins), [joins]);
   const gathered = joinSummary.quantity;
   const available = joinAvailable(limit, remaining, gathered);
@@ -86,6 +88,10 @@ export default function SellJoinSection({
   const showJoinCta = !user || isBuyer;
   const { open: openJoins, confirmed: confirmedJoins } = useMemo(() => splitJoinsByStatus(joins), [joins]);
   const minForNote = min > 0 ? min : null;
+  const myPendingPaymentJoin = useMemo(() => {
+    if (!user) return null;
+    return confirmedJoins.find((entry) => entry.buyerId === user.uid && entry.status === 'confirmed' && !isJoinPaid(entry));
+  }, [confirmedJoins, user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,7 +123,7 @@ export default function SellJoinSection({
       return;
     }
     if (mode !== 'buyer') {
-      setError('구매자로 이용할 때만 참여할 수 있습니다.');
+      setError('구매자로 이용할 때만 공구 구매 신청할 수 있습니다.');
       return;
     }
     if (remainingShort || deadlinePassed) return;
@@ -132,12 +138,12 @@ export default function SellJoinSection({
     }
     const amount = Number(quantity);
     if (!Number.isInteger(amount) || amount <= 0) {
-      setError('참여 수량은 1 이상 숫자로 입력해 주세요.');
+      setError('구매 수량은 1 이상 숫자로 입력해 주세요.');
       return;
     }
     if (amount > available) {
       setError(
-        `지금 더 받을 수 있는 수량은 ${formatCount(available)}입니다. 한계 ${formatCount(limit)} 중 이미 ${formatCount(gathered)}가 참여했습니다.`,
+        `지금 더 받을 수 있는 수량은 ${formatCount(available)}입니다. 한계 ${formatCount(limit)} 중 이미 ${formatCount(gathered)}가 신청했습니다.`,
       );
       return;
     }
@@ -158,9 +164,9 @@ export default function SellJoinSection({
       });
       setJoins((current) => [join, ...current]);
       setQuantity('1');
-      setNotice(`${formatCount(amount)} 구매 참여가 접수되었습니다.`);
+      setNotice(`공구 구매 신청 ${formatCount(amount)}가 완료되었습니다.`);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : '참여에 실패했습니다.');
+      setError(submitError instanceof Error ? submitError.message : '공구 구매 신청에 실패했습니다.');
     } finally {
       setPending(false);
     }
@@ -198,14 +204,14 @@ export default function SellJoinSection({
     }
   }
 
-  async function handleMarkShipped(joinId: string) {
+  async function handleMarkShipped(joinId: string, trackingNumber?: string) {
     setError(null);
     if (!manageListing) return;
     const join = joins.find((entry) => entry.id === joinId);
     if (!join || join.status !== 'confirmed' || !isJoinPaid(join) || isJoinShipped(join)) return;
     setMarkingShippingJoinId(joinId);
     try {
-      const updated = await markSellJoinShipped(join);
+      const updated = await markSellJoinShipped(join, trackingNumber);
       setJoins((current) => current.map((entry) => (entry.id === joinId ? updated : entry)));
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : '배송 완료 표시에 실패했습니다.');
@@ -265,7 +271,7 @@ export default function SellJoinSection({
           <Link href="/buy" className="btn-secondary">
             삽니다
           </Link>
-          <Link href="/mypage" className="btn-secondary">
+          <Link href="/mypage?tab=buy" className="btn-secondary">
             마이페이지
           </Link>
         </div>
@@ -284,7 +290,7 @@ export default function SellJoinSection({
       </button>
     ) : !user ? (
       <Link href={loginHref(`/sell/${item.id}`)} className="btn-primary min-w-[12rem]">
-        구매 참여
+        공구 구매 신청
       </Link>
     ) : available === 0 ? (
       <button type="button" className="btn-primary min-w-[12rem]" disabled>
@@ -295,7 +301,7 @@ export default function SellJoinSection({
     ) : (
       <>
         <label className="flex items-center gap-2 text-sm text-ink">
-          <span className="whitespace-nowrap font-semibold">참여 수량</span>
+          <span className="whitespace-nowrap font-semibold">구매 수량</span>
           <input
             type="number"
             min={1}
@@ -306,10 +312,10 @@ export default function SellJoinSection({
           />
         </label>
         <button type="button" className="btn-primary min-w-[12rem]" disabled={pending} onClick={() => void handleJoin()}>
-          {pending ? '처리 중…' : '구매 참여'}
+          {pending ? '처리 중…' : '공구 구매 신청'}
         </button>
         {!hasBuyerProfile(buyerProfile) ? (
-          <p className="text-center text-sm text-muted">참여 전에 {BUYER_DETAIL_LABEL}이 필요합니다.</p>
+          <p className="text-center text-sm text-muted">신청 전에 {BUYER_DETAIL_LABEL}이 필요합니다.</p>
         ) : null}
       </>
     )
@@ -325,28 +331,24 @@ export default function SellJoinSection({
 
       <div className="flex w-full flex-col items-center gap-3">
         {!ready ? (
-          <p className="w-full text-center text-sm text-muted">참여 내역을 불러오는 중…</p>
+          <p className="w-full text-center text-sm text-muted">공구 구매 신청 내역을 불러오는 중…</p>
         ) : (
           <div className="flex w-full flex-col gap-4">
-            {joins.length === 0 ? (
-              <p className="w-full text-center text-sm text-muted">아직 구매 참여가 없습니다.</p>
-            ) : openJoins.length > 0 ? (
-              <SellJoinHistoryTable joins={openJoins} minQuantity={minForNote} revealBuyerIdentity={manageListing} />
+            {myPendingPaymentJoin ? (
+              <DepositAccountNotice item={item} confirmedAt={myPendingPaymentJoin.confirmedAt} />
+            ) : null}
+
+            {joins.length === 0 ? null : openJoins.length > 0 ? (
+              <SellJoinHistoryTable
+                joins={openJoins}
+                minQuantity={minForNote}
+                revealBuyerIdentity={manageListing}
+              />
             ) : (
-              <p className="w-full text-center text-sm text-muted">현재 접수 중인 참여가 없습니다.</p>
+              <p className="w-full text-center text-sm text-muted">현재 공구 구매 신청이 없습니다.</p>
             )}
 
-            {joinCta ? (
-              <div className="flex w-full flex-col items-center gap-3">
-                <IntermediaryNotice className="w-full max-w-xl text-center" />
-                <p className="text-center text-xs text-subtle">
-                  <Link href="/dispute" className="font-semibold text-ink underline-offset-2 hover:underline">
-                    분쟁 해결 안내
-                  </Link>
-                </p>
-                {joinCta}
-              </div>
-            ) : null}
+            {joinCta ? <div className="flex w-full flex-col items-center gap-3">{joinCta}</div> : null}
 
             {confirmedJoins.length > 0 ? (
               <SellJoinHistoryTable
@@ -355,15 +357,17 @@ export default function SellJoinSection({
                 variant="confirmed"
                 revealBuyerIdentity={manageListing}
                 showMarkPaid={showSellerTools}
-                  markingPaymentJoinId={markingPaymentJoinId}
-                  markingShippingJoinId={markingShippingJoinId}
+                markingPaymentJoinId={markingPaymentJoinId}
+                markingShippingJoinId={markingShippingJoinId}
                 onMarkPaid={(joinId) => void handleMarkPaid(joinId)}
-                  onMarkPending={(joinId) => void handleMarkPending(joinId)}
-                  showManageShipping={showSellerTools}
-                  onMarkShipped={(joinId) => void handleMarkShipped(joinId)}
-                  onMarkShippingPending={(joinId) => void handleMarkShippingPending(joinId)}
+                onMarkPending={(joinId) => void handleMarkPending(joinId)}
+                showManageShipping={showSellerTools}
+                onMarkShipped={(joinId, trackingNumber) => void handleMarkShipped(joinId, trackingNumber)}
+                onMarkShippingPending={(joinId) => void handleMarkShippingPending(joinId)}
               />
             ) : null}
+
+            {showJoinCta ? <SellReviewWrite item={item} onCreated={onReviewCreated} /> : null}
           </div>
         )}
 
@@ -373,7 +377,7 @@ export default function SellJoinSection({
           </button>
         ) : null}
         {isOwner && mode === 'seller' && !manageListing && joins.length > 0 ? (
-          <Link href={`/sell/${item.id}?from=mypage`} className="btn-chip">
+          <Link href={`/sell/${item.id}?from=mypage&tab=sell`} className="btn-chip">
             마이페이지에서 관리
           </Link>
         ) : null}

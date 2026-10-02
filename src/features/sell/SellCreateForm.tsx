@@ -13,6 +13,7 @@ import { isHttpUrl, normalizeHttpUrl, sourceTypeFromUrls, youtubeVideoId } from 
 import { createRemoteSellListing, resolveSellImages, updateRemoteSellListing } from '@/lib/sell-remote';
 import { cn } from '@/lib/utils';
 import { isSellerProfileComplete } from '@/types/seller';
+import { SELL_CATEGORY_OPTIONS, SELL_CATEGORY_LABELS, parseSellCategory } from '@/types/sell-category';
 import type { SellListing } from '@/types/sell';
 import {
   EXTRA_IMAGE_COUNT,
@@ -31,8 +32,6 @@ type ImageItem = {
   file: File | null;
 };
 
-type GuideTab = 'guide' | 'reviews' | 'inquiries';
-
 function toImageItem(file: File): ImageItem {
   return {
     id: `${file.name}-${file.size}-${file.lastModified}`,
@@ -50,29 +49,6 @@ function SpecField({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'relative min-h-12 flex-1 whitespace-nowrap px-2 text-sm font-semibold sm:px-4',
-        active ? 'text-ink after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-ink sm:after:inset-x-4' : 'text-muted',
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
 export default function SellCreateForm({ listing }: { listing?: SellListing }) {
   const isEdit = Boolean(listing);
   const router = useRouter();
@@ -86,6 +62,7 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
   );
   const [activeImage, setActiveImage] = useState(0);
   const [title, setTitle] = useState(listing?.title ?? '');
+  const [category, setCategory] = useState(parseSellCategory(listing?.category));
   const [regularPrice, setRegularPrice] = useState(listing ? String(listing.regularPrice) : '');
   const [salePrice, setSalePrice] = useState(listing ? String(listing.salePrice) : '');
   const [minPurchaseLabel, setMinPurchaseLabel] = useState(listing?.minPurchaseLabel ?? '');
@@ -98,7 +75,6 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
   const [description, setDescription] = useState(initialGuide.intro);
   const [specText, setSpecText] = useState(initialGuide.spec);
   const [tradeText, setTradeText] = useState(initialGuide.trade);
-  const [guideTab, setGuideTab] = useState<GuideTab>('guide');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const pickSlot = useRef(0);
@@ -227,7 +203,6 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
       return;
     }
     if (!description.trim() || !specText.trim() || !tradeText.trim()) {
-      setGuideTab('guide');
       setError('소개, 구성·규격, 결제·배송·교환을 모두 입력해 주세요.');
       window.requestAnimationFrame(() => {
         guidePanel.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -244,6 +219,7 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
       try {
         const payload = {
           title: title.trim(),
+          category,
           sellerId: user.uid,
           sellerName: profile.sellerName,
           representativeName: profile.representativeName,
@@ -260,6 +236,7 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
           quantityLabel: remainingLabel.trim(),
           remainingLabel: remainingLabel.trim(),
           deadline,
+          closedAt: listing?.closedAt ?? '',
           sourceType: sourceTypeFromUrls(Boolean(nextCoupangUrl || nextSmartstoreUrl), nextYoutubeUrl),
           coupangUrl: nextCoupangUrl,
           smartstoreUrl: nextSmartstoreUrl,
@@ -269,6 +246,9 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
           description: description.trim(),
           specText: specText.trim(),
           tradeText: tradeText.trim(),
+          depositBank: profile.depositBank,
+          depositAccount: profile.depositAccount,
+          depositHolder: profile.depositHolder,
         };
         const item =
           isEdit && listing
@@ -278,7 +258,7 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
                 images: await resolveSellImages(user.uid, listing.id, [cover, ...extras]),
               })
             : await createRemoteSellListing(
-                { ...payload, id: `u-${crypto.randomUUID()}` },
+                { ...payload, id: `u-${crypto.randomUUID()}`, createdAt: new Date().toISOString() },
                 [cover.file as File, ...extras.map((entry) => entry.file as File)],
               );
         router.push(`/sell/${item.id}`);
@@ -382,8 +362,17 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
                   required
                 />
               </SpecField>
+              <SpecField label="카테고리">
+                <select value={category} onChange={(event) => setCategory(parseSellCategory(event.target.value))} className={inputClassName}>
+                  {SELL_CATEGORY_OPTIONS.map((item) => (
+                    <option key={item} value={item}>
+                      {SELL_CATEGORY_LABELS[item]}
+                    </option>
+                  ))}
+                </select>
+              </SpecField>
               <div className={`${SPEC_ROW} border-b border-line py-3`}>
-                <p className={SPEC_GROUP_TITLE}>온라인 판매상품 URL (선택)</p>
+                <p className={SPEC_GROUP_TITLE}>판매상품 URL (선택)</p>
                 <label htmlFor="sell-coupang-url" className="whitespace-nowrap text-subtle">
                   쿠팡
                 </label>
@@ -408,18 +397,17 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
                   className={inputClassName}
                   placeholder="상품 URL 주소"
                 />
-              </div>
-              <div className={`${SPEC_ROW} border-b border-line py-3`}>
-                <p className={SPEC_GROUP_TITLE}>유튜브 판매상품 URL (선택)</p>
-                <span className="hidden sm:block" aria-hidden />
+                <label htmlFor="sell-youtube-url" className="whitespace-nowrap text-subtle">
+                  유튜브
+                </label>
                 <input
+                  id="sell-youtube-url"
                   type="text"
                   inputMode="url"
                   value={youtubeUrl}
                   onChange={(event) => setYoutubeUrl(event.target.value)}
                   className={inputClassName}
                   placeholder="영상 URL 주소"
-                  aria-label="유튜브 판매상품 URL"
                 />
               </div>
               <div className={`${SPEC_ROW} border-b border-line py-3`}>
@@ -495,20 +483,12 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
       </article>
 
       <section ref={guidePanel} className="panel overflow-hidden">
-        <div className="flex border-b border-line">
-          <TabButton active={guideTab === 'guide'} onClick={() => setGuideTab('guide')}>
-            상품 안내
-          </TabButton>
-          <TabButton active={guideTab === 'reviews'} onClick={() => setGuideTab('reviews')}>
-            구매자 후기 0
-          </TabButton>
-          <TabButton active={guideTab === 'inquiries'} onClick={() => setGuideTab('inquiries')}>
-            상품 문의 0
-          </TabButton>
+        <div className="border-b border-line px-4 py-3.5 sm:px-6">
+          <h2 className="text-[15px] font-bold text-ink">상품 안내</h2>
+          <p className="mt-0.5 text-sm text-muted">소개, 구성·규격, 결제·배송·교환을 작성합니다.</p>
         </div>
 
-        <div hidden={guideTab !== 'guide'}>
-          <div className="space-y-5 px-4 py-6 sm:px-6 sm:py-7">
+        <div className="space-y-5 px-4 py-6 sm:px-6 sm:py-7">
             {error?.includes('소개') ? (
               <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger" role="alert">
                 {error}
@@ -541,13 +521,6 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
                 placeholder="입금 방법, 배송, 교환·반품은 판매자 조건을 구체적으로 적습니다."
               />
             </label>
-          </div>
-        </div>
-        <div hidden={guideTab !== 'reviews'}>
-          <p className="px-4 py-10 text-center text-sm text-muted sm:px-6">아직 구매자 후기가 없습니다.</p>
-        </div>
-        <div hidden={guideTab !== 'inquiries'}>
-          <p className="px-4 py-10 text-center text-sm text-muted sm:px-6">아직 상품 문의가 없습니다.</p>
         </div>
       </section>
 

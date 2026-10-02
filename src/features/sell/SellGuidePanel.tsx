@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import SellInquiryTab from '@/features/sell/SellInquiryTab';
 import { guideHasContent, listingGuide } from '@/lib/sell-guide';
-import { getSellerReviews } from '@/lib/seller-reviews';
+import { fetchSellerReviewsByListing } from '@/lib/seller-review-remote';
 import { cn } from '@/lib/utils';
+import type { SellerReview } from '@/types/review';
 import type { SellListing } from '@/types/sell';
 
 type DetailTab = 'guide' | 'reviews' | 'inquiries';
@@ -23,13 +24,30 @@ function GuideBlock({ title, text }: { title: string; text: string }) {
 export default function SellGuidePanel({
   item,
   readQueryTab = true,
+  reviewsKey = 0,
   className,
 }: {
   item: SellListing;
   readQueryTab?: boolean;
+  reviewsKey?: number;
   className?: string;
 }) {
-  const reviews = getSellerReviews(item.sellerId);
+  const [reviews, setReviews] = useState<SellerReview[]>([]);
+  const showReviews = reviews.length > 0;
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchSellerReviewsByListing(item.id)
+      .then((next) => {
+        if (!cancelled) setReviews(next);
+      })
+      .catch(() => {
+        if (!cancelled) setReviews([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [item.id, reviewsKey]);
   const [tab, setTab] = useState<DetailTab>(() => {
     if (readQueryTab && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'inquiries') {
       return 'inquiries';
@@ -52,16 +70,18 @@ export default function SellGuidePanel({
         >
           상품 안내
         </button>
-        <button
-          type="button"
-          onClick={() => setTab('reviews')}
-          className={cn(
-            'relative min-h-12 flex-1 whitespace-nowrap px-2 text-sm font-semibold sm:px-4',
-            tab === 'reviews' ? 'text-ink after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-ink sm:after:inset-x-4' : 'text-muted',
-          )}
-        >
-          구매자 후기 {reviews.length}
-        </button>
+        {showReviews ? (
+          <button
+            type="button"
+            onClick={() => setTab('reviews')}
+            className={cn(
+              'relative min-h-12 flex-1 whitespace-nowrap px-2 text-sm font-semibold sm:px-4',
+              tab === 'reviews' ? 'text-ink after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-ink sm:after:inset-x-4' : 'text-muted',
+            )}
+          >
+            구매자 후기 {reviews.length}
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={() => setTab('inquiries')}

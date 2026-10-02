@@ -8,8 +8,8 @@ export const metadata: Metadata = {
 export default async function SellPage({
   searchParams,
 }: {
-  searchParams: Promise<{ seller?: string }>;
+  searchParams: Promise<{ seller?: string; q?: string; category?: string; sort?: string }>;
 }) {
-  const { seller } = await searchParams;
-  return <SellIndexClient seller={seller} />;
+  const { seller, q, category, sort } = await searchParams;
+  return <SellIndexClient seller={seller} q={q} category={category} sort={sort} />;
 }

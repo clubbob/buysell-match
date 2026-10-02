@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/features/auth/auth-context';
+import { inputClassName } from '@/features/auth/auth-errors';
 import { formatCount, joinConfirmedNote, joinPaymentDueNotice, joinTotalNote } from '@/lib/sell-display';
 import { maskEmail, maskPersonName } from '@/lib/mask-identity';
 import { fetchMemberNames } from '@/lib/member-remote';
@@ -12,6 +13,7 @@ import {
   isJoinShipped,
   joinPaymentLabel,
   joinShippingLabel,
+  OPEN_JOIN_STATUS_LABEL,
   type SellJoin,
 } from '@/types/sell-join';
 
@@ -42,7 +44,7 @@ function BuyerLabel({
 
 export default function SellJoinHistoryTable({
   joins,
-  title = '구매 참여 내역',
+  title = '공구 구매 신청 내역',
   minQuantity = null,
   variant = 'open',
   revealBuyerIdentity = false,
@@ -64,7 +66,7 @@ export default function SellJoinHistoryTable({
   onMarkPaid?: (joinId: string) => void;
   onMarkPending?: (joinId: string) => void;
   showManageShipping?: boolean;
-  onMarkShipped?: (joinId: string) => void;
+  onMarkShipped?: (joinId: string, trackingNumber?: string) => void;
   onMarkShippingPending?: (joinId: string) => void;
   markingPaymentJoinId?: string | null;
   markingShippingJoinId?: string | null;
@@ -78,6 +80,7 @@ export default function SellJoinHistoryTable({
     (row) => row.status === 'confirmed' && isJoinPaid(row) && !isJoinShipped(row),
   ).length;
   const [namesById, setNamesById] = useState<Record<string, string>>({});
+  const [trackingDrafts, setTrackingDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (loading || !user) return;
@@ -115,7 +118,7 @@ export default function SellJoinHistoryTable({
             <th className="px-3 py-2 font-semibold">구매자</th>
             <th className="px-3 py-2 font-semibold">수량</th>
             <th className="px-3 py-2 font-semibold">상태</th>
-            <th className="px-3 py-2 font-semibold">참여 일시</th>
+            <th className="px-3 py-2 font-semibold">신청 일시</th>
             {isConfirmedTable ? <th className="px-3 py-2 font-semibold">결제</th> : null}
             {isConfirmedTable ? <th className="px-3 py-2 font-semibold">배송</th> : null}
           </tr>
@@ -134,7 +137,9 @@ export default function SellJoinHistoryTable({
                 />
               </td>
               <td className="px-3 py-2.5 tabular-nums text-ink">{formatCount(row.quantity)}</td>
-              <td className="px-3 py-2.5 text-ink">{row.status === 'confirmed' ? '판매 확정' : '접수됨'}</td>
+              <td className="px-3 py-2.5 text-ink">
+                {row.status === 'confirmed' ? '판매 확정' : OPEN_JOIN_STATUS_LABEL}
+              </td>
               <td className="px-3 py-2.5 tabular-nums text-ink">{formatMemberDateTime(row.createdAt) || '—'}</td>
               {isConfirmedTable ? (
                 <td className="px-3 py-2.5 text-ink">
@@ -170,15 +175,29 @@ export default function SellJoinHistoryTable({
                   ) : (
                     <div className="flex flex-col items-center gap-1.5">
                       <span className={isJoinShipped(row) ? 'text-blue-600' : 'text-danger'}>{joinShippingLabel(row)}</span>
+                      {isJoinShipped(row) && row.trackingNumber?.trim() ? (
+                        <span className="text-xs text-muted">송장 {row.trackingNumber.trim()}</span>
+                      ) : null}
                       {showManageShipping && !isJoinShipped(row) ? (
-                        <button
-                          type="button"
-                          className="btn-chip"
-                          disabled={markingShippingJoinId === row.id}
-                          onClick={() => onMarkShipped?.(row.id)}
-                        >
-                          {markingShippingJoinId === row.id ? '처리 중…' : '배송 완료'}
-                        </button>
+                        <>
+                          <input
+                            type="text"
+                            value={trackingDrafts[row.id] ?? ''}
+                            onChange={(event) =>
+                              setTrackingDrafts((current) => ({ ...current, [row.id]: event.target.value }))
+                            }
+                            className={`${inputClassName} w-36 text-center text-xs`}
+                            placeholder="송장번호 (선택)"
+                          />
+                          <button
+                            type="button"
+                            className="btn-chip"
+                            disabled={markingShippingJoinId === row.id}
+                            onClick={() => onMarkShipped?.(row.id, trackingDrafts[row.id])}
+                          >
+                            {markingShippingJoinId === row.id ? '처리 중…' : '배송 완료'}
+                          </button>
+                        </>
                       ) : null}
                       {showManageShipping && isJoinShipped(row) ? (
                         <button

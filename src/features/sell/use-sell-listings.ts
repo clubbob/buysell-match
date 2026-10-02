@@ -43,9 +43,13 @@ export function useSellListings() {
     setUserItems((current) => current.filter((item) => item.id !== id));
   }, []);
 
+  const upsert = useCallback((item: SellListing) => {
+    setUserItems((current) => [item, ...current.filter((entry) => entry.id !== item.id)]);
+  }, []);
+
   const getById = useCallback((id: string) => findSellListing(id, userItems), [userItems]);
 
   const mine = useCallback((sellerId: string) => userItems.filter((item) => item.sellerId === sellerId), [userItems]);
 
-  return { items, ready, add, remove, getById, mine, refreshRemaining };
+  return { items, ready, add, remove, upsert, getById, mine, refreshRemaining };
 }

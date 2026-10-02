@@ -12,7 +12,7 @@ export default function SellYoutubeEmbed({ url }: { url: string }) {
   if (!id) return <SellProductLink href={url} label="유튜브" />;
 
   return (
-    <div className="min-w-0 w-full">
+    <div className={cn('min-w-0', open ? 'w-full basis-full' : 'shrink-0')}>
       <button
         type="button"
         className={cn('btn-chip', open && 'bg-ink text-white hover:bg-ink hover:text-white')}
@@ -22,7 +22,7 @@ export default function SellYoutubeEmbed({ url }: { url: string }) {
         유튜브
       </button>
       {open ? (
-        <div className="mt-3 aspect-video w-full overflow-hidden bg-ink">
+        <div className="mt-3 aspect-video w-full max-w-2xl overflow-hidden bg-ink">
           <iframe
             src={`https://www.youtube-nocookie.com/embed/${id}`}
             title="유튜브"

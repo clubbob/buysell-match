@@ -1,11 +1,11 @@
+import { fetchSellerReviewsBySeller } from '@/lib/seller-review-remote';
 import type { SellerReview } from '@/types/review';
 
-export const SAMPLE_SELLER_REVIEWS: SellerReview[] = [];
-
-export function getSellerReviews(sellerId: string): SellerReview[] {
-  return SAMPLE_SELLER_REVIEWS.filter((review) => review.sellerId === sellerId);
+export async function getSellerReviews(sellerId: string): Promise<SellerReview[]> {
+  return fetchSellerReviewsBySeller(sellerId);
 }
 
-export function countSellerReviews(sellerId: string): number {
-  return getSellerReviews(sellerId).length;
+export async function countSellerReviews(sellerId: string): Promise<number> {
+  const reviews = await getSellerReviews(sellerId);
+  return reviews.length;
 }

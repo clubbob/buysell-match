@@ -30,3 +30,8 @@ export function saveLocalJoins(joins: SellJoin[]) {
   const others = loadLocalJoins().filter((item) => !joins.some((join) => join.id === item.id));
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify([...joins, ...others]));
 }
+
+export function deleteLocalJoin(joinId: string) {
+  const next = loadLocalJoins().filter((item) => item.id !== joinId);
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+}

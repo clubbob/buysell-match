@@ -45,6 +45,9 @@ export default function SellerProfileForm() {
   const [certificateUrl, setCertificateUrl] = useState('');
   const [certificateFile, setCertificateFile] = useState<File | null>(null);
   const [certificatePreview, setCertificatePreview] = useState('');
+  const [depositBank, setDepositBank] = useState('');
+  const [depositAccount, setDepositAccount] = useState('');
+  const [depositHolder, setDepositHolder] = useState('');
   const [filled, setFilled] = useState(false);
   const [done, setDone] = useState<'created' | 'updated' | null>(null);
 
@@ -72,6 +75,9 @@ export default function SellerProfileForm() {
         setCertificateUrl(profile.businessCertificateUrl);
         setCertificatePreview(profile.businessCertificateUrl);
       }
+      setDepositBank(profile.depositBank);
+      setDepositAccount(profile.depositAccount);
+      setDepositHolder(profile.depositHolder);
     }
     setFilled(true);
   }, [profile, profileReady, user, filled]);
@@ -152,6 +158,9 @@ export default function SellerProfileForm() {
         businessVerified: true,
         businessVerifiedAt: verifiedAt || new Date().toISOString().slice(0, 10),
         businessCertificateUrl,
+        depositBank: depositBank.trim(),
+        depositAccount: depositAccount.trim(),
+        depositHolder: depositHolder.trim(),
       });
       setDone(creating ? 'created' : 'updated');
     } catch (submitError) {
@@ -266,6 +275,29 @@ export default function SellerProfileForm() {
         />
         <span className="block text-xs text-subtle">없으면 비워 두세요. {PHONE_HYPHEN_HINT}</span>
       </label>
+
+      <fieldset className="space-y-4 border-t border-line pt-4">
+        <legend className="text-sm font-bold text-ink">입금 계좌</legend>
+        <p className="text-sm text-muted">공구 판매 확정 후 구매자에게 보여 줍니다. 없으면 결제·배송 안내에만 적어 주세요.</p>
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-ink">은행</span>
+          <input value={depositBank} onChange={(event) => setDepositBank(event.target.value)} className={inputClassName} placeholder="예: 국민은행" />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-ink">계좌번호</span>
+          <input
+            value={depositAccount}
+            onChange={(event) => setDepositAccount(event.target.value)}
+            className={inputClassName}
+            inputMode="numeric"
+            placeholder="숫자만 입력"
+          />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-ink">예금주</span>
+          <input value={depositHolder} onChange={(event) => setDepositHolder(event.target.value)} className={inputClassName} />
+        </label>
+      </fieldset>
 
       <div className="space-y-1.5">
         <span className="block text-sm font-semibold text-ink">사업자등록증</span>

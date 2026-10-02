@@ -1,5 +1,6 @@
 import { deleteDocument, hasFirebaseAdminConfig, listDocuments, queryDocumentIds } from '@/lib/firebase-rest-admin';
 import { toBuyListing, type BuyListing } from '@/types/buy';
+import { parseSellCategory } from '@/types/sell-category';
 import { withSellSource, type SellListing } from '@/types/sell';
 
 function toSellListing(id: string, data: Record<string, unknown>): SellListing | null {
@@ -7,6 +8,7 @@ function toSellListing(id: string, data: Record<string, unknown>): SellListing |
   return withSellSource({
     id,
     title: String(data.title),
+    category: parseSellCategory(data.category),
     images: data.images.map(String),
     sellerId: String(data.sellerId),
     sellerName: String(data.sellerName ?? ''),
@@ -30,9 +32,14 @@ function toSellListing(id: string, data: Record<string, unknown>): SellListing |
     quantityLabel: String(data.quantityLabel ?? ''),
     remainingLabel: String(data.remainingLabel ?? ''),
     deadline: String(data.deadline ?? ''),
+    closedAt: String(data.closedAt ?? ''),
     description: String(data.description ?? ''),
     specText: String(data.specText ?? ''),
     tradeText: String(data.tradeText ?? ''),
+    depositBank: String(data.depositBank ?? ''),
+    depositAccount: String(data.depositAccount ?? ''),
+    depositHolder: String(data.depositHolder ?? ''),
+    createdAt: String(data.createdAt ?? ''),
   });
 }
 

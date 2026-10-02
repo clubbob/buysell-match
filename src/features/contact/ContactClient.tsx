@@ -89,12 +89,12 @@ export default function ContactClient() {
 
   return (
     <div className="space-y-5">
-      <PageBack href="/mypage" />
-
       <PageIntro
         title="문의하기"
         description={`${SITE_COMPANY.legalName} 운영팀에 서비스 이용 문의를 남깁니다. 회원가입한 회원만 이용할 수 있습니다.`}
-      />
+      >
+        <PageBack href="/mypage?tab=inquiries" />
+      </PageIntro>
 
       <section className="panel px-4 py-5 sm:px-6 sm:py-6">
         <h2 className="text-sm font-bold text-ink">새 문의</h2>

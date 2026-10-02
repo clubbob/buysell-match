@@ -141,7 +141,7 @@ export default function AdminDashboard() {
             tone="buys"
           />
           <StatCard
-            label="구매 참여"
+            label="공구 구매 신청"
             value={`${data.totals.joinsOpen ?? 0}건`}
             points={data.series?.joinsOpen}
             tone="joins"

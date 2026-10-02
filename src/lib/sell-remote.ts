@@ -1,8 +1,10 @@
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { getClientFirestore, getClientStorage } from '@/lib/firebase';
 import { fetchSellJoins } from '@/lib/sell-join-remote';
 import { saveRemainingOverride } from '@/lib/sell-store';
+import { removeUserSellListing } from '@/lib/sell-store';
+import { parseSellCategory } from '@/types/sell-category';
 import { withSellSource, type SellListing } from '@/types/sell';
 
 const COLLECTION = 'sellListings';
@@ -12,6 +14,7 @@ function toListing(id: string, data: Record<string, unknown>): SellListing | nul
   return withSellSource({
     id,
     title: String(data.title),
+    category: parseSellCategory(data.category),
     images: data.images.map(String),
     sellerId: String(data.sellerId),
     sellerName: String(data.sellerName ?? ''),
@@ -35,9 +38,14 @@ function toListing(id: string, data: Record<string, unknown>): SellListing | nul
     quantityLabel: String(data.quantityLabel ?? ''),
     remainingLabel: String(data.remainingLabel ?? ''),
     deadline: String(data.deadline ?? ''),
+    closedAt: String(data.closedAt ?? ''),
     description: String(data.description ?? ''),
     specText: String(data.specText ?? ''),
     tradeText: String(data.tradeText ?? ''),
+    depositBank: String(data.depositBank ?? ''),
+    depositAccount: String(data.depositAccount ?? ''),
+    depositHolder: String(data.depositHolder ?? ''),
+    createdAt: String(data.createdAt ?? ''),
   });
 }
 
@@ -100,7 +108,11 @@ export async function createRemoteSellListing(item: Omit<SellListing, 'images'>,
   const db = getClientFirestore();
   if (!db) throw new Error('Firestore가 연결되지 않았습니다.');
   const images = await uploadImages(item.sellerId, item.id, files);
-  const payload: SellListing = { ...item, images };
+  const payload: SellListing = {
+    ...item,
+    images,
+    createdAt: item.createdAt?.trim() || new Date().toISOString(),
+  };
   await setDoc(doc(db, COLLECTION, item.id), payload);
   return payload;
 }
@@ -108,13 +120,40 @@ export async function createRemoteSellListing(item: Omit<SellListing, 'images'>,
 export async function updateRemoteSellListing(item: SellListing): Promise<SellListing> {
   const joins = await fetchSellJoins(item.id);
   if (joins.length > 0) {
-    throw new Error('구매 참여가 있는 상품은 수정할 수 없습니다.');
+    throw new Error('공구 구매 신청이 있는 상품은 수정할 수 없습니다.');
   }
   const db = getClientFirestore();
   if (!db) throw new Error('Firestore가 연결되지 않았습니다.');
   await setDoc(doc(db, COLLECTION, item.id), item);
   saveRemainingOverride(item.id, item.remainingLabel);
   return item;
+}
+
+export async function deleteRemoteSellListing(id: string, sellerId: string): Promise<void> {
+  const item = await fetchRemoteSellListing(id);
+  if (!item) throw new Error('없는 상품입니다.');
+  if (item.sellerId !== sellerId) throw new Error('본인 상품만 삭제할 수 있습니다.');
+
+  const joins = await fetchSellJoins(id);
+  if (joins.length > 0) {
+    throw new Error('공구 구매 신청이 있는 상품은 삭제할 수 없습니다.');
+  }
+
+  const db = getClientFirestore();
+  if (!db) throw new Error('Firestore가 연결되지 않았습니다.');
+
+  const [inquirySnapshot, reviewSnapshot] = await Promise.all([
+    getDocs(query(collection(db, 'sellInquiries'), where('listingId', '==', id))),
+    getDocs(query(collection(db, 'sellerReviews'), where('listingId', '==', id))),
+  ]);
+
+  await Promise.all([
+    ...inquirySnapshot.docs.map((entry) => deleteDoc(entry.ref)),
+    ...reviewSnapshot.docs.map((entry) => deleteDoc(entry.ref)),
+    deleteDoc(doc(db, COLLECTION, id)),
+  ]);
+
+  removeUserSellListing(id);
 }
 
 export async function updateSellRemaining(id: string, remainingLabel: string): Promise<void> {

@@ -24,6 +24,19 @@ export async function fetchMySiteInquiries(): Promise<SiteInquiry[]> {
   return data.items ?? [];
 }
 
+export async function fetchMySiteInquiry(id: string): Promise<SiteInquiry> {
+  const headers = await authHeaders();
+  const response = await fetch(`/api/me/site-inquiries/${id}`, { headers });
+  const data = await readApiJson<{ ok?: boolean; item?: SiteInquiry; message?: string }>(
+    response,
+    '문의를 불러오지 못했습니다.',
+  );
+  if (!response.ok || !data.ok || !data.item) {
+    throw new Error(data.message ?? '문의를 불러오지 못했습니다.');
+  }
+  return data.item;
+}
+
 export async function createMySiteInquiry(input: {
   category: SiteInquiryCategory;
   subject: string;

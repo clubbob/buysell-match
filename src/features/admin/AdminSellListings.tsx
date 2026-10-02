@@ -137,7 +137,7 @@ export default function AdminSellListings() {
   }, []);
 
   async function handleDelete(item: SellListing) {
-    if (!window.confirm(`「${item.title}」 팝니다 글을 삭제할까요? 구매 참여·문의도 함께 삭제됩니다.`)) return;
+    if (!window.confirm(`「${item.title}」 팝니다 글을 삭제할까요? 공구 구매 신청·문의도 함께 삭제됩니다.`)) return;
     setError(null);
     setPendingId(item.id);
     try {

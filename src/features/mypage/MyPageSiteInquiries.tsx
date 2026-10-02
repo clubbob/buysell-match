@@ -56,7 +56,7 @@ export default function MyPageSiteInquiries({ embedded = false }: { embedded?: b
         <ul>
           {preview.map((item) => (
             <li key={item.id} className="border-t border-line">
-              <Link href="/contact" className="block px-4 py-3 hover:bg-slate-50 sm:px-5">
+              <Link href={`/contact/${item.id}?from=mypage`} className="block px-4 py-3 hover:bg-slate-50 sm:px-5">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <p className="text-sm font-semibold text-ink">{item.subject}</p>
                   <span className="text-xs font-medium text-muted">

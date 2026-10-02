@@ -15,7 +15,20 @@ export function formatQuantityNumber(label: string): string {
 
 export function formatJoinParticipants(buyers: number, quantity: number): string {
   if (buyers <= 0 || quantity <= 0) return '';
-  return `구매 참여 ${buyers.toLocaleString('ko-KR')}명 (${quantity.toLocaleString('ko-KR')}개)`;
+  return `공구 구매 신청 ${buyers.toLocaleString('ko-KR')}명 (${quantity.toLocaleString('ko-KR')}개)`;
+}
+
+export type ListingProgressStatus = 'recruiting' | 'deadline' | 'closed';
+
+export function listingProgressStatus(item: { closedAt?: string; deadline: string }, now = new Date()): ListingProgressStatus {
+  if (item.closedAt?.trim()) return 'closed';
+  if (isDeadlinePassed(item.deadline, now)) return 'deadline';
+  return 'recruiting';
+}
+
+export function listingProgressStatusLabel(status: ListingProgressStatus): string {
+  if (status === 'closed' || status === 'deadline') return '마감';
+  return '모집 중';
 }
 
 export function formatConfirmedJoinSummary(buyers: number, quantity: number): string {
@@ -27,7 +40,7 @@ export function formatConfirmedJoinSummary(buyers: number, quantity: number): st
 }
 
 export function joinTotalNote(total: number, min: number | null): string {
-  if (min == null || min <= 0) return '접수된 참여 수량입니다.';
+  if (min == null || min <= 0) return '공구 구매 신청 수량입니다.';
   if (total >= min) return `공구 최소 주문 ${formatCount(min)}을 충족했습니다.`;
   return `공구 최소 주문까지 ${formatCount(min - total)} 남았습니다.`;
 }
@@ -59,9 +72,9 @@ export function joinConfirmedNote(total: number, pendingPayments = 0, pendingShi
     details.push(`배송 대기 ${pendingShipments.toLocaleString('ko-KR')}건`);
   }
   if (details.length > 0) {
-    return `판매 확정된 참여입니다. ${details.join(', ')}`;
+    return `판매 확정된 신청입니다. ${details.join(', ')}`;
   }
-  return '판매 확정된 참여입니다. 결제·배송이 모두 완료되었습니다.';
+  return '판매 확정된 신청입니다. 결제·배송이 모두 완료되었습니다.';
 }
 
 export function joinAvailable(limit: number, remaining: number, gathered: number): number {
@@ -82,6 +95,11 @@ export function replaceQuantityNumber(label: string, next: number): string {
   return replaced === label ? formatted : replaced;
 }
 
+export function isListingClosed(item: { closedAt?: string; deadline: string }, now = new Date()): boolean {
+  if (item.closedAt?.trim()) return true;
+  return isDeadlinePassed(item.deadline, now);
+}
+
 export function isDeadlinePassed(isoDate: string, now = new Date()): boolean {
   const [year, month, day] = isoDate.split('-').map(Number);
   const end = new Date(year, month - 1, day);
@@ -91,6 +109,27 @@ export function isDeadlinePassed(isoDate: string, now = new Date()): boolean {
 
 export function formatWon(value: number): string {
   return `${value.toLocaleString('ko-KR')}원`;
+}
+
+export function hasDepositAccount(item: {
+  depositBank?: string;
+  depositAccount?: string;
+  depositHolder?: string;
+}): boolean {
+  return Boolean(item.depositBank?.trim() || item.depositAccount?.trim());
+}
+
+export function formatDepositAccount(item: {
+  depositBank?: string;
+  depositAccount?: string;
+  depositHolder?: string;
+}): string | null {
+  const bank = item.depositBank?.trim() ?? '';
+  const account = item.depositAccount?.trim() ?? '';
+  const holder = item.depositHolder?.trim() ?? '';
+  if (!bank && !account) return null;
+  const base = [bank, account].filter(Boolean).join(' ');
+  return holder ? `${base} (예금주: ${holder})` : base;
 }
 
 export function discountRate(regularPrice: number, salePrice: number): number {

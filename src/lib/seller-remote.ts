@@ -19,6 +19,9 @@ function toProfile(id: string, data: Record<string, unknown>): SellerProfile {
     businessVerified: Boolean(data.businessVerified),
     businessVerifiedAt: String(data.businessVerifiedAt ?? ''),
     businessCertificateUrl: String(data.businessCertificateUrl ?? ''),
+    depositBank: String(data.depositBank ?? ''),
+    depositAccount: String(data.depositAccount ?? ''),
+    depositHolder: String(data.depositHolder ?? ''),
   };
 }
 

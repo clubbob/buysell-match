@@ -50,15 +50,15 @@ export default function SellEditLoader({ id }: { id: string }) {
   if (hasJoins) {
     return (
       <div className="space-y-5">
-        <PageBack href="/mypage">← 마이페이지</PageBack>
-        <p className="panel px-4 py-10 text-center text-sm text-muted">구매 참여가 있는 상품은 수정할 수 없습니다.</p>
+        <PageBack href="/mypage?tab=sell">← 마이페이지</PageBack>
+        <p className="panel px-4 py-10 text-center text-sm text-muted">공구 구매 신청이 있는 상품은 수정할 수 없습니다.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-5">
-      <PageBack href="/mypage">← 마이페이지</PageBack>
+      <PageBack href="/mypage?tab=sell">← 마이페이지</PageBack>
       <PageIntro
         eyebrow="판매자"
         title="팝니다 수정"
