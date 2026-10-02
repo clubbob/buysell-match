@@ -170,17 +170,17 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
       return;
     }
     if (!minPurchaseLabel.trim() || !remainingLabel.trim()) {
-      setError('공구 최소 주문, 잔여 수량을 입력해 주세요.');
+      setError('모집 최소 수량, 잔여 수량을 입력해 주세요.');
       return;
     }
     const minPurchase = quantityAmount(minPurchaseLabel);
     const remaining = quantityAmount(remainingLabel);
     if (minPurchase == null || minPurchase <= 0 || remaining == null) {
-      setError('공구 최소 주문, 잔여 수량은 숫자로 입력해 주세요.');
+      setError('모집 최소 수량, 잔여 수량은 숫자로 입력해 주세요.');
       return;
     }
     if (!isEdit && remaining < minPurchase) {
-      setError('등록할 때 잔여 수량은 공구 최소 주문보다 적을 수 없습니다.');
+      setError('등록할 때 잔여 수량은 모집 최소 수량보다 적을 수 없습니다.');
       return;
     }
     if (!deadline) {
@@ -442,7 +442,7 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
               </div>
               <div className={`${SPEC_ROW} py-3`}>
                 <label htmlFor="sell-min-purchase" className="whitespace-nowrap text-subtle">
-                  공구 최소 주문
+                  모집 최소 수량
                 </label>
                 <div className={SPEC_QTY_FIELDS}>
                   <input

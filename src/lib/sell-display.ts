@@ -15,7 +15,7 @@ export function formatQuantityNumber(label: string): string {
 
 export function formatJoinParticipants(buyers: number, quantity: number): string {
   if (buyers <= 0 || quantity <= 0) return '';
-  return `공구 구매 신청 ${buyers.toLocaleString('ko-KR')}명 (${quantity.toLocaleString('ko-KR')}개)`;
+  return `구매 신청 ${buyers.toLocaleString('ko-KR')}명 (${quantity.toLocaleString('ko-KR')}개)`;
 }
 
 export type ListingProgressStatus = 'recruiting' | 'deadline' | 'closed';
@@ -40,9 +40,9 @@ export function formatConfirmedJoinSummary(buyers: number, quantity: number): st
 }
 
 export function joinTotalNote(total: number, min: number | null): string {
-  if (min == null || min <= 0) return '공구 구매 신청 수량입니다.';
-  if (total >= min) return `공구 최소 주문 ${formatCount(min)}을 충족했습니다.`;
-  return `공구 최소 주문까지 ${formatCount(min - total)} 남았습니다.`;
+  if (min == null || min <= 0) return '구매 신청 수량입니다.';
+  if (total >= min) return `모집 최소 수량 ${formatCount(min)}을 충족했습니다.`;
+  return `모집 최소 수량까지 ${formatCount(min - total)} 남았습니다.`;
 }
 
 export function joinPaymentDueDate(confirmedAt: string, days = 2): string {

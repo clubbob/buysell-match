@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/features/auth/auth-context';
 import { inputClassName } from '@/features/auth/auth-errors';
 import { useBuyerProfile } from '@/features/buyer/use-buyer-profile';
-import { useUserMode } from '@/features/mode/mode-context';
 import { loginHref } from '@/lib/auth-redirect';
 import { BUYER_DETAIL_LABEL } from '@/lib/profile-labels';
 import { defaultBuyerAddress, hasBuyerProfile } from '@/types/buyer';
@@ -60,7 +59,6 @@ export default function SellJoinSection({
 }) {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const { mode } = useUserMode();
   const { profile: buyerProfile, ready: buyerReady } = useBuyerProfile(user?.uid);
   const [joins, setJoins] = useState<SellJoin[]>([]);
   const [ready, setReady] = useState(false);
@@ -81,11 +79,10 @@ export default function SellJoinSection({
   const canMoreTrade = remaining >= min && min > 0 && !deadlinePassed;
   const canConfirm = gathered >= min && min > 0 && canMoreTrade;
   const isOwner = Boolean(user && user.uid === item.sellerId);
-  const isBuyer = mode === 'buyer';
-  const manageListing = isOwner && mode === 'seller' && from === 'mypage';
+  const manageListing = isOwner && from === 'mypage';
   const showSellerTools = manageListing;
   const showConfirm = manageListing && canConfirm;
-  const showJoinCta = !user || isBuyer;
+  const showJoinCta = !isOwner;
   const { open: openJoins, confirmed: confirmedJoins } = useMemo(() => splitJoinsByStatus(joins), [joins]);
   const minForNote = min > 0 ? min : null;
   const myPendingPaymentJoin = useMemo(() => {
@@ -122,8 +119,8 @@ export default function SellJoinSection({
       router.push(loginHref(`/sell/${item.id}`));
       return;
     }
-    if (mode !== 'buyer') {
-      setError('구매자로 이용할 때만 공구 구매 신청할 수 있습니다.');
+    if (isOwner) {
+      setError('본인이 올린 상품에는 구매 신청할 수 없습니다.');
       return;
     }
     if (remainingShort || deadlinePassed) return;
@@ -164,9 +161,9 @@ export default function SellJoinSection({
       });
       setJoins((current) => [join, ...current]);
       setQuantity('1');
-      setNotice(`공구 구매 신청 ${formatCount(amount)}가 완료되었습니다.`);
+      setNotice(`구매 신청 ${formatCount(amount)}가 완료되었습니다.`);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : '공구 구매 신청에 실패했습니다.');
+      setError(submitError instanceof Error ? submitError.message : '구매 신청에 실패했습니다.');
     } finally {
       setPending(false);
     }
@@ -268,8 +265,8 @@ export default function SellJoinSection({
           {notice}
         </p>
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <Link href="/buy" className="btn-secondary">
-            삽니다
+          <Link href="/sell" className="btn-secondary">
+            판매 상품
           </Link>
           <Link href="/mypage?tab=buy" className="btn-secondary">
             마이페이지
@@ -290,7 +287,7 @@ export default function SellJoinSection({
       </button>
     ) : !user ? (
       <Link href={loginHref(`/sell/${item.id}`)} className="btn-primary min-w-[12rem]">
-        공구 구매 신청
+        구매 신청
       </Link>
     ) : available === 0 ? (
       <button type="button" className="btn-primary min-w-[12rem]" disabled>
@@ -312,7 +309,7 @@ export default function SellJoinSection({
           />
         </label>
         <button type="button" className="btn-primary min-w-[12rem]" disabled={pending} onClick={() => void handleJoin()}>
-          {pending ? '처리 중…' : '공구 구매 신청'}
+          {pending ? '처리 중…' : '구매 신청'}
         </button>
         {!hasBuyerProfile(buyerProfile) ? (
           <p className="text-center text-sm text-muted">신청 전에 {BUYER_DETAIL_LABEL}이 필요합니다.</p>
@@ -331,7 +328,7 @@ export default function SellJoinSection({
 
       <div className="flex w-full flex-col items-center gap-3">
         {!ready ? (
-          <p className="w-full text-center text-sm text-muted">공구 구매 신청 내역을 불러오는 중…</p>
+          <p className="w-full text-center text-sm text-muted">구매 신청 내역을 불러오는 중…</p>
         ) : (
           <div className="flex w-full flex-col gap-4">
             {myPendingPaymentJoin ? (
@@ -345,7 +342,7 @@ export default function SellJoinSection({
                 revealBuyerIdentity={manageListing}
               />
             ) : (
-              <p className="w-full text-center text-sm text-muted">현재 공구 구매 신청이 없습니다.</p>
+              <p className="w-full text-center text-sm text-muted">현재 구매 신청이 없습니다.</p>
             )}
 
             {joinCta ? <div className="flex w-full flex-col items-center gap-3">{joinCta}</div> : null}
@@ -376,7 +373,7 @@ export default function SellJoinSection({
             {pending ? '처리 중…' : '판매 확정'}
           </button>
         ) : null}
-        {isOwner && mode === 'seller' && !manageListing && joins.length > 0 ? (
+        {isOwner && !manageListing && joins.length > 0 ? (
           <Link href={`/sell/${item.id}?from=mypage&tab=sell`} className="btn-chip">
             마이페이지에서 관리
           </Link>

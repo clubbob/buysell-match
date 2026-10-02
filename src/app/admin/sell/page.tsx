@@ -3,7 +3,7 @@ import AdminSellListings from '@/features/admin/AdminSellListings';
 import { requireAdminSession } from '@/lib/admin-guard';
 
 export const metadata: Metadata = {
-  title: '팝니다 관리',
+  title: '판매 상품 관리',
 };
 
 export default async function AdminSellPage() {

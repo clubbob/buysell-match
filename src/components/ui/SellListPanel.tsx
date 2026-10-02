@@ -322,7 +322,7 @@ function MobileRow({
               {rate > 0 ? <span className="ml-1 text-xs text-muted">(할인율 {rate}%)</span> : null}
             </p>
             <p className="text-sm text-ink">
-              {item.minPurchaseLabel ? `공구 최소 주문 ${formatQuantityNumber(item.minPurchaseLabel)}` : null}
+              {item.minPurchaseLabel ? `모집 최소 수량 ${formatQuantityNumber(item.minPurchaseLabel)}` : null}
               {showStatusColumn ? null : <JoinNotes summary={join} />}
               {item.minPurchaseLabel ? <span className="mx-1.5 text-subtle">·</span> : null}
               {formatQuantityNumber(item.remainingLabel)}
@@ -407,9 +407,9 @@ export default function SellListPanel({
                 <>
                   <th className="px-4 py-2">상품</th>
                   <th className="px-3 py-2">가격</th>
-                  <th className="px-3 py-2">최소 주문</th>
+                  <th className="px-3 py-2">모집 최소 수량</th>
                   <th className="px-3 py-2">마감</th>
-                  <th className="px-3 py-2">공구 진행</th>
+                  <th className="px-3 py-2">판매 진행</th>
                 </>
               ) : (
                 <>
@@ -418,7 +418,7 @@ export default function SellListPanel({
                   <th className="px-3 py-2">판매자</th>
                   <th className="px-3 py-2">정상 가격</th>
                   <th className="px-3 py-2">특판 가격</th>
-                  <th className="px-3 py-2">공구 최소 주문</th>
+                  <th className="px-3 py-2">모집 최소 수량</th>
                   <th className="px-3 py-2">잔여 수량</th>
                   {showDeadline ? <th className="px-4 py-2">마감</th> : null}
                 </>

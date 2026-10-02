@@ -9,7 +9,7 @@ export default function MyPageSellPosts({ listings, ready }: { listings: SellLis
   }
 
   if (listings.length === 0) {
-    return <p className="px-4 py-10 text-center text-sm text-muted">아직 올린 팝니다가 없습니다.</p>;
+    return <p className="px-4 py-10 text-center text-sm text-muted">아직 올린 판매 상품이 없습니다.</p>;
   }
 
   return <SellListPanel embedded hideDeadline from="mypage" items={listings} />;

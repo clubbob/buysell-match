@@ -120,7 +120,7 @@ export async function createRemoteSellListing(item: Omit<SellListing, 'images'>,
 export async function updateRemoteSellListing(item: SellListing): Promise<SellListing> {
   const joins = await fetchSellJoins(item.id);
   if (joins.length > 0) {
-    throw new Error('공구 구매 신청이 있는 상품은 수정할 수 없습니다.');
+    throw new Error('구매 신청이 있는 상품은 수정할 수 없습니다.');
   }
   const db = getClientFirestore();
   if (!db) throw new Error('Firestore가 연결되지 않았습니다.');
@@ -136,7 +136,7 @@ export async function deleteRemoteSellListing(id: string, sellerId: string): Pro
 
   const joins = await fetchSellJoins(id);
   if (joins.length > 0) {
-    throw new Error('공구 구매 신청이 있는 상품은 삭제할 수 없습니다.');
+    throw new Error('구매 신청이 있는 상품은 삭제할 수 없습니다.');
   }
 
   const db = getClientFirestore();

@@ -15,11 +15,11 @@ export default function HomeRecentSell() {
     <section className="panel overflow-hidden">
       <header className="flex items-end justify-between gap-3 border-b border-line px-4 py-3.5 sm:px-6">
         <div>
-          <h2 className="text-[15px] font-bold text-ink">최근 팝니다</h2>
-          <p className="mt-0.5 text-sm text-muted">새로 올라온 상품을 먼저 보여 드립니다.</p>
+          <h2 className="text-[15px] font-bold text-ink">새로운 판매 상품</h2>
+          <p className="mt-0.5 text-sm text-muted">방금 올라온 판매 상품입니다.</p>
         </div>
         <Link href="/sell" className="shrink-0 text-sm font-semibold text-ink underline-offset-2 hover:underline">
-          전체 목록
+          전체 보기
         </Link>
       </header>
       {!ready ? (
@@ -68,7 +68,7 @@ export default function HomeRecentSell() {
           })}
         </ul>
       ) : (
-        <p className="px-4 py-10 text-center text-sm text-muted sm:px-6">아직 올라온 팝니다가 없습니다.</p>
+        <p className="px-4 py-10 text-center text-sm text-muted sm:px-6">아직 올라온 판매 상품이 없습니다.</p>
       )}
     </section>
   );

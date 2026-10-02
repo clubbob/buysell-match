@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import PageBack from '@/components/ui/PageBack';
+import PageIntro from '@/components/ui/PageIntro';
 import { useAuth } from '@/features/auth/auth-context';
 import { mypageHref, resolveSellBackHref } from '@/lib/mypage-nav';
 import SellImageGallery from '@/features/sell/SellImageGallery';
@@ -47,7 +48,7 @@ export default function SellDetail({
   async function handleDelete() {
     setDeleteError(null);
     if (!user || !canDelete) return;
-    if (!window.confirm('이 팝니다 글을 삭제할까요? 삭제 후에는 복구할 수 없습니다.')) return;
+    if (!window.confirm('이 판매 상품을 삭제할까요? 삭제 후에는 복구할 수 없습니다.')) return;
     setDeletePending(true);
     try {
       const { deleteRemoteSellListing } = await import('@/lib/sell-remote');
@@ -62,7 +63,13 @@ export default function SellDetail({
 
   return (
     <div className="space-y-5">
-      <PageBack href={backHref}>{fromMypage ? '← 마이페이지' : '← 이전 목록'}</PageBack>
+      {fromMypage ? (
+        <PageIntro title="판매 상품 세부 현황" description="판매 진행과 신청 내역을 확인합니다.">
+          <PageBack href={backHref}>← 이전 목록</PageBack>
+        </PageIntro>
+      ) : (
+        <PageBack href={backHref}>← 이전 목록</PageBack>
+      )}
 
       <article className="panel overflow-hidden">
         <div className="flex flex-col lg:flex-row">
@@ -87,7 +94,7 @@ export default function SellDetail({
                     </button>
                   </div>
                 ) : editLocked ? (
-                  <span className="shrink-0 text-xs text-subtle">수정·삭제 불가 (공구 구매 신청 있음)</span>
+                  <span className="shrink-0 text-xs text-subtle">수정·삭제 불가 (구매 신청 있음)</span>
                 ) : null
               }
             />

@@ -278,7 +278,7 @@ export default function SellerProfileForm() {
 
       <fieldset className="space-y-4 border-t border-line pt-4">
         <legend className="text-sm font-bold text-ink">입금 계좌</legend>
-        <p className="text-sm text-muted">공구 판매 확정 후 구매자에게 보여 줍니다. 없으면 결제·배송 안내에만 적어 주세요.</p>
+        <p className="text-sm text-muted">판매 확정 후 구매자에게 보여 줍니다. 없으면 결제·배송 안내에만 적어 주세요.</p>
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-ink">은행</span>
           <input value={depositBank} onChange={(event) => setDepositBank(event.target.value)} className={inputClassName} placeholder="예: 국민은행" />

@@ -45,7 +45,7 @@ export default function MyPageBuyJoins({
   if (!ready) {
     return (
       <section className={cn(sectionClass(embedded), 'px-4 py-5 sm:px-5')}>
-        <h2 className="text-sm font-bold text-ink">내 공구 구매 신청</h2>
+        <h2 className="text-sm font-bold text-ink">내 구매 신청</h2>
         <p className="mt-4 text-sm text-muted">불러오는 중…</p>
       </section>
     );
@@ -55,16 +55,16 @@ export default function MyPageBuyJoins({
     return (
       <section className={sectionClass(embedded)}>
         <div className="px-4 py-4 sm:px-5">
-          <h2 className="text-sm font-bold text-ink">내 공구 구매 신청</h2>
-          <p className="mt-1 text-sm text-muted">팝니다 상품에 남긴 공구 구매 신청을 확인합니다.</p>
+          <h2 className="text-sm font-bold text-ink">내 구매 신청</h2>
+          <p className="mt-1 text-sm text-muted">판매 상품에 남긴 구매 신청을 확인합니다.</p>
         </div>
         <p className="border-t border-line px-4 py-8 text-center text-sm text-muted sm:px-5">
-          아직 공구 구매 신청이 없습니다.
+          아직 구매 신청이 없습니다.
           <span className="mt-1 block text-subtle">
             <Link href="/sell" className="font-semibold text-ink underline-offset-2 hover:underline">
-              팝니다
+              판매 상품
             </Link>
-            에서 상품을 찾아 보세요.
+            에서 찾아 보세요.
           </span>
         </p>
       </section>
@@ -74,8 +74,8 @@ export default function MyPageBuyJoins({
   return (
     <section className={sectionClass(embedded)}>
       <div className="border-b border-line px-4 py-3 sm:px-5">
-        <h2 className="text-sm font-bold text-ink">내 공구 구매 신청</h2>
-        <p className="mt-0.5 text-xs text-muted">공구 구매 신청·판매 확정·결제·배송 상태를 확인합니다.</p>
+        <h2 className="text-sm font-bold text-ink">내 구매 신청</h2>
+        <p className="mt-0.5 text-xs text-muted">구매 신청·판매 확정·결제·배송 상태를 확인합니다.</p>
       </div>
       <div className="overflow-x-auto border-t border-line">
         <table className="min-w-[32rem] w-full table-fixed">

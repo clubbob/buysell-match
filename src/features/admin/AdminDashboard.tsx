@@ -11,9 +11,7 @@ const TONES = {
   buyers: { id: 'buyers', stroke: '#4338ca', fill: '#818cf8', bar: '#6366f1', grid: '#c7d2fe' },
   sellers: { id: 'sellers', stroke: '#047857', fill: '#34d399', bar: '#10b981', grid: '#a7f3d0' },
   listings: { id: 'listings', stroke: '#0f766e', fill: '#2dd4bf', bar: '#14b8a6', grid: '#99f6e4' },
-  buys: { id: 'buys', stroke: '#c2410c', fill: '#fb923c', bar: '#f97316', grid: '#fed7aa' },
   joins: { id: 'joins', stroke: '#0369a1', fill: '#38bdf8', bar: '#0ea5e9', grid: '#bae6fd' },
-  sells: { id: 'sells', stroke: '#6d28d9', fill: '#a78bfa', bar: '#8b5cf6', grid: '#ddd6fe' },
   inquiries: { id: 'inquiries', stroke: '#334155', fill: '#94a3b8', bar: '#64748b', grid: '#e2e8f0' },
   waiting: { id: 'waiting', stroke: '#be123c', fill: '#fb7185', bar: '#f43f5e', grid: '#fecdd3' },
 } as const satisfies Record<string, SparkTone>;
@@ -23,9 +21,7 @@ const WASH: Record<keyof typeof TONES, string> = {
   buyers: 'bg-indigo-50/80',
   sellers: 'bg-emerald-50/80',
   listings: 'bg-teal-50/80',
-  buys: 'bg-orange-50/80',
   joins: 'bg-sky-50/80',
-  sells: 'bg-violet-50/80',
   inquiries: 'bg-slate-50',
   waiting: 'bg-rose-50/80',
 };
@@ -129,28 +125,16 @@ export default function AdminDashboard() {
             tone="sellers"
           />
           <StatCard
-            label="팝니다"
+            label="판매 상품"
             value={`${data.totals.listings ?? 0}건`}
             points={data.series?.listings}
             tone="listings"
           />
           <StatCard
-            label="삽니다"
-            value={`${data.totals.buys ?? 0}건`}
-            points={data.series?.buys}
-            tone="buys"
-          />
-          <StatCard
-            label="공구 구매 신청"
+            label="구매 신청"
             value={`${data.totals.joinsOpen ?? 0}건`}
             points={data.series?.joinsOpen}
             tone="joins"
-          />
-          <StatCard
-            label="판매 참여"
-            value={`${data.totals.sellJoinsOpen ?? 0}건`}
-            points={data.series?.sellJoinsOpen}
-            tone="sells"
           />
           <StatCard
             label="상품 문의"

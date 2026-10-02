@@ -101,7 +101,7 @@ export default function SellListingSpecs({
         </dd>
       </div>
       <div className={`${SPEC_ROW} py-3`}>
-        <dt className="whitespace-nowrap text-subtle">공구 최소 주문</dt>
+        <dt className="whitespace-nowrap text-subtle">모집 최소 수량</dt>
         <dd className={SPEC_QTY_FIELDS}>
           <span className="min-w-0">
             <span className="tabular-nums">{formatQuantityNumber(item.minPurchaseLabel)}</span>

@@ -5,15 +5,12 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Logo from '@/components/brand/Logo';
 import { useAuth } from '@/features/auth/auth-context';
-import { useUserMode } from '@/features/mode/mode-context';
-import { getHeaderNavItems, USER_MODE_LABELS } from '@/lib/user-mode';
 import { cn } from '@/lib/utils';
 
-function isNavActive(pathname: string, href: string, exact?: boolean): boolean {
-  if (exact || href === '/') return pathname === href;
-  if (href === '/sell' && (pathname.startsWith('/sell/new') || pathname.endsWith('/edit'))) return false;
-  if (href === '/buy' && pathname.startsWith('/buy/new')) return false;
-  return pathname === href || pathname.startsWith(`${href}/`);
+function isSellNavActive(pathname: string): boolean {
+  if (pathname === '/sell') return true;
+  if (pathname.startsWith('/sell/new') || pathname.endsWith('/edit')) return false;
+  return pathname.startsWith('/sell/');
 }
 
 function MenuIcon({ open }: { open: boolean }) {
@@ -36,9 +33,17 @@ function MenuIcon({ open }: { open: boolean }) {
   );
 }
 
+function navLinkClass(active: boolean) {
+  return cn(
+    'relative px-3 py-2 text-sm font-medium transition-colors',
+    active
+      ? 'text-white after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-white'
+      : 'text-white/70 hover:text-white',
+  );
+}
+
 export default function Header() {
   const { user, logout } = useAuth();
-  const { mode } = useUserMode();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -51,52 +56,29 @@ export default function Header() {
   }, [menuOpen]);
 
   const isLoggedIn = Boolean(user);
-  const navItems = getHeaderNavItems();
+  const sellNavActive = isSellNavActive(pathname);
 
   async function handleLogout() {
     await logout();
     setMenuOpen(false);
   }
 
-  const navLinkClass = (active: boolean) =>
-    cn(
-      'relative px-3 py-2 text-sm font-medium transition-colors',
-      active
-        ? 'text-white after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-white'
-        : 'text-white/70 hover:text-white',
-    );
-
   return (
     <header className="bg-ink text-white">
-      <div className="mx-auto flex h-14 max-w-board items-center justify-between gap-3 px-4 sm:h-16 sm:gap-4 sm:px-6">
-        <Link href="/" className="inline-flex min-h-11 min-w-0 shrink-0 items-center">
+      <div className="mx-auto grid h-14 max-w-board w-full grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 sm:h-16 sm:gap-4 sm:px-6">
+        <Link href="/" className="inline-flex min-h-11 min-w-0 shrink-0 items-center justify-self-start">
           <Logo inverted />
         </Link>
 
-        <nav className="hidden h-full items-center md:flex" aria-label="주요 메뉴">
-          {navItems.map((item) => {
-            const active = isNavActive(pathname, item.href, item.exact);
-            return (
-              <Link key={`${item.href}-${item.label}`} href={item.href} className={navLinkClass(active)}>
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="hidden justify-self-center md:block" aria-label="주요 메뉴">
+          <Link href="/sell" className={navLinkClass(sellNavActive)}>
+            판매 상품
+          </Link>
         </nav>
 
-        <div className="hidden items-center gap-1 md:flex">
+        <div className="hidden items-center justify-self-end gap-1 md:flex">
           {isLoggedIn ? (
             <>
-              {mode ? (
-                <span className="flex flex-col justify-center px-3 py-1">
-                  <span className="text-sm text-white/55">{USER_MODE_LABELS[mode]}</span>
-                  {user?.email ? (
-                    <span className="max-w-[12rem] truncate text-[11px] leading-tight text-white/45">{user.email}</span>
-                  ) : null}
-                </span>
-              ) : user?.email ? (
-                <span className="max-w-[12rem] truncate px-3 py-2 text-[11px] text-white/45">{user.email}</span>
-              ) : null}
               <Link href="/mypage" className="px-3 py-2 text-sm text-white/75 hover:text-white">
                 마이페이지
               </Link>
@@ -121,7 +103,7 @@ export default function Header() {
 
         <button
           type="button"
-          className="inline-flex h-11 w-11 items-center justify-center border border-white/25 md:hidden"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center justify-self-end border border-white/25 md:hidden"
           aria-expanded={menuOpen}
           aria-label={menuOpen ? '메뉴 닫기' : '메뉴 열기'}
           onClick={() => setMenuOpen((open) => !open)}
@@ -131,28 +113,18 @@ export default function Header() {
       </div>
 
       {menuOpen ? (
-        <nav className="border-t border-white/15 bg-ink px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden" aria-label="모바일 메뉴">
+        <nav
+          className="border-t border-white/15 bg-ink px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden"
+          aria-label="모바일 메뉴"
+        >
           <div className="mx-auto flex max-w-board flex-col">
-            {navItems.map((item) => (
-              <Link
-                key={`${item.href}-${item.label}`}
-                href={item.href}
-                className="flex min-h-11 items-center px-1 text-sm font-medium text-white"
-              >
-                {item.label}
-              </Link>
-            ))}
+            <Link href="/sell" className="flex min-h-11 items-center px-1 text-sm font-medium text-white">
+              판매 상품
+            </Link>
 
             {isLoggedIn ? (
               <>
-                {mode ? (
-                  <div className="px-1 py-2">
-                    <p className="text-sm text-white/55">{USER_MODE_LABELS[mode]}</p>
-                    {user?.email ? <p className="mt-0.5 break-all text-[11px] text-white/45">{user.email}</p> : null}
-                  </div>
-                ) : user?.email ? (
-                  <p className="break-all px-1 py-2 text-[11px] text-white/45">{user.email}</p>
-                ) : null}
+                {user?.email ? <p className="break-all px-1 py-2 text-[11px] text-white/45">{user.email}</p> : null}
                 <Link href="/mypage" className="flex min-h-11 items-center px-1 text-sm text-white/85">
                   마이페이지
                 </Link>

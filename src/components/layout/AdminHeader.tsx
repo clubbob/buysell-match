@@ -33,8 +33,7 @@ function HomepageLink({ className }: { className: string }) {
 const NAV = [
   { href: '/admin/dashboard', label: '대시보드', exact: true },
   { href: '/admin/members', label: '회원정보' },
-  { href: '/admin/sell', label: '팝니다' },
-  { href: '/admin/buy', label: '삽니다' },
+  { href: '/admin/sell', label: '판매 상품' },
   { href: '/admin/inquiries', label: '문의하기' },
 ];
 

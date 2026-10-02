@@ -6,7 +6,7 @@ type PageProps = {
 };
 
 export const metadata: Metadata = {
-  title: '팝니다 수정',
+  title: '판매 상품 수정',
 };
 
 export default async function EditSellPage({ params }: PageProps) {

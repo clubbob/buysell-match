@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import SellIndexClient from '@/features/sell/SellIndexClient';
 
 export const metadata: Metadata = {
-  title: '팝니다',
+  title: '판매 상품',
 };
 
 export default async function SellPage({

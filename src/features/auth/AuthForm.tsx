@@ -13,7 +13,6 @@ import {
   normalizePersonName,
 } from '@/features/auth/auth-errors';
 import { MarketingBody, PrivacyBody, TermsBody } from '@/components/legal/legal-bodies';
-import { useUserMode } from '@/features/mode/mode-context';
 import { safeNextPath } from '@/lib/auth-redirect';
 
 type AuthFormMode = 'login' | 'signup';
@@ -74,7 +73,6 @@ export default function AuthForm({ mode }: { mode: AuthFormMode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading, configured, signInWithEmail, signUpWithEmail } = useAuth();
-  const { resetMode } = useUserMode();
   const isSignup = mode === 'signup';
   const nextPath = safeNextPath(searchParams.get('next'));
   const authQuery = searchParams.toString();
@@ -93,7 +91,6 @@ export default function AuthForm({ mode }: { mode: AuthFormMode }) {
   const agreeAll = agreeTerms && agreePrivacy && agreeMarketing;
 
   function finishAuth() {
-    resetMode();
     router.replace(isSignup ? '/' : (nextPath ?? '/'));
   }
 

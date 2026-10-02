@@ -175,20 +175,20 @@ type GuideCard = {
 const SELLER_CARDS: GuideCard[] = [
   {
     step: '01',
-    title: '가입·역할',
-    body: '이메일로 가입합니다. 로그인 후 판매자 모드를 고르고, 사업자 정보를 등록합니다.',
+    title: '가입·상세 등록',
+    body: '이메일로 가입합니다. 판매 상품을 올리려면 마이페이지에서 판매 상세(사업자 정보)를 등록합니다.',
     art: <GuideArtSellerSignup />,
   },
   {
     step: '02',
-    title: '팝니다 등록',
-    body: '상품, 가격, 공동구매 수량, 마감, 결제·배송을 올려 구매자를 모읍니다.',
+    title: '판매 상품 등록',
+    body: '상품, 가격, 공동구매 수량, 마감, 결제·배송을 올려 판매 상품을 등록합니다.',
     art: <GuideArtSellerListing />,
   },
   {
     step: '03',
     title: '판매 관리',
-    body: '마이페이지에서 판매 확정과 건별 결제·배송을 관리합니다. 결제·정산은 판매자와 구매자가 직접 합니다.',
+    body: '마이페이지 나의 판매 상품 현황에서 구매 신청을 보고 판매 확정·결제·배송을 관리합니다. 결제·정산은 판매자와 구매자가 직접 합니다.',
     art: <GuideArtSellerManage />,
   },
 ];
@@ -196,20 +196,20 @@ const SELLER_CARDS: GuideCard[] = [
 const BUYER_CARDS: GuideCard[] = [
   {
     step: '01',
-    title: '가입·역할',
-    body: '이메일로 가입합니다. 로그인 후 구매자 모드를 고르고, 핸드폰과 배송 주소를 등록합니다.',
+    title: '가입·상세 등록',
+    body: '이메일로 가입합니다. 구매 신청 전에 마이페이지에서 구매 상세(연락처·배송 주소)를 등록합니다.',
     art: <GuideArtBuyerSignup />,
   },
   {
     step: '02',
-    title: '공구 구매 신청',
-    body: '팝니다에서 구매 수량을 신청합니다. 판매 확정 후 입금 기한 안에 입금하면, 판매자가 결제·배송을 확인합니다.',
+    title: '구매 신청',
+    body: '판매 상품에서 원하는 상품을 골라 수량을 신청합니다.',
     art: <GuideArtBuyerJoin />,
   },
   {
     step: '03',
-    title: '삽니다 등록',
-    body: '찾는 상품, 가격, 수량, 마감을 올려 판매자를 모읍니다.',
+    title: '입금·수령',
+    body: '판매 확정 후 안내에 따라 입금합니다. 마이페이지 구매 탭에서 신청·배송 상태를 확인할 수 있습니다.',
     art: <GuideArtBuyerWanted />,
   },
 ];
@@ -257,7 +257,7 @@ function GuideCardRow({
         <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${styles.badge}`}>{label}</span>
         <p className="text-sm text-muted">{subtitle}</p>
       </div>
-      <ol className="grid gap-4 sm:grid-cols-3">
+      <ol className={`grid gap-4 ${cards.length === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
         {cards.map((card, index) => (
           <li
             key={`${label}-${card.step}`}
@@ -291,8 +291,8 @@ export default function HomeGuide() {
     <section>
       <h2 className="text-[15px] font-bold text-ink">이용 안내</h2>
       <div className="mt-4 space-y-8">
-        <GuideCardRow variant="seller" label="판매자" subtitle="판매자로 이용할 때" cards={SELLER_CARDS} />
-        <GuideCardRow variant="buyer" label="구매자" subtitle="구매자로 이용할 때" cards={BUYER_CARDS} />
+        <GuideCardRow variant="seller" label="판매자" subtitle="판매 상품 등록 관리" cards={SELLER_CARDS} />
+        <GuideCardRow variant="buyer" label="구매자" subtitle="판매 상품 구매 관리" cards={BUYER_CARDS} />
       </div>
     </section>
   );

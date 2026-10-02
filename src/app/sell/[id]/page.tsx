@@ -1,15 +1,18 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import SellDetailLoader from '@/features/sell/SellDetailLoader';
+import { loadAdminSellListingTitle } from '@/lib/admin-listings-data';
 
 type PageProps = {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ from?: string; tab?: string }>;
 };
 
-export const metadata: Metadata = {
-  title: '팝니다',
-};
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const title = await loadAdminSellListingTitle(id);
+  return { title: title ?? '판매 상품' };
+}
 
 export default async function SellDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params;

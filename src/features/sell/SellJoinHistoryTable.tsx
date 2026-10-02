@@ -44,7 +44,7 @@ function BuyerLabel({
 
 export default function SellJoinHistoryTable({
   joins,
-  title = '공구 구매 신청 내역',
+  title = '구매 신청 내역',
   minQuantity = null,
   variant = 'open',
   revealBuyerIdentity = false,

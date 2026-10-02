@@ -1,15 +1,5 @@
-import type { Metadata } from 'next';
-import BuyIndexClient from '@/features/buy/BuyIndexClient';
+import { redirect } from 'next/navigation';
 
-export const metadata: Metadata = {
-  title: '삽니다',
-};
-
-export default async function BuyPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>;
-}) {
-  const { q } = await searchParams;
-  return <BuyIndexClient q={q} />;
+export default function BuyPage() {
+  redirect('/sell');
 }

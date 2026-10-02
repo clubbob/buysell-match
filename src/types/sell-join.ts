@@ -1,4 +1,4 @@
-export const OPEN_JOIN_STATUS_LABEL = '공구 구매 신청';
+export const OPEN_JOIN_STATUS_LABEL = '구매 신청';
 
 export type SellJoinStatus = 'open' | 'confirmed';
 export type SellJoinPaymentStatus = 'pending' | 'paid';

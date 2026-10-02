@@ -16,7 +16,6 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { getClientAuth } from '@/lib/firebase';
 import { hasFirebaseClientConfig } from '@/lib/firebase-config';
 import { ensureMember, saveMember } from '@/lib/member-remote';
-import { clearUserMode } from '@/lib/user-mode';
 import type { SignupConsents } from '@/types/member';
 
 type AuthContextValue = {
@@ -60,7 +59,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithEmail = useCallback(async (email: string, password: string) => {
     const auth = getClientAuth();
     if (!auth) throw new Error('Firebase가 설정되지 않았습니다.');
-    clearUserMode();
     await signInWithEmailAndPassword(auth, email.trim(), password);
   }, []);
 
@@ -68,7 +66,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (name: string, email: string, password: string, consents: SignupConsents) => {
       const auth = getClientAuth();
       if (!auth) throw new Error('Firebase가 설정되지 않았습니다.');
-      clearUserMode();
       const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
       await updateProfile(credential.user, { displayName: name });
       const now = new Date().toISOString();
@@ -108,7 +105,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     const auth = getClientAuth();
     if (!auth) return;
-    clearUserMode();
     await signOut(auth);
   }, []);
 

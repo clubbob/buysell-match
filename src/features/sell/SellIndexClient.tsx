@@ -6,7 +6,6 @@ import PageIntro from '@/components/ui/PageIntro';
 import SellListFilters from '@/components/ui/SellListFilters';
 import SellListPanel from '@/components/ui/SellListPanel';
 import { useAuth } from '@/features/auth/auth-context';
-import { useUserMode } from '@/features/mode/mode-context';
 import { useSellListings } from '@/features/sell/use-sell-listings';
 import { loginHref } from '@/lib/auth-redirect';
 import { filterSellListings, parseSellSort } from '@/lib/sell-filters';
@@ -24,7 +23,6 @@ export default function SellIndexClient({
   sort?: string;
 }) {
   const { user } = useAuth();
-  const { mode, ready: modeReady } = useUserMode();
   const { items, ready } = useSellListings();
   const parsedSort = parseSellSort(sort);
   const filtered = useMemo(
@@ -32,19 +30,19 @@ export default function SellIndexClient({
     [items, q, category, parsedSort, seller],
   );
   const sellerName = filtered[0]?.sellerName ?? items.find((item) => item.sellerId === seller)?.sellerName;
-  const showSellCreate = modeReady && (!user || mode === 'seller');
+  const showSellCreate = !seller;
   const categoryLabel = category ? SELL_CATEGORY_LABELS[category as keyof typeof SELL_CATEGORY_LABELS] : null;
 
   return (
     <div className="space-y-5">
       <PageIntro
-        title="팝니다"
+        title="판매 상품"
         description={
           seller && sellerName
-            ? `${sellerName}이(가) 올린 상품입니다.`
+            ? `${sellerName}이(가) 올린 공동구매 상품입니다.`
             : categoryLabel
-              ? `${categoryLabel} 카테고리 상품입니다.`
-              : '판매자가 올린 상품입니다. 쿠팡·스마트스토어는 새 창으로, 유튜브는 상품 화면에서 확인할 수 있습니다.'
+              ? `${categoryLabel} 카테고리 판매 상품입니다.`
+              : '진행 중인 공동구매 상품입니다. 쿠팡·스마트스토어는 새 창으로, 유튜브는 상품 화면에서 확인할 수 있습니다.'
         }
       >
         {seller ? (
@@ -53,7 +51,7 @@ export default function SellIndexClient({
           </Link>
         ) : showSellCreate ? (
           <Link href={user ? '/sell/new' : loginHref('/sell/new')} className="btn-primary">
-            팝니다 등록
+            판매 상품 등록
           </Link>
         ) : null}
       </PageIntro>
@@ -65,10 +63,10 @@ export default function SellIndexClient({
           title={sellerName && seller ? sellerName : categoryLabel || (q.trim() ? `"${q.trim()}" 검색` : '전체')}
           description={
             seller
-              ? '이 판매자의 팝니다'
+              ? '이 판매자의 판매 상품'
               : filtered.length > 0
                 ? `${filtered.length.toLocaleString('ko-KR')}건`
-                : '올라온 팝니다'
+                : '진행 중인 판매 상품'
           }
           items={filtered}
         />

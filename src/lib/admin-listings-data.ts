@@ -1,5 +1,10 @@
-import { deleteDocument, hasFirebaseAdminConfig, listDocuments, queryDocumentIds } from '@/lib/firebase-rest-admin';
-import { toBuyListing, type BuyListing } from '@/types/buy';
+import {
+  deleteDocument,
+  getDocument,
+  hasFirebaseAdminConfig,
+  listDocuments,
+  queryDocumentIds,
+} from '@/lib/firebase-rest-admin';
 import { parseSellCategory } from '@/types/sell-category';
 import { withSellSource, type SellListing } from '@/types/sell';
 
@@ -51,21 +56,20 @@ function sortByDeadlineThenTitle<T extends { deadline: string; title: string }>(
   });
 }
 
+export async function loadAdminSellListingTitle(id: string): Promise<string | null> {
+  if (!hasFirebaseAdminConfig()) return null;
+  const data = await getDocument('sellListings', id);
+  if (!data?.title) return null;
+  const title = String(data.title).trim();
+  return title || null;
+}
+
 export async function loadAdminSellListings(): Promise<SellListing[] | null> {
   if (!hasFirebaseAdminConfig()) return null;
   const docs = await listDocuments('sellListings');
   const items = docs
     .map((entry) => toSellListing(entry.id, entry.data))
     .filter((item): item is SellListing => Boolean(item));
-  return sortByDeadlineThenTitle(items);
-}
-
-export async function loadAdminBuyListings(): Promise<BuyListing[] | null> {
-  if (!hasFirebaseAdminConfig()) return null;
-  const docs = await listDocuments('buyListings');
-  const items = docs
-    .map((entry) => toBuyListing(entry.id, entry.data))
-    .filter((item): item is BuyListing => Boolean(item));
   return sortByDeadlineThenTitle(items);
 }
 
@@ -79,8 +83,4 @@ export async function deleteAdminSellListing(id: string): Promise<void> {
     ...inquiryIds.map((inquiryId) => deleteDocument('sellInquiries', inquiryId)),
     deleteDocument('sellListings', id),
   ]);
-}
-
-export async function deleteAdminBuyListing(id: string): Promise<void> {
-  await deleteDocument('buyListings', id);
 }

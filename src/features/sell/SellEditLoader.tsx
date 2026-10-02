@@ -51,7 +51,7 @@ export default function SellEditLoader({ id }: { id: string }) {
     return (
       <div className="space-y-5">
         <PageBack href="/mypage?tab=sell">← 마이페이지</PageBack>
-        <p className="panel px-4 py-10 text-center text-sm text-muted">공구 구매 신청이 있는 상품은 수정할 수 없습니다.</p>
+        <p className="panel px-4 py-10 text-center text-sm text-muted">구매 신청이 있는 상품은 수정할 수 없습니다.</p>
       </div>
     );
   }
@@ -61,7 +61,7 @@ export default function SellEditLoader({ id }: { id: string }) {
       <PageBack href="/mypage?tab=sell">← 마이페이지</PageBack>
       <PageIntro
         eyebrow="판매자"
-        title="팝니다 수정"
+        title="판매 상품 수정"
         description="마감 전까지 여러 번 거래할 수 있습니다. 쿠팡·스마트스토어·유튜브 주소를 각각 넣을 수 있습니다."
       />
       <SellCreateForm listing={item} />

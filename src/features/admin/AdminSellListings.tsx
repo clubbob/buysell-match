@@ -137,7 +137,7 @@ export default function AdminSellListings() {
   }, []);
 
   async function handleDelete(item: SellListing) {
-    if (!window.confirm(`「${item.title}」 팝니다 글을 삭제할까요? 공구 구매 신청·문의도 함께 삭제됩니다.`)) return;
+    if (!window.confirm(`「${item.title}」 판매 상품을 삭제할까요? 구매 신청·문의도 함께 삭제됩니다.`)) return;
     setError(null);
     setPendingId(item.id);
     try {
@@ -157,7 +157,7 @@ export default function AdminSellListings() {
 
   return (
     <div className="space-y-5">
-      <PageIntro title="팝니다" description="등록된 팝니다 글을 목록으로 보고, 사이트에서 확인하거나 삭제합니다." />
+      <PageIntro title="판매 상품" description="등록된 판매 상품을 목록으로 보고, 사이트에서 확인하거나 삭제합니다." />
       {error ? (
         <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger" role="alert">
           {error}
@@ -166,7 +166,7 @@ export default function AdminSellListings() {
       {!ready ? (
         <p className="text-sm text-muted">불러오는 중…</p>
       ) : error && items.length === 0 ? null : items.length === 0 ? (
-        <p className="panel px-4 py-10 text-center text-sm text-muted">아직 등록된 팝니다가 없습니다.</p>
+        <p className="panel px-4 py-10 text-center text-sm text-muted">아직 등록된 판매 상품이 없습니다.</p>
       ) : (
         <section className="panel min-w-0 overflow-hidden">
           <header className="border-b border-line px-4 py-3.5">
