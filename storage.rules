@@ -1,0 +1,42 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(sellerId) {
+      return signedIn() && request.auth.uid == sellerId;
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isCertificate() {
+      return request.resource.contentType.matches('image/.*')
+        || request.resource.contentType == 'application/pdf';
+    }
+
+    function withinSizeLimit() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // 판매 상품 이미지 — 공개 읽기, 판매자만 업로드·삭제
+    match /sell/{sellerId}/{listingId}/{fileName} {
+      allow read: if listingId != 'business-certificate';
+      allow write: if isOwner(sellerId)
+        && listingId != 'business-certificate'
+        && isImage()
+        && withinSizeLimit();
+    }
+
+    // 사업자등록증 — 본인만 읽기·업로드·삭제
+    match /sell/{sellerId}/business-certificate/{fileName} {
+      allow read, write: if isOwner(sellerId)
+        && isCertificate()
+        && withinSizeLimit();
+    }
+  }
+}

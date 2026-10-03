@@ -56,6 +56,13 @@ function sortByDeadlineThenTitle<T extends { deadline: string; title: string }>(
   });
 }
 
+export async function loadAdminSellListing(id: string): Promise<SellListing | null> {
+  if (!hasFirebaseAdminConfig()) return null;
+  const data = await getDocument('sellListings', id);
+  if (!data) return null;
+  return toSellListing(id, data);
+}
+
 export async function loadAdminSellListingTitle(id: string): Promise<string | null> {
   if (!hasFirebaseAdminConfig()) return null;
   const data = await getDocument('sellListings', id);
@@ -74,13 +81,15 @@ export async function loadAdminSellListings(): Promise<SellListing[] | null> {
 }
 
 export async function deleteAdminSellListing(id: string): Promise<void> {
-  const [joinIds, inquiryIds] = await Promise.all([
+  const [joinIds, inquiryIds, reviewIds] = await Promise.all([
     queryDocumentIds('sellJoins', 'listingId', id),
     queryDocumentIds('sellInquiries', 'listingId', id),
+    queryDocumentIds('sellerReviews', 'listingId', id),
   ]);
   await Promise.all([
     ...joinIds.map((joinId) => deleteDocument('sellJoins', joinId)),
     ...inquiryIds.map((inquiryId) => deleteDocument('sellInquiries', inquiryId)),
+    ...reviewIds.map((reviewId) => deleteDocument('sellerReviews', reviewId)),
     deleteDocument('sellListings', id),
   ]);
 }

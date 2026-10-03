@@ -2,21 +2,23 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchRemoteSellListings } from '@/lib/sell-remote';
-import { findSellListing, mergeSellListings } from '@/lib/sell-store';
+import { findSellListing, normalizeSellListings } from '@/lib/sell-store';
 import type { SellListing } from '@/types/sell';
 
 export function useSellListings() {
   const [userItems, setUserItems] = useState<SellListing[]>([]);
   const [ready, setReady] = useState(false);
-  const [remainingTick, setRemainingTick] = useState(0);
+
+  const load = useCallback(async () => {
+    const items = await fetchRemoteSellListings();
+    setUserItems(items);
+    return items;
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
 
-    void fetchRemoteSellListings()
-      .then((items) => {
-        if (!cancelled) setUserItems(items);
-      })
+    void load()
       .catch(() => {
         if (!cancelled) setUserItems([]);
       })
@@ -27,13 +29,13 @@ export function useSellListings() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [load]);
 
-  const items = useMemo(() => mergeSellListings(userItems), [userItems, remainingTick]);
+  const items = useMemo(() => normalizeSellListings(userItems), [userItems]);
 
   const refreshRemaining = useCallback(() => {
-    setRemainingTick((value) => value + 1);
-  }, []);
+    void load().catch(() => setUserItems([]));
+  }, [load]);
 
   const add = useCallback((item: SellListing) => {
     setUserItems((current) => [item, ...current.filter((entry) => entry.id !== item.id)]);

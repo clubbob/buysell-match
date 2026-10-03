@@ -34,7 +34,9 @@ const NAV = [
   { href: '/admin/dashboard', label: '대시보드', exact: true },
   { href: '/admin/members', label: '회원정보' },
   { href: '/admin/sell', label: '판매 상품' },
-  { href: '/admin/inquiries', label: '문의하기' },
+  { href: '/admin/joins', label: '구매 신청' },
+  { href: '/admin/sell-inquiries', label: '상품 문의' },
+  { href: '/admin/inquiries', label: '서비스 문의' },
 ];
 
 function MenuIcon({ open }: { open: boolean }) {

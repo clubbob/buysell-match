@@ -15,9 +15,13 @@ export function useSellJoinTotals(listingIds: string[]) {
       return;
     }
 
-    void fetchJoinListSummaries(listingIds).then((next) => {
-      if (!cancelled) setTotals(next);
-    });
+    void fetchJoinListSummaries(listingIds)
+      .then((next) => {
+        if (!cancelled) setTotals(next);
+      })
+      .catch(() => {
+        if (!cancelled) setTotals({});
+      });
 
     return () => {
       cancelled = true;

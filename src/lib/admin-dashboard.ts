@@ -17,8 +17,11 @@ export type DashboardSeries = {
   sellers: SignupTrendPoint[];
   listings: SignupTrendPoint[];
   joinsOpen: SignupTrendPoint[];
-  inquiries: SignupTrendPoint[];
-  inquiriesWaiting: SignupTrendPoint[];
+  joinsConfirmed: SignupTrendPoint[];
+  sellInquiries: SignupTrendPoint[];
+  sellInquiriesWaiting: SignupTrendPoint[];
+  siteInquiries: SignupTrendPoint[];
+  siteInquiriesWaiting: SignupTrendPoint[];
 };
 
 export type AdminDashboardData = {
@@ -28,8 +31,11 @@ export type AdminDashboardData = {
     sellers: number;
     listings: number;
     joinsOpen: number;
-    inquiries: number;
-    inquiriesWaiting: number;
+    joinsConfirmed: number;
+    sellInquiries: number;
+    sellInquiriesWaiting: number;
+    siteInquiries: number;
+    siteInquiriesWaiting: number;
   };
   trend: SignupTrendPoint[];
   series: DashboardSeries;
@@ -38,7 +44,8 @@ export type AdminDashboardData = {
 type ServiceDocs = {
   listings: { data: Record<string, unknown> }[];
   sellJoins: { data: Record<string, unknown> }[];
-  inquiries: { data: Record<string, unknown> }[];
+  sellInquiries: { data: Record<string, unknown> }[];
+  siteInquiries: { data: Record<string, unknown> }[];
 };
 
 function seoulDateKey(value: Date): string {
@@ -76,21 +83,25 @@ function emptySeries(): DashboardSeries {
     sellers: empty,
     listings: empty,
     joinsOpen: empty,
-    inquiries: empty,
-    inquiriesWaiting: empty,
+    joinsConfirmed: empty,
+    sellInquiries: empty,
+    sellInquiriesWaiting: empty,
+    siteInquiries: empty,
+    siteInquiriesWaiting: empty,
   };
 }
 
 export async function loadServiceDocuments(): Promise<ServiceDocs> {
   try {
-    const [listings, sellJoins, inquiries] = await Promise.all([
+    const [listings, sellJoins, sellInquiries, siteInquiries] = await Promise.all([
       listDocuments('sellListings'),
       listDocuments('sellJoins'),
       listDocuments('sellInquiries'),
+      listDocuments('siteInquiries'),
     ]);
-    return { listings, sellJoins, inquiries };
+    return { listings, sellJoins, sellInquiries, siteInquiries };
   } catch {
-    return { listings: [], sellJoins: [], inquiries: [] };
+    return { listings: [], sellJoins: [], sellInquiries: [], siteInquiries: [] };
   }
 }
 
@@ -113,6 +124,14 @@ function seriesFromDays(keys: string[], start: string, today: string): SignupTre
 
 function docDay(data: Record<string, unknown>, fallback: string) {
   return memberDayKey(String(data.createdAt ?? '')) || fallback;
+}
+
+function isSellInquiryWaiting(data: Record<string, unknown>) {
+  return !String(data.answer ?? '').trim();
+}
+
+function isSiteInquiryWaiting(data: Record<string, unknown>) {
+  return !String(data.answer ?? '').trim();
 }
 
 export function buildAdminDashboard(
@@ -143,25 +162,56 @@ export function buildAdminDashboard(
     start,
     today,
   );
+
   const openJoins = docs.sellJoins.filter((entry) => String(entry.data.status ?? 'open') !== 'confirmed');
+  const confirmedJoins = docs.sellJoins.filter((entry) => String(entry.data.status ?? 'open') === 'confirmed');
   const joinsOpen = seriesFromDays(
     openJoins.map((entry) => docDay(entry.data, today)),
     start,
     today,
   );
-  const inquiries = seriesFromDays(
-    docs.inquiries.map((entry) => docDay(entry.data, today)),
-    start,
-    today,
-  );
-  const waiting = docs.inquiries.filter((entry) => !String(entry.data.answer ?? '').trim());
-  const inquiriesWaiting = seriesFromDays(
-    waiting.map((entry) => docDay(entry.data, today)),
+  const joinsConfirmed = seriesFromDays(
+    confirmedJoins.map((entry) => docDay(entry.data, today)),
     start,
     today,
   );
 
-  const series = { members, buyers, sellers, listings, joinsOpen, inquiries, inquiriesWaiting };
+  const sellInquiries = seriesFromDays(
+    docs.sellInquiries.map((entry) => docDay(entry.data, today)),
+    start,
+    today,
+  );
+  const waitingSellInquiries = docs.sellInquiries.filter((entry) => isSellInquiryWaiting(entry.data));
+  const sellInquiriesWaiting = seriesFromDays(
+    waitingSellInquiries.map((entry) => docDay(entry.data, today)),
+    start,
+    today,
+  );
+
+  const siteInquiries = seriesFromDays(
+    docs.siteInquiries.map((entry) => docDay(entry.data, today)),
+    start,
+    today,
+  );
+  const waitingSiteInquiries = docs.siteInquiries.filter((entry) => isSiteInquiryWaiting(entry.data));
+  const siteInquiriesWaiting = seriesFromDays(
+    waitingSiteInquiries.map((entry) => docDay(entry.data, today)),
+    start,
+    today,
+  );
+
+  const series = {
+    members,
+    buyers,
+    sellers,
+    listings,
+    joinsOpen,
+    joinsConfirmed,
+    sellInquiries,
+    sellInquiriesWaiting,
+    siteInquiries,
+    siteInquiriesWaiting,
+  };
 
   return {
     totals: {
@@ -170,8 +220,11 @@ export function buildAdminDashboard(
       sellers: sellerItems.length,
       listings: docs.listings.length,
       joinsOpen: openJoins.length,
-      inquiries: docs.inquiries.length,
-      inquiriesWaiting: waiting.length,
+      joinsConfirmed: confirmedJoins.length,
+      sellInquiries: docs.sellInquiries.length,
+      sellInquiriesWaiting: waitingSellInquiries.length,
+      siteInquiries: docs.siteInquiries.length,
+      siteInquiriesWaiting: waitingSiteInquiries.length,
     },
     trend: members,
     series,
@@ -180,7 +233,18 @@ export function buildAdminDashboard(
 
 export function emptyDashboard(): AdminDashboardData {
   return {
-    totals: { members: 0, buyers: 0, sellers: 0, listings: 0, joinsOpen: 0, inquiries: 0, inquiriesWaiting: 0 },
+    totals: {
+      members: 0,
+      buyers: 0,
+      sellers: 0,
+      listings: 0,
+      joinsOpen: 0,
+      joinsConfirmed: 0,
+      sellInquiries: 0,
+      sellInquiriesWaiting: 0,
+      siteInquiries: 0,
+      siteInquiriesWaiting: 0,
+    },
     trend: [],
     series: emptySeries(),
   };

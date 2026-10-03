@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import MyPageInquirySectionHeader from '@/components/mypage/MyPageInquirySectionHeader';
 import { inputClassName } from '@/features/auth/auth-errors';
 import { answerSellInquiry, fetchSellInquiriesBySeller } from '@/lib/sell-inquiry-remote';
 import { cn } from '@/lib/utils';
@@ -10,7 +11,10 @@ import { isInquiryAnswered, type SellInquiry } from '@/types/sell-inquiry';
 import type { SellListing } from '@/types/sell';
 
 function sectionClass(embedded: boolean) {
-  return cn('overflow-hidden', embedded ? 'border border-line bg-white' : 'panel');
+  return cn(
+    'overflow-hidden border-l-4 border-l-slate-600',
+    embedded ? 'border border-line border-l-slate-600 bg-slate-50/70' : 'panel bg-slate-50/70',
+  );
 }
 
 export default function MyPageInquiries({
@@ -54,41 +58,43 @@ export default function MyPageInquiries({
     try {
       const next = await answerSellInquiry(inquiry, answer);
       setItems((current) => current.map((row) => (row.id === next.id ? next : row)));
-    } catch {
-      setError('답변을 등록하지 못했습니다.');
+    } catch (submitError: unknown) {
+      setError(submitError instanceof Error ? submitError.message : '답변을 등록하지 못했습니다.');
     } finally {
       setPendingId(null);
     }
   }
 
+  const header = (
+    <MyPageInquirySectionHeader
+      title="상품 문의"
+      tone="sell"
+      status={waiting.length > 0 ? `미답변 ${waiting.length}건` : null}
+      description="판매 상품 상세에 달린 Q&A입니다. 판매자가 답변합니다."
+    />
+  );
+
   if (!ready) {
     return (
-      <section className={cn(sectionClass(embedded), 'px-4 py-5 sm:px-5')}>
-        <h2 className="text-sm font-bold text-ink">받은 상품 문의</h2>
-        <p className="mt-4 text-sm text-muted">불러오는 중…</p>
+      <section className={sectionClass(embedded)}>
+        {header}
+        <p className="px-4 py-6 text-sm text-muted sm:px-6">불러오는 중…</p>
       </section>
     );
   }
 
   if (items.length === 0) {
-    if (!embedded) return null;
     return (
       <section className={sectionClass(embedded)}>
-        <div className="px-4 py-4 sm:px-5">
-          <h2 className="text-sm font-bold text-ink">받은 상품 문의</h2>
-          <p className="mt-1 text-sm text-muted">판매 상품에 올라온 문의는 여기서 답합니다.</p>
-        </div>
-        <p className="border-t border-line px-4 py-8 text-center text-sm text-muted sm:px-5">아직 받은 상품 문의가 없습니다.</p>
+        {header}
+        <p className="px-4 py-8 text-center text-sm text-muted sm:px-6">아직 받은 상품 문의가 없습니다.</p>
       </section>
     );
   }
 
   return (
     <section className={sectionClass(embedded)}>
-      <div className="px-4 py-4 sm:px-5">
-        <h2 className="text-sm font-bold text-ink">받은 상품 문의 {waiting.length ? `· 미답변 ${waiting.length}` : ''}</h2>
-        <p className="mt-1 text-sm text-muted">판매 상품에 올라온 문의는 여기서 답합니다.</p>
-      </div>
+      {header}
       {error ? (
         <p className="mx-4 mb-3 border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger sm:mx-5" role="alert">
           {error}

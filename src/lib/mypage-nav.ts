@@ -1,7 +1,18 @@
 export type MyPageTab = 'info' | 'inquiries' | 'sell' | 'buy';
+export type MyPageInquiryKind = 'all' | 'site' | 'sell';
 
 export function mypageHref(tab: MyPageTab = 'info'): string {
   return tab === 'info' ? '/mypage' : `/mypage?tab=${tab}`;
+}
+
+export function parseMyPageInquiryKind(value: string | null): MyPageInquiryKind {
+  if (value === 'site' || value === 'sell') return value;
+  return 'all';
+}
+
+export function mypageInquiriesHref(kind: MyPageInquiryKind = 'all'): string {
+  if (kind === 'all') return '/mypage?tab=inquiries';
+  return `/mypage?tab=inquiries&inquiry=${kind}`;
 }
 
 export function sellDetailHref(id: string, options?: { from?: string; mypageTab?: 'sell' | 'buy' }): string {

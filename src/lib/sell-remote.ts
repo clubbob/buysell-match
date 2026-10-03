@@ -1,9 +1,7 @@
-import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { getClientFirestore, getClientStorage } from '@/lib/firebase';
 import { fetchSellJoins } from '@/lib/sell-join-remote';
-import { saveRemainingOverride } from '@/lib/sell-store';
-import { removeUserSellListing } from '@/lib/sell-store';
 import { parseSellCategory } from '@/types/sell-category';
 import { withSellSource, type SellListing } from '@/types/sell';
 
@@ -125,7 +123,6 @@ export async function updateRemoteSellListing(item: SellListing): Promise<SellLi
   const db = getClientFirestore();
   if (!db) throw new Error('Firestore가 연결되지 않았습니다.');
   await setDoc(doc(db, COLLECTION, item.id), item);
-  saveRemainingOverride(item.id, item.remainingLabel);
   return item;
 }
 
@@ -152,17 +149,4 @@ export async function deleteRemoteSellListing(id: string, sellerId: string): Pro
     ...reviewSnapshot.docs.map((entry) => deleteDoc(entry.ref)),
     deleteDoc(doc(db, COLLECTION, id)),
   ]);
-
-  removeUserSellListing(id);
-}
-
-export async function updateSellRemaining(id: string, remainingLabel: string): Promise<void> {
-  saveRemainingOverride(id, remainingLabel);
-  const db = getClientFirestore();
-  if (!db) return;
-  try {
-    await updateDoc(doc(db, COLLECTION, id), { remainingLabel });
-  } catch {
-    // remaining is already stored locally when Firestore write fails
-  }
 }

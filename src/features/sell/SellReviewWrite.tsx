@@ -38,6 +38,12 @@ export default function SellReviewWrite({ item, onCreated }: { item: SellListing
         setJoin(eligible ?? null);
         setExisting(Boolean(review));
       })
+      .catch(() => {
+        if (!cancelled) {
+          setJoin(null);
+          setExisting(false);
+        }
+      })
       .finally(() => {
         if (!cancelled) setReady(true);
       });
@@ -62,15 +68,9 @@ export default function SellReviewWrite({ item, onCreated }: { item: SellListing
     setPending(true);
     try {
       await createSellerReview({
-        id: `r-${crypto.randomUUID()}`,
-        sellerId: item.sellerId,
         listingId: item.id,
-        buyerId: user.uid,
-        buyerName: user.displayName?.trim() || '구매자',
         rating: nextRating,
         content: nextContent,
-        createdAt: new Date().toISOString(),
-        productTitle: item.title,
       });
       setDone(true);
       onCreated?.();

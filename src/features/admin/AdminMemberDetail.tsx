@@ -1,9 +1,11 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import DefaultAddressBadge from '@/components/ui/DefaultAddressBadge';
 import PageBack from '@/components/ui/PageBack';
 import { readApiJson } from '@/lib/api-json';
+import type { AdminMemberActivity } from '@/lib/admin-members-data';
 import { BUYER_DETAIL_LABEL, SELLER_DETAIL_LABEL } from '@/lib/profile-labels';
 import type { BuyerProfile } from '@/types/buyer';
 import { formatConsentStatus, formatMemberJoinedAt, type MemberRecord } from '@/types/member';
@@ -13,6 +15,18 @@ function Field({ label, value }: { label: string; value?: string | null }) {
     <div className="flex gap-3 text-sm">
       <dt className="w-24 shrink-0 text-muted sm:w-[7.5rem]">{label}</dt>
       <dd className="min-w-0 break-all text-ink">{value?.trim() ? value : '—'}</dd>
+    </div>
+  );
+}
+
+function ActivityRow({ label, count, href }: { label: string; count: number; href: string }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+      <span className="text-ink">{label}</span>
+      <div className="flex items-center gap-2">
+        <span className="font-semibold tabular-nums text-ink">{count}건</span>
+        <Link href={href} className="btn-chip">목록 보기</Link>
+      </div>
     </div>
   );
 }
@@ -38,6 +52,7 @@ function BuyerFields({ buyer }: { buyer: BuyerProfile }) {
 
 export default function AdminMemberDetail({ id }: { id: string }) {
   const [item, setItem] = useState<MemberRecord | null>(null);
+  const [activity, setActivity] = useState<AdminMemberActivity | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,15 +60,20 @@ export default function AdminMemberDetail({ id }: { id: string }) {
     let cancelled = false;
     void fetch(`/api/admin/members/${id}`)
       .then(async (response) => {
-        const data = await readApiJson<{ ok?: boolean; item?: MemberRecord; message?: string }>(
-          response,
-          '회원 정보를 불러오지 못했습니다.',
-        );
+        const data = await readApiJson<{
+          ok?: boolean;
+          item?: MemberRecord;
+          activity?: AdminMemberActivity;
+          message?: string;
+        }>(response, '회원 정보를 불러오지 못했습니다.');
         if (!response.ok || !data.ok || !data.item) throw new Error(data.message ?? '회원 정보를 불러오지 못했습니다.');
-        return data.item;
+        return data;
       })
-      .then((next) => {
-        if (!cancelled) setItem(next);
+      .then((data) => {
+        if (!cancelled) {
+          setItem(data.item ?? null);
+          setActivity(data.activity ?? null);
+        }
       })
       .catch((loadError: unknown) => {
         if (!cancelled) setError(loadError instanceof Error ? loadError.message : '회원 정보를 불러오지 못했습니다.');
@@ -91,6 +111,22 @@ export default function AdminMemberDetail({ id }: { id: string }) {
 
       <article className="panel px-4 py-5 sm:px-5">
         <h1 className="text-sm font-bold text-ink">{item.member.name || item.member.email || '이름 없음'}</h1>
+
+        {activity ? (
+          <section className="mt-4 border-t border-line pt-4">
+            <h2 className="text-xs font-semibold tracking-wide text-subtle">활동 요약</h2>
+            <div className="mt-2 space-y-2">
+              <ActivityRow label="판매 상품" count={activity.listings} href={`/admin/sell?member=${id}`} />
+              <ActivityRow label="구매 신청" count={activity.joinAsBuyer} href={`/admin/joins?member=${id}`} />
+              <ActivityRow
+                label="상품 문의"
+                count={activity.sellInquiriesAsBuyer}
+                href={`/admin/sell-inquiries?member=${id}`}
+              />
+              <ActivityRow label="서비스 문의" count={activity.siteInquiries} href={`/admin/inquiries?member=${id}`} />
+            </div>
+          </section>
+        ) : null}
 
         <section className="mt-4 border-t border-line pt-4">
           <h2 className="text-xs font-semibold tracking-wide text-subtle">기본 회원 정보</h2>

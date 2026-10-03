@@ -325,6 +325,45 @@ export async function setDocument(collection: string, id: string, data: Record<s
   if (!response.ok) throw new Error('저장하지 못했습니다.');
 }
 
+export async function updateDocument(
+  collection: string,
+  id: string,
+  data: Record<string, unknown>,
+  removeFields: string[] = [],
+): Promise<void> {
+  const token = await getAccessToken();
+  const project = projectId();
+  if (!token || !project) throw new Error('관리자 DB가 연결되지 않았습니다.');
+
+  const docName = `projects/${project}/databases/(default)/documents/${collection}/${id}`;
+  const writes: Record<string, unknown>[] = [];
+
+  if (Object.keys(data).length > 0) {
+    writes.push({
+      update: { name: docName, fields: toFields(data) },
+      updateMask: { fieldPaths: Object.keys(data) },
+    });
+  }
+
+  for (const fieldPath of removeFields) {
+    writes.push({
+      transform: {
+        document: docName,
+        fieldTransforms: [{ fieldPath, deleteField: {} }],
+      },
+    });
+  }
+
+  if (writes.length === 0) return;
+
+  const response = await fetch(`https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents:commit`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ writes }),
+  });
+  if (!response.ok) throw new Error('저장하지 못했습니다.');
+}
+
 export async function deleteDocument(collection: string, id: string): Promise<void> {
   const token = await getAccessToken();
   if (!token || !projectId()) return;
@@ -334,9 +373,9 @@ export async function deleteDocument(collection: string, id: string): Promise<vo
   });
 }
 
-export async function queryDocumentIds(collection: string, field: string, value: string): Promise<string[]> {
+async function runFieldQuery(collection: string, field: string, value: string) {
   const token = await getAccessToken();
-  if (!token || !projectId()) return [];
+  if (!token || !projectId()) return null;
   const response = await fetch(`https://firestore.googleapis.com/v1/projects/${projectId()}/databases/(default)/documents:runQuery`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -353,7 +392,27 @@ export async function queryDocumentIds(collection: string, field: string, value:
       },
     }),
   });
-  const rows = (await response.json()) as { document?: { name?: string } }[];
-  if (!response.ok || !Array.isArray(rows)) return [];
+  const rows = (await response.json()) as { document?: { name?: string; fields?: Record<string, unknown> } }[];
+  if (!response.ok || !Array.isArray(rows)) return null;
+  return rows;
+}
+
+export async function queryDocumentIds(collection: string, field: string, value: string): Promise<string[]> {
+  const rows = await runFieldQuery(collection, field, value);
+  if (!rows) return [];
   return rows.map((row) => docId(row.document?.name)).filter(Boolean);
+}
+
+export async function queryDocuments(
+  collection: string,
+  field: string,
+  value: string,
+): Promise<{ id: string; data: Record<string, unknown> }[]> {
+  const rows = await runFieldQuery(collection, field, value);
+  if (!rows) return [];
+  return rows.flatMap((row) => {
+    const id = docId(row.document?.name);
+    if (!id || !row.document?.fields) return [];
+    return [{ id, data: fromFields(row.document.fields) }];
+  });
 }

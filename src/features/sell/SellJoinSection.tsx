@@ -19,19 +19,17 @@ import {
   markSellJoinShipped,
   markSellJoinShippingPending,
 } from '@/lib/sell-join-remote';
-import { updateSellRemaining } from '@/lib/sell-remote';
 import {
   formatCount,
+  formatWon,
   isListingClosed,
   isRemainingShort,
   joinAvailable,
   quantityAmount,
-  replaceQuantityNumber,
 } from '@/lib/sell-display';
 import {
   joinListSummary,
   openJoinSummary,
-  openJoinTotal,
   isJoinPaid,
   isJoinShipped,
   splitJoinsByStatus,
@@ -145,20 +143,25 @@ export default function SellJoinSection({
       return;
     }
 
+    const estimatedTotal = item.salePrice > 0 ? formatWon(item.salePrice * amount) : null;
+    const confirmLines = [
+      `「${item.title}」`,
+      `구매 수량: ${formatCount(amount)}`,
+      estimatedTotal ? `예상 금액: ${estimatedTotal}` : null,
+      `배송 주소: ${delivery.address}`,
+      '',
+      '신청 후에는 취소·수량 변경이 어렵습니다.',
+      '판매자가 판매 확정하면 입금 안내를 받습니다.',
+      '',
+      '구매 신청할까요?',
+    ]
+      .filter((line): line is string => line !== null)
+      .join('\n');
+    if (!window.confirm(confirmLines)) return;
+
     setPending(true);
     try {
-      const join = await createSellJoin({
-        id: `j-${crypto.randomUUID()}`,
-        listingId: item.id,
-        sellerId: item.sellerId,
-        buyerId: user.uid,
-        buyerEmail: user.email ?? '',
-        buyerName: user.displayName?.trim() || '',
-        buyerAddress: delivery.address,
-        quantity: amount,
-        status: 'open',
-        createdAt: new Date().toISOString(),
-      });
+      const join = await createSellJoin(item.id, amount);
       setJoins((current) => [join, ...current]);
       setQuantity('1');
       setNotice(`구매 신청 ${formatCount(amount)}가 완료되었습니다.`);
@@ -238,12 +241,7 @@ export default function SellJoinSection({
     if (!manageListing || !canConfirm) return;
     setPending(true);
     try {
-      const openJoins = joins.filter((join) => join.status === 'open');
-      const confirmedAmount = Math.min(openJoinTotal(openJoins), remaining);
-      const confirmedJoins = await confirmSellJoins(openJoins);
-      const nextRemaining = Math.max(0, remaining - confirmedAmount);
-      const nextLabel = replaceQuantityNumber(item.remainingLabel, nextRemaining);
-      await updateSellRemaining(item.id, nextLabel);
+      const { joins: confirmedJoins } = await confirmSellJoins(item.id);
       const confirmedById = new Map(confirmedJoins.map((join) => [join.id, join]));
       setJoins((current) => current.map((join) => confirmedById.get(join.id) ?? join));
       onRemainingChange?.();

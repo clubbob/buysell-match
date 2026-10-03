@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import AdminListFilters from '@/components/admin/AdminListFilters';
 import PageIntro from '@/components/ui/PageIntro';
 import { readApiJson } from '@/lib/api-json';
 import { getClientAuth } from '@/lib/firebase';
@@ -95,7 +97,20 @@ function MobileRow({
   );
 }
 
+const PROFILE_FILTERS = [
+  { value: 'all', label: '전체', href: '/admin/members' },
+  { value: 'buyer', label: BUYER_DETAIL_LABEL, href: '/admin/members?profile=buyer' },
+  { value: 'seller', label: SELLER_DETAIL_LABEL, href: '/admin/members?profile=seller' },
+] as const;
+
+function parseProfileFilter(value: string | null) {
+  if (value === 'buyer' || value === 'seller') return value;
+  return 'all';
+}
+
 export default function AdminMembers() {
+  const searchParams = useSearchParams();
+  const profile = parseProfileFilter(searchParams.get('profile'));
   const [items, setItems] = useState<MemberRecord[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -126,9 +141,18 @@ export default function AdminMembers() {
     };
   }, []);
 
+  const filteredItems = useMemo(() => {
+    if (profile === 'buyer') return items.filter((item) => hasBuyerProfile(item.buyer));
+    if (profile === 'seller') return items.filter((item) => hasSellerProfile(item.seller));
+    return items;
+  }, [items, profile]);
+
+  const sectionTitle =
+    profile === 'buyer' ? BUYER_DETAIL_LABEL : profile === 'seller' ? SELLER_DETAIL_LABEL : '전체';
+
   async function handleDelete(item: MemberRecord) {
     const label = item.member.name || item.member.email || '이 회원';
-    if (!window.confirm(`${label} 정보를 삭제할까요?`)) return;
+    if (!window.confirm(`${label} 정보와 연관된 판매 상품·구매 신청·문의·후기를 모두 삭제할까요?`)) return;
     setError(null);
     setPendingId(item.member.id);
     try {
@@ -162,12 +186,18 @@ export default function AdminMembers() {
         <p className="text-sm text-muted">불러오는 중…</p>
       ) : error && items.length === 0 ? null : items.length === 0 ? (
         <p className="panel px-4 py-10 text-center text-sm text-muted">아직 등록된 회원이 없습니다.</p>
+      ) : filteredItems.length === 0 ? (
+        <section className="panel min-w-0 overflow-hidden">
+          <AdminListFilters options={[...PROFILE_FILTERS]} current={profile} />
+          <p className="px-4 py-10 text-center text-sm text-muted">해당 조건의 회원이 없습니다.</p>
+        </section>
       ) : (
         <section className="panel min-w-0 overflow-hidden">
           <header className="border-b border-line px-4 py-3.5">
-            <h2 className="text-[15px] font-bold text-ink">전체</h2>
-            <p className="mt-0.5 text-sm text-muted">{items.length}명</p>
+            <h2 className="text-[15px] font-bold text-ink">{sectionTitle}</h2>
+            <p className="mt-0.5 text-sm text-muted">{filteredItems.length}명</p>
           </header>
+          <AdminListFilters options={[...PROFILE_FILTERS]} current={profile} />
           <table className="hidden w-full table-fixed lg:table">
             <colgroup>
               <col className="w-[14%]" />
@@ -188,7 +218,7 @@ export default function AdminMembers() {
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
+              {filteredItems.map((item) => (
                 <DesktopRow
                   key={item.member.id}
                   item={item}
@@ -199,7 +229,7 @@ export default function AdminMembers() {
             </tbody>
           </table>
           <ul className="lg:hidden">
-            {items.map((item) => (
+            {filteredItems.map((item) => (
               <MobileRow
                 key={item.member.id}
                 item={item}

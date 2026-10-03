@@ -1,13 +1,7 @@
 import { NextResponse } from 'next/server';
+import { deleteAdminMember, loadAdminMemberActivity } from '@/lib/admin-members-data';
 import { getAdminSession } from '@/lib/admin-session';
-import {
-  deleteAuthUser,
-  deleteDocument,
-  getAuthUser,
-  getDocument,
-  hasFirebaseAdminConfig,
-  queryDocumentIds,
-} from '@/lib/firebase-rest-admin';
+import { deleteAuthUser, getAuthUser, getDocument, hasFirebaseAdminConfig } from '@/lib/firebase-rest-admin';
 import { toBuyerProfile } from '@/types/buyer';
 import { toMember, type MemberRecord } from '@/types/member';
 import { toSellerProfile } from '@/types/seller';
@@ -87,7 +81,9 @@ async function getMember(context: RouteContext) {
     seller,
   };
 
-  return NextResponse.json({ ok: true, item });
+  const activity = await loadAdminMemberActivity(id);
+
+  return NextResponse.json({ ok: true, item, activity });
 }
 
 export async function DELETE(request: Request, context: RouteContext) {
@@ -102,13 +98,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   }
 
   if (hasFirebaseAdminConfig()) {
-    const listingIds = await queryDocumentIds('sellListings', 'sellerId', id);
-    await Promise.all([
-      deleteDocument('members', id),
-      deleteDocument('buyerProfiles', id),
-      deleteDocument('sellerProfiles', id),
-      ...listingIds.map((listingId) => deleteDocument('sellListings', listingId)),
-    ]);
+    await deleteAdminMember(id);
     await deleteAuthUser(id).catch(() => undefined);
     return NextResponse.json({ ok: true });
   }

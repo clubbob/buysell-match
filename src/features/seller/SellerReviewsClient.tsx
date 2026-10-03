@@ -17,6 +17,9 @@ export default function SellerReviewsClient({ sellerId, from }: { sellerId: stri
       .then((next) => {
         if (!cancelled) setReviews(next);
       })
+      .catch(() => {
+        if (!cancelled) setReviews([]);
+      })
       .finally(() => {
         if (!cancelled) setReviewsReady(true);
       });

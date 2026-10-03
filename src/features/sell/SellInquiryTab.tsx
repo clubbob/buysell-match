@@ -10,19 +10,16 @@ import { formatMemberJoinedAt } from '@/types/member';
 import { isInquiryAnswered, type SellInquiry } from '@/types/sell-inquiry';
 import type { SellListing } from '@/types/sell';
 
-function newInquiryId() {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return `q-${crypto.randomUUID()}`;
-  return `q-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
 function InquiryItem({
   item,
   canAnswer,
+  isOwnQuestion,
   pendingId,
   onAnswer,
 }: {
   item: SellInquiry;
   canAnswer: boolean;
+  isOwnQuestion: boolean;
   pendingId: string | null;
   onAnswer: (inquiry: SellInquiry, answer: string) => void;
 }) {
@@ -60,7 +57,9 @@ function InquiryItem({
           </button>
         </form>
       ) : (
-        <p className="mt-2 text-sm text-muted">판매자 답변을 기다리는 중입니다.</p>
+        <p className="mt-2 text-sm text-muted">
+          {isOwnQuestion ? '내가 남긴 문의입니다.' : '판매자 답변을 기다리는 중입니다.'}
+        </p>
       )}
     </li>
   );
@@ -89,6 +88,9 @@ export default function SellInquiryTab({
       .then((next) => {
         if (!cancelled) setItems(next);
       })
+      .catch(() => {
+        if (!cancelled) setItems([]);
+      })
       .finally(() => {
         if (!cancelled) setReady(true);
       });
@@ -105,32 +107,13 @@ export default function SellInquiryTab({
     event.preventDefault();
     setError(null);
     if (!user) return;
-    if (isOwner) {
-      setError('내 상품에는 문의할 수 없습니다.');
-      return;
-    }
-    const text = question.trim();
-    if (text.length < 5) {
-      setError('문의는 5자 이상 입력해 주세요.');
-      return;
-    }
     setPending(true);
     try {
-      const created = await createSellInquiry({
-        id: newInquiryId(),
-        listingId: item.id,
-        sellerId: item.sellerId,
-        buyerId: user.uid,
-        buyerName: user.displayName?.trim() || '구매자',
-        question: text,
-        answer: '',
-        answeredAt: '',
-        createdAt: new Date().toISOString(),
-      });
+      const created = await createSellInquiry(item.id, question);
       setItems((current) => [created, ...current.filter((row) => row.id !== created.id)]);
       setQuestion('');
-    } catch {
-      setError('문의를 등록하지 못했습니다.');
+    } catch (submitError: unknown) {
+      setError(submitError instanceof Error ? submitError.message : '문의를 등록하지 못했습니다.');
     } finally {
       setPending(false);
     }
@@ -147,8 +130,8 @@ export default function SellInquiryTab({
     try {
       const next = await answerSellInquiry(inquiry, answer);
       setItems((current) => current.map((row) => (row.id === next.id ? next : row)));
-    } catch {
-      setError('답변을 등록하지 못했습니다.');
+    } catch (submitError: unknown) {
+      setError(submitError instanceof Error ? submitError.message : '답변을 등록하지 못했습니다.');
     } finally {
       setPendingId(null);
     }
@@ -159,8 +142,6 @@ export default function SellInquiryTab({
       <div className="border-b border-line px-4 py-4 sm:px-6">
         {loading ? (
           <p className="text-sm text-muted">불러오는 중…</p>
-        ) : isOwner ? (
-          <p className="text-sm text-muted">이 상품 문의에는 판매자인 회원만 답할 수 있습니다.</p>
         ) : user ? (
           <form onSubmit={(event) => void handleAsk(event)} className="space-y-2">
             <textarea
@@ -196,7 +177,8 @@ export default function SellInquiryTab({
             <InquiryItem
               key={inquiry.id}
               item={inquiry}
-              canAnswer={isOwner && !isInquiryAnswered(inquiry)}
+              isOwnQuestion={inquiry.buyerId === user?.uid}
+              canAnswer={isOwner && !isInquiryAnswered(inquiry) && inquiry.buyerId !== user?.uid}
               pendingId={pendingId}
               onAnswer={(row, answer) => void handleAnswer(row, answer)}
             />

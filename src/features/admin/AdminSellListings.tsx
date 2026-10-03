@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import PageIntro from '@/components/ui/PageIntro';
+import { inputClassName } from '@/features/auth/auth-errors';
 import { readApiJson } from '@/lib/api-json';
 import { deadlineParts, formatQuantityNumber, formatWon } from '@/lib/sell-display';
 import { listingSourceLabel } from '@/lib/sell-source';
@@ -106,10 +108,13 @@ function MobileRow({
 }
 
 export default function AdminSellListings() {
+  const searchParams = useSearchParams();
+  const memberId = searchParams.get('member');
   const [items, setItems] = useState<SellListing[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -135,6 +140,23 @@ export default function AdminSellListings() {
       cancelled = true;
     };
   }, []);
+
+  const scopedItems = useMemo(() => {
+    if (!memberId) return items;
+    return items.filter((item) => item.sellerId === memberId);
+  }, [items, memberId]);
+
+  const filteredItems = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!term) return scopedItems;
+    return scopedItems.filter((item) => {
+      const title = item.title.toLowerCase();
+      const seller = (item.sellerName || '').toLowerCase();
+      return title.includes(term) || seller.includes(term);
+    });
+  }, [scopedItems, query]);
+
+  const searchTerm = query.trim();
 
   async function handleDelete(item: SellListing) {
     if (!window.confirm(`「${item.title}」 판매 상품을 삭제할까요? 구매 신청·문의도 함께 삭제됩니다.`)) return;
@@ -167,12 +189,48 @@ export default function AdminSellListings() {
         <p className="text-sm text-muted">불러오는 중…</p>
       ) : error && items.length === 0 ? null : items.length === 0 ? (
         <p className="panel px-4 py-10 text-center text-sm text-muted">아직 등록된 판매 상품이 없습니다.</p>
+      ) : scopedItems.length === 0 ? (
+        <section className="panel min-w-0 overflow-hidden">
+          {memberId ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3">
+              <p className="text-sm text-muted">선택한 회원의 판매 상품이 없습니다.</p>
+              <Link href="/admin/sell" className="btn-chip">전체 보기</Link>
+            </div>
+          ) : null}
+          <p className="px-4 py-10 text-center text-sm text-muted">해당 조건의 판매 상품이 없습니다.</p>
+        </section>
       ) : (
         <section className="panel min-w-0 overflow-hidden">
           <header className="border-b border-line px-4 py-3.5">
-            <h2 className="text-[15px] font-bold text-ink">전체</h2>
-            <p className="mt-0.5 text-sm text-muted">{items.length}건</p>
+            <h2 className="text-[15px] font-bold text-ink">{memberId ? '회원 판매 상품' : '전체'}</h2>
+            <p className="mt-0.5 text-sm text-muted">
+              {searchTerm ? `${filteredItems.length}건 · 전체 ${scopedItems.length}건` : `${filteredItems.length}건`}
+              {memberId ? (
+                <>
+                  <span className="mx-1.5 text-subtle">·</span>
+                  <Link href="/admin/sell" className="font-medium text-ink underline-offset-2 hover:underline">
+                    전체 보기
+                  </Link>
+                </>
+              ) : null}
+            </p>
           </header>
+          <div className="border-b border-line px-4 py-3">
+            <label className="block space-y-1.5">
+              <span className="text-sm font-semibold text-ink">검색</span>
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                className={inputClassName}
+                placeholder="상품명·판매자"
+              />
+            </label>
+          </div>
+          {filteredItems.length === 0 ? (
+            <p className="px-4 py-10 text-center text-sm text-muted">검색 결과가 없습니다.</p>
+          ) : (
+            <>
           <table className="hidden w-full table-fixed lg:table">
             <colgroup>
               <col className="w-[24%]" />
@@ -193,7 +251,7 @@ export default function AdminSellListings() {
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
+              {filteredItems.map((item) => (
                 <DesktopRow
                   key={item.id}
                   item={item}
@@ -204,10 +262,12 @@ export default function AdminSellListings() {
             </tbody>
           </table>
           <ul className="lg:hidden">
-            {items.map((item) => (
+            {filteredItems.map((item) => (
               <MobileRow key={item.id} item={item} pending={pendingId === item.id} onDelete={handleDelete} />
             ))}
           </ul>
+            </>
+          )}
         </section>
       )}
     </div>

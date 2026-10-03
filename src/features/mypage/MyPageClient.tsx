@@ -13,7 +13,8 @@ import MyPageBuyJoins from '@/features/mypage/MyPageBuyJoins';
 import MyPageSellPosts from '@/features/mypage/MyPageSellPosts';
 import { useSellListings } from '@/features/sell/use-sell-listings';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
-import { mypageHref } from '@/lib/mypage-nav';
+import MyPageInquiryFilters from '@/components/mypage/MyPageInquiryFilters';
+import { mypageHref, parseMyPageInquiryKind } from '@/lib/mypage-nav';
 import { cn } from '@/lib/utils';
 import { BUYER_DETAIL_LABEL, SELLER_DETAIL_LABEL } from '@/lib/profile-labels';
 import { hasBuyerProfile } from '@/types/buyer';
@@ -76,6 +77,7 @@ export default function MyPageClient() {
   const { profile, ready: profileReady } = useSellerProfile(user?.uid);
   const { profile: buyerProfile, ready: buyerReady } = useBuyerProfile(user?.uid);
   const tab = parseMyPageTab(searchParams.get('tab')) ?? 'info';
+  const inquiryKind = parseMyPageInquiryKind(searchParams.get('inquiry'));
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login');
@@ -108,7 +110,11 @@ export default function MyPageClient() {
     tab === 'info'
       ? '회원 정보와 구매·판매 상세 등록을 관리합니다.'
       : tab === 'inquiries'
-        ? '서비스 문의와 받은 상품 문의를 확인합니다.'
+        ? inquiryKind === 'site'
+          ? '운영팀에 남긴 서비스 문의를 확인합니다.'
+          : inquiryKind === 'sell'
+            ? '판매 상품에 달린 문의를 확인하고 답변합니다.'
+            : '서비스 문의와 상품 문의를 구분해 확인합니다.'
         : tab === 'sell'
           ? '나의 판매 상품과 판매 진행 현황을 확인합니다.'
           : '나의 구매 신청 현황을 확인합니다.';
@@ -116,7 +122,7 @@ export default function MyPageClient() {
   return (
     <div className="space-y-5">
       <PageIntro title="마이페이지" description={tabDescription}>
-        {tab === 'sell' && canPostSell ? (
+        {canPostSell ? (
           <Link href="/sell/new" className="btn-primary">
             판매 상품 등록
           </Link>
@@ -142,6 +148,17 @@ export default function MyPageClient() {
         ))}
       </div>
 
+      {tab === 'inquiries' ? (
+        <div className="space-y-4">
+          <MyPageInquiryFilters current={inquiryKind} />
+          {inquiryKind === 'all' || inquiryKind === 'site' ? <MyPageSiteInquiries /> : null}
+          {inquiryKind === 'all' || inquiryKind === 'sell' ? (
+            <MyPageInquiries sellerId={user.uid} listings={myListings} />
+          ) : null}
+        </div>
+      ) : null}
+
+      {tab !== 'inquiries' ? (
       <section className="panel overflow-hidden">
         {tab === 'info' ? (
           <div className="px-4 py-5 sm:px-5">
@@ -177,17 +194,11 @@ export default function MyPageClient() {
           </div>
         ) : null}
 
-        {tab === 'inquiries' ? (
-          <div className="space-y-5 p-4 sm:p-5">
-            <MyPageSiteInquiries embedded />
-            <MyPageInquiries sellerId={user.uid} listings={myListings} embedded />
-          </div>
-        ) : null}
-
         {tab === 'sell' ? <MyPageSellPosts listings={myListings} ready={ready} /> : null}
 
         {tab === 'buy' ? <MyPageBuyJoins buyerId={user.uid} listings={items} /> : null}
       </section>
+      ) : null}
     </div>
   );
 }

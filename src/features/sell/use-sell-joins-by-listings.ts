@@ -15,9 +15,13 @@ export function useSellJoinsByListings(listingIds: string[]) {
       return;
     }
 
-    void fetchSellJoinsByListings(listingIds).then((next) => {
-      if (!cancelled) setJoinsByListing(next);
-    });
+    void fetchSellJoinsByListings(listingIds)
+      .then((next) => {
+        if (!cancelled) setJoinsByListing(next);
+      })
+      .catch(() => {
+        if (!cancelled) setJoinsByListing({});
+      });
 
     return () => {
       cancelled = true;

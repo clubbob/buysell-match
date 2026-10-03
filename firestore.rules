@@ -1,0 +1,72 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    // 회원 기본 정보 — 본인만 읽기·쓰기 (마케팅 동의 등은 /api/me/member)
+    match /members/{memberId} {
+      allow read, write: if isSelf(memberId);
+    }
+
+    // 구매 상세 — 서버 API(Admin SDK)만
+    match /buyerProfiles/{buyerId} {
+      allow read, write: if false;
+    }
+
+    // 판매 상세 — 공개 읽기, 본인만 저장
+    match /sellerProfiles/{sellerId} {
+      allow read: if true;
+      allow create, update: if isSelf(sellerId)
+        && request.resource.data.sellerId == sellerId;
+      allow delete: if isSelf(sellerId);
+    }
+
+    // 판매 상품 — 공개 읽기, 판매자만 등록·수정·삭제
+    match /sellListings/{listingId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.auth.uid == request.resource.data.sellerId;
+      allow update, delete: if signedIn()
+        && request.auth.uid == resource.data.sellerId;
+    }
+
+    // 구매 신청 — 생성·확정·결제·배송 변경은 서버 API만
+    match /sellJoins/{joinId} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+
+    // 상품 문의 — 공개 읽기, 작성·답변은 서버 API만
+    match /sellInquiries/{inquiryId} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+
+    // 판매자 후기 — 공개 읽기, 작성은 서버 API만
+    match /sellerReviews/{reviewId} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+
+    // 서비스 문의 — 서버 API만
+    match /siteInquiries/{inquiryId} {
+      allow read, write: if false;
+    }
+
+    // 레거시(삽니다) — 클라이언트 접근 차단
+    match /buyListings/{docId} {
+      allow read, write: if false;
+    }
+
+    match /buyJoins/{docId} {
+      allow read, write: if false;
+    }
+  }
+}

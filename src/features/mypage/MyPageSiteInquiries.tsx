@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import MyPageInquirySectionHeader from '@/components/mypage/MyPageInquirySectionHeader';
 import { fetchMySiteInquiries } from '@/lib/site-inquiry-remote';
 import { cn } from '@/lib/utils';
 import { formatMemberJoinedAt } from '@/types/member';
@@ -32,18 +33,22 @@ export default function MyPageSiteInquiries({ embedded = false }: { embedded?: b
   const preview = items.slice(0, 3);
 
   return (
-    <section className={cn('overflow-hidden', embedded ? 'border border-line bg-white' : 'panel')}>
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line px-4 py-4 sm:px-5">
-        <div className="min-w-0">
-          <h2 className="text-sm font-bold text-ink">
-            서비스 문의{waiting.length > 0 ? ` · 답변 대기 ${waiting.length}` : ''}
-          </h2>
-          <p className="mt-1 text-sm text-muted">운영팀에 남긴 문의와 답변을 확인합니다.</p>
-        </div>
+    <section
+      className={cn(
+        'overflow-hidden border-l-4 border-l-teal-600',
+        embedded ? 'border border-line border-l-teal-600 bg-teal-50/40' : 'panel bg-teal-50/40',
+      )}
+    >
+      <MyPageInquirySectionHeader
+        title="서비스 문의"
+        tone="site"
+        status={waiting.length > 0 ? `답변 대기 ${waiting.length}건` : null}
+        description="플랫폼·이용 관련 문의입니다. 운영팀이 답변합니다."
+      >
         <Link href="/contact" className="btn-secondary shrink-0">
           문의하기
         </Link>
-      </div>
+      </MyPageInquirySectionHeader>
 
       {!ready ? (
         <p className="px-4 py-6 text-sm text-muted sm:px-5">불러오는 중…</p>
