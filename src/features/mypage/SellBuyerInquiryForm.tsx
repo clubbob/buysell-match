@@ -1,26 +1,47 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { inputClassName } from '@/features/auth/auth-errors';
-import { createSellInquiry, fetchSellInquiries } from '@/lib/sell-inquiry-remote';
+import { createSellInquiry, fetchSellInquiriesByBuyer } from '@/lib/sell-inquiry-remote';
+import { mypageSellInquiryHref } from '@/lib/mypage-nav';
 import { formatMemberJoinedAt } from '@/types/member';
 import { isInquiryAnswered, type SellInquiry } from '@/types/sell-inquiry';
 
-export default function SellBuyerInquiryForm({ listingId, buyerId }: { listingId: string; buyerId: string }) {
+export default function SellBuyerInquiryForm({
+  listingId,
+  buyerId,
+  showHistory = true,
+  onCreated,
+}: {
+  listingId: string;
+  buyerId: string;
+  showHistory?: boolean;
+  onCreated?: (inquiry: SellInquiry) => void;
+}) {
   const [items, setItems] = useState<SellInquiry[]>([]);
   const [ready, setReady] = useState(false);
   const [question, setQuestion] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
+    if (!showHistory) {
+      setReady(true);
+      return;
+    }
     let cancelled = false;
-    void fetchSellInquiries(listingId)
+    setLoadError(null);
+    void fetchSellInquiriesByBuyer(buyerId)
       .then((next) => {
-        if (!cancelled) setItems(next.filter((row) => row.buyerId === buyerId));
+        if (!cancelled) setItems(next.filter((row) => row.listingId === listingId));
       })
-      .catch(() => {
-        if (!cancelled) setItems([]);
+      .catch((loadErr: unknown) => {
+        if (!cancelled) {
+          setItems([]);
+          setLoadError(loadErr instanceof Error ? loadErr.message : '문의 내역을 불러오지 못했습니다.');
+        }
       })
       .finally(() => {
         if (!cancelled) setReady(true);
@@ -28,7 +49,7 @@ export default function SellBuyerInquiryForm({ listingId, buyerId }: { listingId
     return () => {
       cancelled = true;
     };
-  }, [listingId, buyerId]);
+  }, [listingId, buyerId, showHistory]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,8 +57,11 @@ export default function SellBuyerInquiryForm({ listingId, buyerId }: { listingId
     setPending(true);
     try {
       const created = await createSellInquiry(listingId, question);
-      setItems((current) => [created, ...current.filter((row) => row.id !== created.id)]);
+      if (showHistory) {
+        setItems((current) => [created, ...current.filter((row) => row.id !== created.id)]);
+      }
       setQuestion('');
+      onCreated?.(created);
     } catch (submitError: unknown) {
       setError(submitError instanceof Error ? submitError.message : '문의를 등록하지 못했습니다.');
     } finally {
@@ -64,22 +88,29 @@ export default function SellBuyerInquiryForm({ listingId, buyerId }: { listingId
           {error}
         </p>
       ) : null}
-      {!ready ? (
+      {loadError ? (
+        <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger" role="alert">
+          {loadError}
+        </p>
+      ) : null}
+      {!showHistory ? null : !ready ? (
         <p className="text-sm text-muted">문의 내역을 불러오는 중…</p>
       ) : items.length > 0 ? (
         <ul className="divide-y divide-line border border-line">
           {items.map((inquiry) => (
-            <li key={inquiry.id} className="px-3 py-3 sm:px-4">
-              <p className="text-xs text-subtle">질문 · {formatMemberJoinedAt(inquiry.createdAt) || '—'}</p>
-              <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-ink">{inquiry.question}</p>
-              {isInquiryAnswered(inquiry) ? (
-                <div className="mt-3 border-l-2 border-ink pl-3">
-                  <p className="text-xs text-subtle">답변 · {formatMemberJoinedAt(inquiry.answeredAt) || '—'}</p>
-                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-ink">{inquiry.answer}</p>
+            <li key={inquiry.id}>
+              <Link
+                href={`${mypageSellInquiryHref(inquiry.id)}?from=mypage`}
+                className="block px-3 py-3 hover:bg-slate-50 sm:px-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <p className="min-w-0 truncate text-sm font-semibold text-ink">{inquiry.question}</p>
+                  <span className="shrink-0 text-xs font-medium text-muted">
+                    {isInquiryAnswered(inquiry) ? '답변 완료' : '답변 대기'}
+                  </span>
                 </div>
-              ) : (
-                <p className="mt-2 text-sm text-muted">판매자 답변을 기다리는 중입니다.</p>
-              )}
+                <p className="mt-1 text-xs text-subtle">{formatMemberJoinedAt(inquiry.createdAt) || '—'}</p>
+              </Link>
             </li>
           ))}
         </ul>

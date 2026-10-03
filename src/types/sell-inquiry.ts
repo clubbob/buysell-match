@@ -10,6 +10,10 @@ export type SellInquiry = {
   createdAt: string;
 };
 
+export type SellInquiryDetail = SellInquiry & {
+  listingTitle: string;
+};
+
 export function isInquiryAnswered(item: SellInquiry) {
   return Boolean(item.answer.trim());
 }

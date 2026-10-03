@@ -1,72 +1,18 @@
 'use client';
 
-import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import PageIntro from '@/components/ui/PageIntro';
-import Sparkline, { type SparkTone } from '@/features/admin/Sparkline';
+import { AdminDashboardPanel } from '@/features/admin/admin-dashboard-ui';
 import { readApiJson } from '@/lib/api-json';
+import type { AdminDashboardData } from '@/lib/admin-dashboard';
+import {
+  buildBuyDashboardTiles,
+  buildMemberDashboardTiles,
+  buildSellDashboardTiles,
+  buildSellInquiryDashboardTiles,
+  buildSiteInquiryDashboardTiles,
+} from '@/lib/dashboard-stats-tiles';
 import { BUYER_DETAIL_LABEL, SELLER_DETAIL_LABEL } from '@/lib/profile-labels';
-import type { AdminDashboardData, SignupTrendPoint } from '@/lib/admin-dashboard';
-import { cn } from '@/lib/utils';
-
-const TONES = {
-  members: { id: 'members', stroke: '#2563eb', fill: '#60a5fa', bar: '#3b82f6', grid: '#bfdbfe' },
-  buyers: { id: 'buyers', stroke: '#4338ca', fill: '#818cf8', bar: '#6366f1', grid: '#c7d2fe' },
-  sellers: { id: 'sellers', stroke: '#047857', fill: '#34d399', bar: '#10b981', grid: '#a7f3d0' },
-  listings: { id: 'listings', stroke: '#0f766e', fill: '#2dd4bf', bar: '#14b8a6', grid: '#99f6e4' },
-  joinsOpen: { id: 'joinsOpen', stroke: '#0369a1', fill: '#38bdf8', bar: '#0ea5e9', grid: '#bae6fd' },
-  joinsConfirmed: { id: 'joinsConfirmed', stroke: '#6d28d9', fill: '#a78bfa', bar: '#8b5cf6', grid: '#ddd6fe' },
-  sellInquiries: { id: 'sellInquiries', stroke: '#334155', fill: '#94a3b8', bar: '#64748b', grid: '#e2e8f0' },
-  sellWaiting: { id: 'sellWaiting', stroke: '#9a3412', fill: '#fdba74', bar: '#f97316', grid: '#fed7aa' },
-  siteInquiries: { id: 'siteInquiries', stroke: '#0f766e', fill: '#5eead4', bar: '#14b8a6', grid: '#99f6e4' },
-  siteWaiting: { id: 'siteWaiting', stroke: '#be123c', fill: '#fb7185', bar: '#f43f5e', grid: '#fecdd3' },
-} as const satisfies Record<string, SparkTone>;
-
-const WASH: Record<keyof typeof TONES, string> = {
-  members: 'bg-blue-50/80',
-  buyers: 'bg-indigo-50/80',
-  sellers: 'bg-emerald-50/80',
-  listings: 'bg-teal-50/80',
-  joinsOpen: 'bg-sky-50/80',
-  joinsConfirmed: 'bg-violet-50/80',
-  sellInquiries: 'bg-slate-50',
-  sellWaiting: 'bg-orange-50/80',
-  siteInquiries: 'bg-teal-50/60',
-  siteWaiting: 'bg-rose-50/80',
-};
-
-function StatCard({
-  label,
-  value,
-  points,
-  tone,
-  href,
-}: {
-  label: string;
-  value: string;
-  points?: SignupTrendPoint[];
-  tone: keyof typeof TONES;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        'panel block px-4 py-5 sm:px-5 transition-shadow hover:shadow-sm',
-        WASH[tone],
-        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink',
-      )}
-    >
-      <div className="flex items-end justify-between gap-3">
-        <h2 className="text-base font-bold tracking-tight text-ink">{label}</h2>
-        <p className="text-2xl font-bold tabular-nums tracking-tight" style={{ color: TONES[tone].stroke }}>
-          {value}
-        </p>
-      </div>
-      <Sparkline points={points ?? []} tone={TONES[tone]} />
-    </Link>
-  );
-}
 
 export default function AdminDashboard() {
   const [data, setData] = useState<AdminDashboardData | null>(null);
@@ -79,7 +25,7 @@ export default function AdminDashboard() {
     if (!silent) setReady(false);
     setPending(true);
     try {
-      const response = await fetch('/api/admin/dashboard?days=14', { cache: 'no-store' });
+      const response = await fetch('/api/admin/dashboard', { cache: 'no-store' });
       const payload = await readApiJson<{ ok?: boolean; data?: AdminDashboardData; message?: string }>(
         response,
         '대시보드를 불러오지 못했습니다.',
@@ -102,6 +48,21 @@ export default function AdminDashboard() {
     void load();
   }, [load]);
 
+  const memberTiles = data ? buildMemberDashboardTiles(data.members.members, data.members.buyers, data.members.sellers) : [];
+  const sellTiles = data ? buildSellDashboardTiles(data.sell, true) : buildSellDashboardTiles(null, false);
+  const buyTiles = data ? buildBuyDashboardTiles(data.buy, true) : buildBuyDashboardTiles(null, false);
+  const siteInquiryTiles = data
+    ? buildSiteInquiryDashboardTiles(data.siteInquiry, true)
+    : buildSiteInquiryDashboardTiles(null, false);
+  const sellInquiryTiles = data
+    ? buildSellInquiryDashboardTiles(data.sellInquiry, true)
+    : buildSellInquiryDashboardTiles(null, false);
+
+  const sellActionCount =
+    data == null ? 0 : data.sell.openJoinCount + data.sell.paymentPendingCount + data.sell.shippingPendingCount;
+  const buyActionCount = data == null ? 0 : data.buy.paymentPendingCount + data.buy.shippingPendingCount;
+  const inquiryActionCount = data == null ? 0 : data.siteInquiry.waitingCount + data.sellInquiry.waitingCount;
+
   return (
     <div className="space-y-5">
       <PageIntro title="대시보드" description="서비스 전체 현황입니다.">
@@ -121,82 +82,56 @@ export default function AdminDashboard() {
 
       {!ready && !data ? (
         <p className="text-sm text-muted">불러오는 중…</p>
-      ) : data ? (
-        <section className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <StatCard
-              label="가입 회원"
-              value={`${data.totals.members ?? 0}명`}
-              points={data.series?.members}
-              tone="members"
-              href="/admin/members"
-            />
-            <StatCard
-              label={BUYER_DETAIL_LABEL}
-              value={`${data.totals.buyers ?? 0}명`}
-              points={data.series?.buyers}
-              tone="buyers"
-              href="/admin/members?profile=buyer"
-            />
-            <StatCard
-              label={SELLER_DETAIL_LABEL}
-              value={`${data.totals.sellers ?? 0}명`}
-              points={data.series?.sellers}
-              tone="sellers"
-              href="/admin/members?profile=seller"
-            />
-            <StatCard
-              label="판매 상품"
-              value={`${data.totals.listings ?? 0}건`}
-              points={data.series?.listings}
-              tone="listings"
-              href="/admin/sell"
-            />
-            <StatCard
-              label="구매 신청(진행)"
-              value={`${data.totals.joinsOpen ?? 0}건`}
-              points={data.series?.joinsOpen}
-              tone="joinsOpen"
-              href="/admin/joins?status=open"
-            />
-            <StatCard
-              label="판매 확정"
-              value={`${data.totals.joinsConfirmed ?? 0}건`}
-              points={data.series?.joinsConfirmed}
-              tone="joinsConfirmed"
-              href="/admin/joins?status=confirmed"
-            />
-            <StatCard
-              label="상품 문의"
-              value={`${data.totals.sellInquiries ?? 0}건`}
-              points={data.series?.sellInquiries}
-              tone="sellInquiries"
-              href="/admin/sell-inquiries"
-            />
-            <StatCard
-              label="미답변 상품 문의"
-              value={`${data.totals.sellInquiriesWaiting ?? 0}건`}
-              points={data.series?.sellInquiriesWaiting}
-              tone="sellWaiting"
-              href="/admin/sell-inquiries?status=waiting"
-            />
-            <StatCard
-              label="서비스 문의"
-              value={`${data.totals.siteInquiries ?? 0}건`}
-              points={data.series?.siteInquiries}
-              tone="siteInquiries"
-              href="/admin/inquiries"
-            />
-            <StatCard
-              label="미답변 서비스 문의"
-              value={`${data.totals.siteInquiriesWaiting ?? 0}건`}
-              points={data.series?.siteInquiriesWaiting}
-              tone="siteWaiting"
-              href="/admin/inquiries?status=waiting"
-            />
-          </div>
-        </section>
-      ) : null}
+      ) : (
+        <div className="space-y-4">
+          <AdminDashboardPanel
+            title="회원 · 프로필"
+            tone="profile"
+            href="/admin/members"
+            groups={[{ title: '회원', tiles: memberTiles, columns: 3, variant: 'product' }]}
+            footer={
+              <p className="text-[11px] text-subtle">
+                {BUYER_DETAIL_LABEL} {data?.members.buyers ?? 0}명 · {SELLER_DETAIL_LABEL} {data?.members.sellers ?? 0}명
+              </p>
+            }
+          />
+
+          <AdminDashboardPanel
+            title="판매 현황"
+            tone="sell"
+            href="/admin/sell"
+            badge={sellActionCount > 0 ? `처리 ${sellActionCount}` : null}
+            groups={[
+              { title: '상품', tiles: sellTiles.product, columns: 3, variant: 'product' },
+              { title: '신청 · 확정 · 결제 · 배송', tiles: sellTiles.pipeline, columns: 6, variant: 'pipeline' },
+            ]}
+          />
+
+          <AdminDashboardPanel
+            title="구매 현황"
+            tone="buy"
+            href="/admin/joins"
+            badge={buyActionCount > 0 ? `확인 ${buyActionCount}` : null}
+            groups={[
+              { title: '신청', tiles: buyTiles.summary, columns: 3, variant: 'product' },
+              { title: '신청 · 확정 · 결제 · 배송', tiles: buyTiles.pipeline, columns: 6, variant: 'pipeline' },
+            ]}
+          />
+
+          <AdminDashboardPanel
+            title="문의 현황"
+            tone="inquiry"
+            href="/admin/inquiries"
+            badge={inquiryActionCount > 0 ? `답변 ${inquiryActionCount}` : null}
+            groups={[
+              { title: '서비스 문의', tiles: siteInquiryTiles.summary, columns: 3, variant: 'product' },
+              { title: '서비스 문의 유형', tiles: siteInquiryTiles.detail, columns: 4, variant: 'pipeline' },
+              { title: '상품 문의', tiles: sellInquiryTiles.summary, columns: 3, variant: 'product' },
+              { title: '상품 문의 상품', tiles: sellInquiryTiles.detail, columns: 3, variant: 'pipeline' },
+            ]}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { answerAdminSiteInquiry, loadAdminSiteInquiry } from '@/lib/admin-site-inquiries-data';
+import { answerAdminSiteInquiry, deleteAdminSiteInquiry, loadAdminSiteInquiry } from '@/lib/admin-site-inquiries-data';
 import { getAdminSession } from '@/lib/admin-session';
 import { hasFirebaseAdminConfig } from '@/lib/firebase-rest-admin';
 
@@ -72,5 +72,31 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ ok: true, item });
   } catch {
     return NextResponse.json({ ok: false, message: '답변을 저장하지 못했습니다.' }, { status: 500 });
+  }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const session = await getAdminSession();
+  if (!session) {
+    return NextResponse.json({ ok: false, message: '관리자 로그인이 필요합니다.' }, { status: 401 });
+  }
+
+  const { id } = await context.params;
+  if (!isSafeId(id)) {
+    return NextResponse.json({ ok: false, message: '잘못된 문의입니다.' }, { status: 400 });
+  }
+
+  if (!hasFirebaseAdminConfig()) {
+    return NextResponse.json({ ok: false, message: '관리자 DB가 연결되지 않았습니다.' }, { status: 503 });
+  }
+
+  try {
+    const deleted = await deleteAdminSiteInquiry(id);
+    if (!deleted) {
+      return NextResponse.json({ ok: false, message: '없는 문의입니다.' }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ ok: false, message: '삭제에 실패했습니다.' }, { status: 500 });
   }
 }

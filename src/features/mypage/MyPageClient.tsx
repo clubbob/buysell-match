@@ -6,10 +6,11 @@ import { useEffect } from 'react';
 import PageIntro from '@/components/ui/PageIntro';
 import { useAuth } from '@/features/auth/auth-context';
 import { useBuyerProfile } from '@/features/buyer/use-buyer-profile';
-import MyPageInquiries from '@/features/mypage/MyPageInquiries';
+import MyPageBuyerSellInquiries from '@/features/mypage/MyPageBuyerSellInquiries';
 import MyPageMarketingConsent from '@/features/mypage/MyPageMarketingConsent';
 import MyPageSiteInquiries from '@/features/mypage/MyPageSiteInquiries';
 import MyPageBuyJoins from '@/features/mypage/MyPageBuyJoins';
+import MyPageDashboard from '@/features/mypage/MyPageDashboard';
 import MyPageSellPosts from '@/features/mypage/MyPageSellPosts';
 import { useSellListings } from '@/features/sell/use-sell-listings';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
@@ -22,9 +23,10 @@ import { hasBuyerProfile } from '@/types/buyer';
 import { formatMemberJoinedAt } from '@/types/member';
 import { isSellerProfileComplete } from '@/types/seller';
 
-type MyPageTab = 'info' | 'inquiries' | 'sell' | 'buy';
+type MyPageTab = 'dashboard' | 'info' | 'inquiries' | 'sell' | 'buy';
 
 const MY_PAGE_TABS: { id: MyPageTab; label: string }[] = [
+  { id: 'dashboard', label: '대시보드' },
   { id: 'info', label: '내 정보' },
   { id: 'sell', label: '나의 판매 상품 현황' },
   { id: 'buy', label: '나의 구매 현황' },
@@ -32,7 +34,7 @@ const MY_PAGE_TABS: { id: MyPageTab; label: string }[] = [
 ];
 
 function parseMyPageTab(value: string | null): MyPageTab | null {
-  if (value === 'info' || value === 'inquiries' || value === 'sell' || value === 'buy') {
+  if (value === 'dashboard' || value === 'info' || value === 'inquiries' || value === 'sell' || value === 'buy') {
     return value;
   }
   return null;
@@ -76,7 +78,7 @@ export default function MyPageClient() {
   const { mine, items, ready } = useSellListings();
   const { profile, ready: profileReady } = useSellerProfile(user?.uid);
   const { profile: buyerProfile, ready: buyerReady } = useBuyerProfile(user?.uid);
-  const tab = parseMyPageTab(searchParams.get('tab')) ?? 'info';
+  const tab = parseMyPageTab(searchParams.get('tab')) ?? 'dashboard';
   const inquiryKind = parseMyPageInquiryKind(searchParams.get('inquiry'));
 
   useEffect(() => {
@@ -115,13 +117,15 @@ export default function MyPageClient() {
     .join(' · ');
 
   const tabDescription =
-    tab === 'info'
+    tab === 'dashboard'
+      ? '판매·구매·문의 현황을 한눈에 확인합니다.'
+      : tab === 'info'
       ? '회원 정보와 구매자·판매자 상세 등록을 관리합니다.'
       : tab === 'inquiries'
         ? inquiryKind === 'site'
           ? '운영팀에 남긴 서비스 문의를 확인합니다.'
           : inquiryKind === 'sell'
-            ? '판매 상품에 달린 문의를 확인하고 답변합니다.'
+            ? '구매 신청한 상품에 남긴 문의를 확인합니다.'
             : '서비스 문의와 상품 문의를 구분해 확인합니다.'
         : tab === 'sell'
           ? '나의 판매 상품과 판매 진행 현황을 확인합니다.'
@@ -140,7 +144,7 @@ export default function MyPageClient() {
       <div
         role="tablist"
         aria-label="마이페이지 메뉴"
-        className="grid grid-cols-2 gap-1 rounded-sm border border-line bg-slate-100 p-1 sm:grid-cols-4"
+        className="grid grid-cols-2 gap-1 rounded-sm border border-line bg-slate-100 p-1 sm:grid-cols-3 lg:grid-cols-5"
       >
         {MY_PAGE_TABS.map((item) => (
           <button
@@ -161,12 +165,25 @@ export default function MyPageClient() {
           <MyPageInquiryFilters current={inquiryKind} />
           {inquiryKind === 'all' || inquiryKind === 'site' ? <MyPageSiteInquiries /> : null}
           {inquiryKind === 'all' || inquiryKind === 'sell' ? (
-            <MyPageInquiries sellerId={user.uid} listings={myListings} />
+            <MyPageBuyerSellInquiries buyerId={user.uid} listings={items} />
           ) : null}
         </div>
       ) : null}
 
-      {tab !== 'inquiries' ? (
+      {tab === 'dashboard' ? (
+        <MyPageDashboard
+          userId={user.uid}
+          displayName={user.displayName || ''}
+          email={user.email || ''}
+          joinedAt={joinedAt}
+          listings={myListings}
+          sellReady={ready}
+          buyerRegistered={buyerReady && hasBuyerProfile(buyerProfile)}
+          sellerRegistered={profileReady && !!profile}
+        />
+      ) : null}
+
+      {tab !== 'inquiries' && tab !== 'dashboard' ? (
       <section className="panel overflow-hidden">
         {tab === 'info' ? (
           <div className="px-4 py-5 sm:px-5">
@@ -207,7 +224,7 @@ export default function MyPageClient() {
         ) : null}
 
         {tab === 'buy' ? (
-          <MyPageBuyJoins buyerId={user.uid} listings={items} focusListingId={searchParams.get('listingId')} />
+          <MyPageBuyJoins buyerId={user.uid} listings={items} />
         ) : null}
       </section>
       ) : null}

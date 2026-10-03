@@ -14,7 +14,39 @@ function statusLabel(item: AdminSellInquiryRow) {
   return isInquiryAnswered(item) ? '답변 완료' : '미답변';
 }
 
-function DesktopRow({ item }: { item: AdminSellInquiryRow }) {
+function RowActions({
+  item,
+  pending,
+  onDelete,
+}: {
+  item: AdminSellInquiryRow;
+  pending: boolean;
+  onDelete: (item: AdminSellInquiryRow) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Link href={`/admin/sell-inquiries/${item.id}`} className="btn-chip shrink-0">
+        {isInquiryAnswered(item) ? '답변 보기' : '답변하기'}
+      </Link>
+      <Link href={`/sell/${item.listingId}`} target="_blank" rel="noopener noreferrer" className="btn-chip shrink-0">
+        상품 보기
+      </Link>
+      <button type="button" className="btn-chip shrink-0" disabled={pending} onClick={() => onDelete(item)}>
+        {pending ? '삭제 중…' : '삭제'}
+      </button>
+    </div>
+  );
+}
+
+function DesktopRow({
+  item,
+  pending,
+  onDelete,
+}: {
+  item: AdminSellInquiryRow;
+  pending: boolean;
+  onDelete: (item: AdminSellInquiryRow) => void;
+}) {
   return (
     <tr className="border-t border-line">
       <td className="px-4 py-3 align-middle text-sm font-semibold text-ink">
@@ -29,20 +61,21 @@ function DesktopRow({ item }: { item: AdminSellInquiryRow }) {
       </td>
       <td className="px-3 py-3 align-middle text-sm text-ink">{statusLabel(item)}</td>
       <td className="px-4 py-3 align-middle">
-        <div className="flex flex-nowrap items-center gap-2">
-          <Link href={`/admin/sell-inquiries/${item.id}`} className="btn-chip shrink-0">
-            {isInquiryAnswered(item) ? '답변 보기' : '답변하기'}
-          </Link>
-          <Link href={`/sell/${item.listingId}`} target="_blank" rel="noopener noreferrer" className="btn-chip shrink-0">
-            상품 보기
-          </Link>
-        </div>
+        <RowActions item={item} pending={pending} onDelete={onDelete} />
       </td>
     </tr>
   );
 }
 
-function MobileRow({ item }: { item: AdminSellInquiryRow }) {
+function MobileRow({
+  item,
+  pending,
+  onDelete,
+}: {
+  item: AdminSellInquiryRow;
+  pending: boolean;
+  onDelete: (item: AdminSellInquiryRow) => void;
+}) {
   return (
     <li className="border-t border-line px-4 py-3">
       <p className="text-sm font-semibold text-ink">{item.listingTitle}</p>
@@ -54,13 +87,8 @@ function MobileRow({ item }: { item: AdminSellInquiryRow }) {
         <span className="mx-1.5 text-subtle">·</span>
         {formatMemberJoinedAt(item.createdAt) || '—'}
       </p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Link href={`/admin/sell-inquiries/${item.id}`} className="btn-chip">
-          {isInquiryAnswered(item) ? '답변 보기' : '답변하기'}
-        </Link>
-        <Link href={`/sell/${item.listingId}`} target="_blank" rel="noopener noreferrer" className="btn-chip">
-          상품 보기
-        </Link>
+      <div className="mt-3">
+        <RowActions item={item} pending={pending} onDelete={onDelete} />
       </div>
     </li>
   );
@@ -92,6 +120,7 @@ export default function AdminSellInquiries() {
   const [items, setItems] = useState<AdminSellInquiryRow[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,11 +160,31 @@ export default function AdminSellInquiries() {
   const waiting = scopedItems.filter((item) => !isInquiryAnswered(item)).length;
   const sectionTitle = memberId ? '회원 상품 문의' : status === 'waiting' ? '미답변' : '전체';
 
+  async function handleDelete(item: AdminSellInquiryRow) {
+    const label = item.listingTitle || '상품 문의';
+    if (!window.confirm(`「${label}」 상품 문의를 삭제할까요?`)) return;
+    setError(null);
+    setPendingId(item.id);
+    try {
+      const response = await fetch(`/api/admin/sell-inquiries/${item.id}`, { method: 'DELETE' });
+      const data = (await response.json()) as { ok?: boolean; message?: string };
+      if (!response.ok || !data.ok) {
+        setError(data.message ?? '삭제에 실패했습니다.');
+        return;
+      }
+      setItems((current) => current.filter((row) => row.id !== item.id));
+    } catch {
+      setError('삭제에 실패했습니다.');
+    } finally {
+      setPendingId(null);
+    }
+  }
+
   return (
     <div className="space-y-5">
       <PageIntro
         title="상품 문의"
-        description="판매 상품에 달린 문의를 확인하고 답변합니다."
+        description="판매 상품에 달린 문의를 확인하고 답변하거나 삭제합니다."
       />
       {error ? (
         <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger" role="alert">
@@ -182,7 +231,7 @@ export default function AdminSellInquiries() {
               <col className="w-[11%]" />
               <col className="w-[11%]" />
               <col className="w-[9%]" />
-              <col className="w-[18%]" />
+              <col className="w-[24%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-line bg-slate-50 text-left text-[11px] font-semibold tracking-wide text-subtle">
@@ -196,13 +245,23 @@ export default function AdminSellInquiries() {
             </thead>
             <tbody>
               {filteredItems.map((item) => (
-                <DesktopRow key={item.id} item={item} />
+                <DesktopRow
+                  key={item.id}
+                  item={item}
+                  pending={pendingId === item.id}
+                  onDelete={handleDelete}
+                />
               ))}
             </tbody>
           </table>
           <ul className="lg:hidden">
             {filteredItems.map((item) => (
-              <MobileRow key={item.id} item={item} />
+              <MobileRow
+                key={item.id}
+                item={item}
+                pending={pendingId === item.id}
+                onDelete={handleDelete}
+              />
             ))}
           </ul>
         </section>

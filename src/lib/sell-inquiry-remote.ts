@@ -1,6 +1,6 @@
 import { getClientAuth } from '@/lib/firebase';
 import { readApiJson } from '@/lib/api-json';
-import type { SellInquiry } from '@/types/sell-inquiry';
+import type { SellInquiry, SellInquiryDetail } from '@/types/sell-inquiry';
 
 async function authHeaders(json = false): Promise<HeadersInit> {
   const token = await getClientAuth()?.currentUser?.getIdToken();
@@ -25,8 +25,38 @@ export async function fetchSellInquiries(listingId: string): Promise<SellInquiry
   return data.items ?? [];
 }
 
+export async function fetchMySellInquiry(id: string): Promise<SellInquiryDetail> {
+  const response = await fetch(`/api/me/sell-inquiries/${encodeURIComponent(id)}`, {
+    cache: 'no-store',
+    headers: await authHeaders(),
+  });
+  const data = await readApiJson<{ ok?: boolean; item?: SellInquiryDetail; message?: string }>(
+    response,
+    '문의를 불러오지 못했습니다.',
+  );
+  if (!response.ok || !data.ok || !data.item) {
+    throw new Error(data.message ?? '문의를 불러오지 못했습니다.');
+  }
+  return data.item;
+}
+
+export async function fetchSellInquiriesByBuyer(_buyerId: string): Promise<SellInquiry[]> {
+  const response = await fetch('/api/me/sell-inquiries?scope=buyer', {
+    cache: 'no-store',
+    headers: await authHeaders(),
+  });
+  const data = await readApiJson<{ ok?: boolean; items?: SellInquiry[]; message?: string }>(
+    response,
+    '상품 문의를 불러오지 못했습니다.',
+  );
+  if (!response.ok || !data.ok) {
+    throw new Error(data.message ?? '상품 문의를 불러오지 못했습니다.');
+  }
+  return data.items ?? [];
+}
+
 export async function fetchSellInquiriesBySeller(_sellerId: string): Promise<SellInquiry[]> {
-  const response = await fetch('/api/me/sell-inquiries', {
+  const response = await fetch('/api/me/sell-inquiries?scope=seller', {
     cache: 'no-store',
     headers: await authHeaders(),
   });

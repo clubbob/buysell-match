@@ -3,8 +3,7 @@
 import Link from 'next/link';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import DepositAccountNotice from '@/components/ui/DepositAccountNotice';
-import SellBuyerInquiryForm from '@/features/mypage/SellBuyerInquiryForm';
-import { sellDetailHref } from '@/lib/mypage-nav';
+import { mypageSellInquiryWriteHref, sellDetailHref } from '@/lib/mypage-nav';
 import { fetchSellJoinsByBuyer } from '@/lib/sell-join-remote';
 import { formatCount } from '@/lib/sell-display';
 import { cn } from '@/lib/utils';
@@ -20,7 +19,6 @@ export default function MyPageBuyJoins({
   buyerId,
   listings,
   embedded = false,
-  focusListingId,
 }: {
   buyerId: string;
   listings: SellListing[];
@@ -29,12 +27,7 @@ export default function MyPageBuyJoins({
 }) {
   const [items, setItems] = useState<SellJoin[]>([]);
   const [ready, setReady] = useState(false);
-  const [inquiryListingId, setInquiryListingId] = useState<string | null>(focusListingId ?? null);
   const listingMap = useMemo(() => new Map(listings.map((item) => [item.id, item])), [listings]);
-
-  useEffect(() => {
-    if (focusListingId) setInquiryListingId(focusListingId);
-  }, [focusListingId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,7 +103,6 @@ export default function MyPageBuyJoins({
               const showDeposit = join.status === 'confirmed' && !isJoinPaid(join) && listing;
               const showTracking = isJoinShipped(join) && join.trackingNumber?.trim();
               const showExtra = showDeposit || showTracking;
-              const showInquiry = inquiryListingId === join.listingId;
 
               return (
                 <Fragment key={join.id}>
@@ -129,27 +121,11 @@ export default function MyPageBuyJoins({
                     </td>
                     <td className="px-3 py-2.5 text-xs font-medium text-muted">{joinBuyerStatusLabel(join)}</td>
                     <td className="px-3 py-2.5">
-                      <button
-                        type="button"
-                        className="btn-chip"
-                        onClick={() =>
-                          setInquiryListingId((current) => (current === join.listingId ? null : join.listingId))
-                        }
-                      >
-                        {showInquiry ? '닫기' : '문의'}
-                      </button>
+                      <Link href={mypageSellInquiryWriteHref(join.listingId)} className="btn-chip">
+                        문의
+                      </Link>
                     </td>
                   </tr>
-                  {showInquiry ? (
-                    <tr className="border-t border-line bg-slate-50/60">
-                      <td colSpan={5} className="px-4 py-4 sm:px-5">
-                        <h3 className="text-sm font-bold text-ink">상품 문의</h3>
-                        <div className="mt-3">
-                          <SellBuyerInquiryForm listingId={join.listingId} buyerId={buyerId} />
-                        </div>
-                      </td>
-                    </tr>
-                  ) : null}
                   {showExtra ? (
                     <tr className="border-t border-line bg-slate-50/60">
                       <td colSpan={5} className="px-4 py-2.5 sm:px-5">

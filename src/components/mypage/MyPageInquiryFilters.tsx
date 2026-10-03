@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 const FILTERS: { value: MyPageInquiryKind; label: string; description: string }[] = [
   { value: 'all', label: '전체', description: '서비스·상품 문의 모두' },
   { value: 'site', label: '서비스 문의', description: '운영팀에 남긴 문의' },
-  { value: 'sell', label: '상품 문의', description: '판매 상품 Q&A' },
+  { value: 'sell', label: '상품 문의', description: '구매 상품 Q&A' },
 ];
 
 export default function MyPageInquiryFilters({ current }: { current: MyPageInquiryKind }) {

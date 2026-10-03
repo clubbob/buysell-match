@@ -3,7 +3,7 @@ import ContactGuard from '@/features/contact/ContactGuard';
 import SiteInquiryDetail from '@/features/contact/SiteInquiryDetail';
 
 export const metadata: Metadata = {
-  title: '문의 상세',
+  title: '서비스 문의 상세',
 };
 
 export default async function ContactDetailPage({

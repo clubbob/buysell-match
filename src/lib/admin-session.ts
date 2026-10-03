@@ -2,7 +2,8 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { cookies } from 'next/headers';
 
 export const ADMIN_COOKIE = 'buysell.admin';
-const SESSION_DAYS = 7;
+/** 세션 쿠키(브라우저 종료 시 삭제). 토큰은 같은 브라우저에서 장시간 열어도 유지. */
+const SESSION_MAX_DAYS = 7;
 
 function adminId() {
   return process.env.ADMIN_ID ?? '';
@@ -35,7 +36,7 @@ export function verifyAdminCredentials(id: string, password: string) {
 }
 
 export function createAdminSessionValue(id: string) {
-  const expires = Date.now() + SESSION_DAYS * 86_400_000;
+  const expires = Date.now() + SESSION_MAX_DAYS * 86_400_000;
   const payload = `${id}.${expires}`;
   return `${payload}.${sign(payload)}`;
 }
@@ -60,7 +61,6 @@ export function adminCookieOptions() {
     sameSite: 'lax' as const,
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    maxAge: SESSION_DAYS * 86_400,
   };
 }
 

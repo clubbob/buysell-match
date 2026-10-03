@@ -3,9 +3,23 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import type { User } from 'firebase/auth';
 import Logo from '@/components/brand/Logo';
 import { useAuth } from '@/features/auth/auth-context';
 import { cn } from '@/lib/utils';
+
+function HeaderUserIdentity({ user, className }: { user: User; className?: string }) {
+  const name = user.displayName?.trim();
+  const email = user.email?.trim();
+  if (!name && !email) return null;
+
+  return (
+    <div className={cn('max-w-[11rem] shrink-0 px-3 py-1.5 leading-snug lg:max-w-[14rem]', className)}>
+      {name ? <p className="truncate text-sm font-medium text-white">{name}</p> : null}
+      {email ? <p className="truncate text-xs text-white/70">{email}</p> : null}
+    </div>
+  );
+}
 
 function isSellNavActive(pathname: string): boolean {
   if (pathname === '/sell') return true;
@@ -76,13 +90,14 @@ export default function Header() {
           </Link>
         </nav>
 
-        <div className="hidden items-center justify-self-end gap-1 md:flex">
+        <div className="hidden min-w-0 items-center justify-self-end gap-1 md:flex">
           {isLoggedIn ? (
             <>
-              <Link href="/mypage" className="px-3 py-2 text-sm text-white/75 hover:text-white">
+              {user ? <HeaderUserIdentity user={user} /> : null}
+              <Link href="/mypage" className="shrink-0 px-3 py-2 text-sm text-white/75 hover:text-white">
                 마이페이지
               </Link>
-              <button type="button" onClick={handleLogout} className="px-3 py-2 text-sm text-white/75 hover:text-white">
+              <button type="button" onClick={handleLogout} className="shrink-0 px-3 py-2 text-sm text-white/75 hover:text-white">
                 로그아웃
               </button>
             </>
@@ -124,7 +139,7 @@ export default function Header() {
 
             {isLoggedIn ? (
               <>
-                {user?.email ? <p className="break-all px-1 py-2 text-[11px] text-white/45">{user.email}</p> : null}
+                {user ? <HeaderUserIdentity user={user} className="px-1 py-2" /> : null}
                 <Link href="/mypage" className="flex min-h-11 items-center px-1 text-sm text-white/85">
                   마이페이지
                 </Link>

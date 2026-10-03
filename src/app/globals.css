@@ -176,6 +176,42 @@
     box-shadow: 0 16px 32px -20px rgba(2, 132, 199, 0.38);
   }
 
+  .mypage-dash-art--inquiry {
+    background:
+      radial-gradient(120px 80px at 88% -10%, rgba(13, 148, 136, 0.22), transparent 70%),
+      radial-gradient(80px 60px at 8% 90%, rgba(45, 212, 191, 0.16), transparent 70%),
+      linear-gradient(165deg, #f0fdfa 0%, #ccfbf1 52%, #99f6e4 100%);
+  }
+
+  .mypage-dash-art--profile-buyer {
+    background:
+      radial-gradient(120px 80px at 88% -10%, rgba(2, 132, 199, 0.2), transparent 70%),
+      radial-gradient(80px 60px at 8% 90%, rgba(56, 189, 248, 0.16), transparent 70%),
+      linear-gradient(165deg, #f0f9ff 0%, #e0f2fe 52%, #bae6fd 100%);
+  }
+
+  .mypage-dash-art--profile-seller {
+    background:
+      radial-gradient(120px 80px at 88% -10%, rgba(217, 119, 6, 0.2), transparent 70%),
+      radial-gradient(80px 60px at 8% 90%, rgba(251, 191, 36, 0.16), transparent 70%),
+      linear-gradient(165deg, #fffbeb 0%, #fef3c7 52%, #fde68a 100%);
+  }
+
+  .mypage-dash-card--inquiry:hover {
+    border-color: #0d9488;
+    box-shadow: 0 16px 32px -20px rgba(13, 148, 136, 0.38);
+  }
+
+  .mypage-dash-card--profile-buyer:hover {
+    border-color: #0284c7;
+    box-shadow: 0 16px 32px -20px rgba(2, 132, 199, 0.38);
+  }
+
+  .mypage-dash-card--profile-seller:hover {
+    border-color: #d97706;
+    box-shadow: 0 16px 32px -20px rgba(217, 119, 6, 0.38);
+  }
+
   .seller-guide-art::after {
     content: '';
     position: absolute;

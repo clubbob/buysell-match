@@ -127,7 +127,7 @@ export default function SellGuidePanel({
             tab === 'inquiries' ? 'text-ink after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-ink sm:after:inset-x-4' : 'text-muted',
           )}
         >
-          상품 문의 {inquiryCount}
+          상품 문의{inquiryCount > 0 ? ` ${inquiryCount}` : ''}
         </button>
         <button
           type="button"

@@ -1,9 +1,28 @@
 import { loadAdminSellListing } from '@/lib/admin-listings-data';
-import { getAuthUser, getDocument, hasFirebaseAdminConfig, queryDocuments, setDocument, updateDocument } from '@/lib/firebase-rest-admin';
+import {
+  getAuthUser,
+  getDocument,
+  hasFirebaseAdminConfig,
+  queryDocumentIds,
+  queryDocuments,
+  setDocument,
+  updateDocument,
+} from '@/lib/firebase-rest-admin';
 import { loadJoinsForBuyer } from '@/lib/sell-join-server';
-import type { SellInquiry } from '@/types/sell-inquiry';
+import type { SellInquiry, SellInquiryDetail } from '@/types/sell-inquiry';
 
 const COLLECTION = 'sellInquiries';
+
+function mergeInquiries(items: SellInquiry[]): SellInquiry[] {
+  const map = new Map(items.map((item) => [item.id, item]));
+  return [...map.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+async function inquirySellerId(inquiry: SellInquiry): Promise<string> {
+  if (inquiry.sellerId) return inquiry.sellerId;
+  const listing = await loadAdminSellListing(inquiry.listingId);
+  return listing?.sellerId ?? '';
+}
 
 function toInquiry(id: string, data: Record<string, unknown>): SellInquiry | null {
   if (!data.listingId || !data.buyerId || !data.question) return null;
@@ -33,15 +52,38 @@ export async function loadInquiriesForListing(listingId: string): Promise<SellIn
   return loadInquiries('listingId', listingId);
 }
 
+export async function loadInquiriesForBuyer(buyerId: string): Promise<SellInquiry[]> {
+  if (!hasFirebaseAdminConfig()) return [];
+  return loadInquiries('buyerId', buyerId);
+}
+
 export async function loadInquiriesForSeller(sellerId: string): Promise<SellInquiry[]> {
   if (!hasFirebaseAdminConfig()) return [];
-  return loadInquiries('sellerId', sellerId);
+  const bySeller = await loadInquiries('sellerId', sellerId);
+  const listingIds = await queryDocumentIds('sellListings', 'sellerId', sellerId);
+  const byListing = (
+    await Promise.all(listingIds.map((listingId) => loadInquiries('listingId', listingId)))
+  ).flat();
+  return mergeInquiries([...bySeller, ...byListing]);
 }
 
 export async function loadSellInquiry(inquiryId: string): Promise<SellInquiry | null> {
   const data = await getDocument(COLLECTION, inquiryId);
   if (!data) return null;
   return toInquiry(inquiryId, data);
+}
+
+export async function loadSellInquiryForBuyer(
+  buyerId: string,
+  inquiryId: string,
+): Promise<SellInquiryDetail | null> {
+  const inquiry = await loadSellInquiry(inquiryId);
+  if (!inquiry || inquiry.buyerId !== buyerId) return null;
+  const listing = await loadAdminSellListing(inquiry.listingId);
+  return {
+    ...inquiry,
+    listingTitle: listing?.title?.trim() || '상품',
+  };
 }
 
 export async function createSellInquiryForUser(
@@ -93,7 +135,8 @@ export async function answerSellInquiryForSeller(
 
   const inquiry = await loadSellInquiry(inquiryId);
   if (!inquiry) throw new Error('없는 문의입니다.');
-  if (inquiry.sellerId !== sellerId) throw new Error('본인 상품 문의만 답할 수 있습니다.');
+  const ownerId = await inquirySellerId(inquiry);
+  if (!ownerId || ownerId !== sellerId) throw new Error('본인 상품 문의만 답할 수 있습니다.');
   if (inquiry.buyerId === sellerId) throw new Error('본인이 남긴 문의에는 답할 수 없습니다.');
 
   const text = answer.trim();

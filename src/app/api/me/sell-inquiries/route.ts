@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { hasFirebaseAdminConfig } from '@/lib/firebase-rest-admin';
-import { createSellInquiryForUser, loadInquiriesForSeller } from '@/lib/sell-inquiry-server';
+import { createSellInquiryForUser, loadInquiriesForBuyer, loadInquiriesForSeller } from '@/lib/sell-inquiry-server';
 import { getAuthedUid } from '@/lib/user-token';
 import type { SellInquiry } from '@/types/sell-inquiry';
 
@@ -16,8 +16,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, message: '저장소를 연결하지 못했습니다.' }, { status: 503 });
   }
 
+  const scope = new URL(request.url).searchParams.get('scope') === 'buyer' ? 'buyer' : 'seller';
+
   try {
-    const items = await loadInquiriesForSeller(uid);
+    const items = scope === 'buyer' ? await loadInquiriesForBuyer(uid) : await loadInquiriesForSeller(uid);
     return NextResponse.json({ ok: true, items } satisfies { ok: true; items: SellInquiry[] });
   } catch {
     return NextResponse.json({ ok: false, message: '상품 문의를 불러오지 못했습니다.' }, { status: 500 });

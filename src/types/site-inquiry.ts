@@ -1,7 +1,7 @@
 export type SiteInquiryCategory = 'service' | 'account' | 'trade' | 'other';
 
 export const SITE_INQUIRY_CATEGORY_LABELS: Record<SiteInquiryCategory, string> = {
-  service: '서비스 이용',
+  service: '이용·기능',
   account: '계정·회원',
   trade: '거래·분쟁',
   other: '기타',

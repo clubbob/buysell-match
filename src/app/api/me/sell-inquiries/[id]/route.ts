@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { hasFirebaseAdminConfig } from '@/lib/firebase-rest-admin';
-import { answerSellInquiryForSeller } from '@/lib/sell-inquiry-server';
+import { answerSellInquiryForSeller, loadSellInquiryForBuyer } from '@/lib/sell-inquiry-server';
 import { getAuthedUid } from '@/lib/user-token';
-import type { SellInquiry } from '@/types/sell-inquiry';
+import type { SellInquiry, SellInquiryDetail } from '@/types/sell-inquiry';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -10,6 +10,35 @@ export const dynamic = 'force-dynamic';
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
+
+function isSafeId(id: string) {
+  return /^[A-Za-z0-9_-]+$/.test(id);
+}
+
+export async function GET(request: Request, context: RouteContext) {
+  const uid = await getAuthedUid(request);
+  if (!uid) {
+    return NextResponse.json({ ok: false, message: '로그인이 필요합니다.' }, { status: 401 });
+  }
+  if (!hasFirebaseAdminConfig()) {
+    return NextResponse.json({ ok: false, message: '저장소를 연결하지 못했습니다.' }, { status: 503 });
+  }
+
+  const { id } = await context.params;
+  if (!isSafeId(id)) {
+    return NextResponse.json({ ok: false, message: '잘못된 문의입니다.' }, { status: 400 });
+  }
+
+  try {
+    const item = await loadSellInquiryForBuyer(uid, id);
+    if (!item) {
+      return NextResponse.json({ ok: false, message: '없는 문의입니다.' }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true, item } satisfies { ok: true; item: SellInquiryDetail });
+  } catch {
+    return NextResponse.json({ ok: false, message: '문의를 불러오지 못했습니다.' }, { status: 500 });
+  }
+}
 
 export async function PATCH(request: Request, context: RouteContext) {
   const uid = await getAuthedUid(request);

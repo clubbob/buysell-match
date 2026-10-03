@@ -98,7 +98,7 @@ export default function ContactClient() {
 
       <section className="panel px-4 py-5 sm:px-6 sm:py-6">
         <h2 className="text-sm font-bold text-ink">새 문의</h2>
-        <p className="mt-1 text-sm text-muted">서비스 이용, 계정, 기타 궁금한 점을 남겨 주세요. 답변은 아래 내역에서 확인할 수 있습니다.</p>
+        <p className="mt-1 text-sm text-muted">이용·기능, 계정, 기타 궁금한 점을 남겨 주세요. 답변은 아래 내역에서 확인할 수 있습니다.</p>
         {category === 'trade' ? (
           <p className="mt-2 text-sm text-muted">
             판매자·구매자 간 거래 분쟁은{' '}

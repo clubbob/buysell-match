@@ -1,5 +1,5 @@
 import { loadAdminSellListingTitle } from '@/lib/admin-listings-data';
-import { getDocument, hasFirebaseAdminConfig, listDocuments } from '@/lib/firebase-rest-admin';
+import { deleteDocument, getDocument, hasFirebaseAdminConfig, listDocuments } from '@/lib/firebase-rest-admin';
 import { answerSellInquiryAsAdmin } from '@/lib/sell-inquiry-server';
 import { isInquiryAnswered, type SellInquiry } from '@/types/sell-inquiry';
 
@@ -61,4 +61,12 @@ export async function answerAdminSellInquiry(id: string, answer: string): Promis
   const updated = await answerSellInquiryAsAdmin(id, answer);
   const listingTitle = (await loadAdminSellListingTitle(updated.listingId)) ?? '삭제된 상품';
   return { ...updated, listingTitle };
+}
+
+export async function deleteAdminSellInquiry(id: string): Promise<boolean> {
+  if (!hasFirebaseAdminConfig()) return false;
+  const data = await getDocument('sellInquiries', id);
+  if (!data) return false;
+  await deleteDocument('sellInquiries', id);
+  return true;
 }

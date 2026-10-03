@@ -1,4 +1,4 @@
-import { getDocument, hasFirebaseAdminConfig, listDocuments, setDocument } from '@/lib/firebase-rest-admin';
+import { deleteDocument, getDocument, hasFirebaseAdminConfig, listDocuments, setDocument } from '@/lib/firebase-rest-admin';
 import { isSiteInquiryAnswered, toSiteInquiry, type SiteInquiry } from '@/types/site-inquiry';
 
 export async function loadAdminSiteInquiry(id: string): Promise<SiteInquiry | null> {
@@ -32,4 +32,12 @@ export async function answerAdminSiteInquiry(id: string, answer: string): Promis
 
 export function countWaitingSiteInquiries(items: SiteInquiry[]) {
   return items.filter((item) => !isSiteInquiryAnswered(item)).length;
+}
+
+export async function deleteAdminSiteInquiry(id: string): Promise<boolean> {
+  if (!hasFirebaseAdminConfig()) return false;
+  const data = await getDocument('siteInquiries', id);
+  if (!data) return false;
+  await deleteDocument('siteInquiries', id);
+  return true;
 }

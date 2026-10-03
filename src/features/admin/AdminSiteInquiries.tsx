@@ -17,7 +17,36 @@ function statusLabel(item: SiteInquiry) {
   return isSiteInquiryAnswered(item) ? '답변 완료' : '미답변';
 }
 
-function DesktopRow({ item }: { item: SiteInquiry }) {
+function RowActions({
+  item,
+  pending,
+  onDelete,
+}: {
+  item: SiteInquiry;
+  pending: boolean;
+  onDelete: (item: SiteInquiry) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Link href={`/admin/inquiries/${item.id}`} className="btn-chip shrink-0">
+        {isSiteInquiryAnswered(item) ? '답변 보기' : '답변하기'}
+      </Link>
+      <button type="button" className="btn-chip shrink-0" disabled={pending} onClick={() => onDelete(item)}>
+        {pending ? '삭제 중…' : '삭제'}
+      </button>
+    </div>
+  );
+}
+
+function DesktopRow({
+  item,
+  pending,
+  onDelete,
+}: {
+  item: SiteInquiry;
+  pending: boolean;
+  onDelete: (item: SiteInquiry) => void;
+}) {
   return (
     <tr className="border-t border-line">
       <td className="px-4 py-3 align-middle text-sm font-semibold text-ink">
@@ -33,15 +62,21 @@ function DesktopRow({ item }: { item: SiteInquiry }) {
       </td>
       <td className="px-3 py-3 align-middle text-sm text-ink">{statusLabel(item)}</td>
       <td className="px-4 py-3 align-middle">
-        <Link href={`/admin/inquiries/${item.id}`} className="btn-chip">
-          {isSiteInquiryAnswered(item) ? '답변 보기' : '답변하기'}
-        </Link>
+        <RowActions item={item} pending={pending} onDelete={onDelete} />
       </td>
     </tr>
   );
 }
 
-function MobileRow({ item }: { item: SiteInquiry }) {
+function MobileRow({
+  item,
+  pending,
+  onDelete,
+}: {
+  item: SiteInquiry;
+  pending: boolean;
+  onDelete: (item: SiteInquiry) => void;
+}) {
   return (
     <li className="border-t border-line px-4 py-3">
       <p className="text-sm font-semibold text-ink">{item.subject}</p>
@@ -56,9 +91,7 @@ function MobileRow({ item }: { item: SiteInquiry }) {
         {formatMemberJoinedAt(item.createdAt) || '—'}
       </p>
       <div className="mt-3">
-        <Link href={`/admin/inquiries/${item.id}`} className="btn-chip">
-          {isSiteInquiryAnswered(item) ? '답변 보기' : '답변하기'}
-        </Link>
+        <RowActions item={item} pending={pending} onDelete={onDelete} />
       </div>
     </li>
   );
@@ -90,6 +123,7 @@ export default function AdminSiteInquiries() {
   const [items, setItems] = useState<SiteInquiry[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -129,9 +163,28 @@ export default function AdminSiteInquiries() {
   const waiting = scopedItems.filter((item) => !isSiteInquiryAnswered(item)).length;
   const sectionTitle = memberId ? '회원 서비스 문의' : status === 'waiting' ? '미답변' : '전체';
 
+  async function handleDelete(item: SiteInquiry) {
+    if (!window.confirm(`「${item.subject}」 서비스 문의를 삭제할까요?`)) return;
+    setError(null);
+    setPendingId(item.id);
+    try {
+      const response = await fetch(`/api/admin/inquiries/${item.id}`, { method: 'DELETE' });
+      const data = (await response.json()) as { ok?: boolean; message?: string };
+      if (!response.ok || !data.ok) {
+        setError(data.message ?? '삭제에 실패했습니다.');
+        return;
+      }
+      setItems((current) => current.filter((row) => row.id !== item.id));
+    } catch {
+      setError('삭제에 실패했습니다.');
+    } finally {
+      setPendingId(null);
+    }
+  }
+
   return (
     <div className="space-y-5">
-      <PageIntro title="서비스 문의" description="회원이 남긴 서비스 문의를 목록으로 보고, 상세에서 답변합니다." />
+      <PageIntro title="서비스 문의" description="회원이 남긴 서비스 문의를 목록으로 보고, 상세에서 답변하거나 삭제합니다." />
       {error ? (
         <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger" role="alert">
           {error}
@@ -177,7 +230,7 @@ export default function AdminSiteInquiries() {
               <col className="w-[22%]" />
               <col className="w-[12%]" />
               <col className="w-[10%]" />
-              <col className="w-[12%]" />
+              <col className="w-[18%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-line bg-slate-50 text-left text-[11px] font-semibold tracking-wide text-subtle">
@@ -191,13 +244,23 @@ export default function AdminSiteInquiries() {
             </thead>
             <tbody>
               {filteredItems.map((item) => (
-                <DesktopRow key={item.id} item={item} />
+                <DesktopRow
+                  key={item.id}
+                  item={item}
+                  pending={pendingId === item.id}
+                  onDelete={handleDelete}
+                />
               ))}
             </tbody>
           </table>
           <ul className="lg:hidden">
             {filteredItems.map((item) => (
-              <MobileRow key={item.id} item={item} />
+              <MobileRow
+                key={item.id}
+                item={item}
+                pending={pendingId === item.id}
+                onDelete={handleDelete}
+              />
             ))}
           </ul>
         </section>
