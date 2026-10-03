@@ -344,7 +344,13 @@ export default function SellJoinSection({
               <p className="w-full text-center text-sm text-muted">현재 구매 신청이 없습니다.</p>
             )}
 
-            {joinCta ? <div className="flex w-full flex-col items-center gap-3">{joinCta}</div> : null}
+            {isOwner && !manageListing ? (
+              <p className="w-full text-center text-sm text-muted">
+                본인이 등록한 상품에는 구매 신청할 수 없습니다.
+              </p>
+            ) : joinCta ? (
+              <div className="flex w-full flex-col items-center gap-3">{joinCta}</div>
+            ) : null}
 
             {confirmedJoins.length > 0 ? (
               <SellJoinHistoryTable

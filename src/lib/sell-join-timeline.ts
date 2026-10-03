@@ -9,7 +9,7 @@ export type JoinTimelineEvent = {
 };
 
 export type JoinTimelineStep = {
-  label: '구매 신청' | '확정';
+  label: '구매 신청' | '판매 확정';
   kind: 'open' | 'confirmed';
   at: string;
   quantity: number;
@@ -119,7 +119,7 @@ export function buildJoinTimeline(item: SellListing, joins: SellJoin[]): {
     stock = Math.max(0, stock - event.quantity);
     openPending = Math.max(0, openPending - event.quantity);
     steps.push({
-      label: '확정',
+      label: '판매 확정',
       kind: 'confirmed',
       at: event.at,
       quantity: event.quantity,

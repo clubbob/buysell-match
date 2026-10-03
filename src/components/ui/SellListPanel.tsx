@@ -29,7 +29,7 @@ function MypageJoinTimelineTable({ item, joins = [] }: { item: SellListing; join
     {
       key: 'initial',
       at: formatTimelineAt(item.createdAt),
-      label: '최초 잔여',
+      label: '등록 시 잔여',
       quantity: '—',
       remainingBefore: initialRemaining,
       remainingAfter: initialRemaining,
@@ -64,11 +64,11 @@ function MypageJoinTimelineTable({ item, joins = [] }: { item: SellListing; join
       <table className="w-full border-collapse text-[10px] leading-snug">
         <thead className="sticky top-0 z-[1]">
           <tr>
-            <th className="border border-line bg-slate-50 px-2 py-1 text-left font-semibold text-subtle">일시</th>
-            <th className="border border-line bg-slate-50 px-2 py-1 text-left font-semibold text-subtle">내용</th>
-            <th className="border border-line bg-slate-50 px-2 py-1 text-right font-semibold text-subtle">수량</th>
-            <th className="border border-line bg-slate-50 px-2 py-1 text-right font-semibold text-subtle">확정 전</th>
-            <th className="border border-line bg-slate-50 px-2 py-1 text-right font-semibold text-subtle">확정 후</th>
+            <th className="border border-line bg-slate-50 px-2 py-1 text-center font-semibold text-subtle">일시</th>
+            <th className="border border-line bg-slate-50 px-2 py-1 text-center font-semibold text-subtle">구분</th>
+            <th className="border border-line bg-slate-50 px-2 py-1 text-center font-semibold text-subtle">신청·확정</th>
+            <th className="border border-line bg-slate-50 px-2 py-1 text-center font-semibold text-subtle">잔여(전)</th>
+            <th className="border border-line bg-slate-50 px-2 py-1 text-center font-semibold text-subtle">잔여(후)</th>
           </tr>
         </thead>
         <tbody>
@@ -313,7 +313,7 @@ export default function SellListPanel({
                 <th className="px-3 py-2">가격</th>
                 <th className="px-3 py-2">모집 최소 수량</th>
                 <th className="px-3 py-2">마감</th>
-                <th className="px-3 py-2">판매 진행</th>
+                <th className="px-3 py-2">잔여·신청 이력</th>
               </tr>
             </thead>
             <tbody>
