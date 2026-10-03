@@ -5,6 +5,7 @@ import {
   listDocuments,
   queryDocumentIds,
 } from '@/lib/firebase-rest-admin';
+import { readFirestoreCreatedAt } from '@/lib/sell-listing-time';
 import { parseSellCategory } from '@/types/sell-category';
 import { withSellSource, type SellListing } from '@/types/sell';
 
@@ -15,6 +16,7 @@ function toSellListing(id: string, data: Record<string, unknown>): SellListing |
     title: String(data.title),
     category: parseSellCategory(data.category),
     images: data.images.map(String),
+    introImages: Array.isArray(data.introImages) ? data.introImages.map(String) : [],
     sellerId: String(data.sellerId),
     sellerName: String(data.sellerName ?? ''),
     representativeName: String(data.representativeName ?? ''),
@@ -39,12 +41,19 @@ function toSellListing(id: string, data: Record<string, unknown>): SellListing |
     deadline: String(data.deadline ?? ''),
     closedAt: String(data.closedAt ?? ''),
     description: String(data.description ?? ''),
+    composition: String(data.composition ?? ''),
+    specification: String(data.specification ?? ''),
+    origin: String(data.origin ?? ''),
+    certification: String(data.certification ?? ''),
+    shippingFee: String(data.shippingFee ?? ''),
+    shippingGuide: String(data.shippingGuide ?? ''),
+    returnPolicy: String(data.returnPolicy ?? ''),
     specText: String(data.specText ?? ''),
     tradeText: String(data.tradeText ?? ''),
     depositBank: String(data.depositBank ?? ''),
     depositAccount: String(data.depositAccount ?? ''),
     depositHolder: String(data.depositHolder ?? ''),
-    createdAt: String(data.createdAt ?? ''),
+    createdAt: readFirestoreCreatedAt(data.createdAt),
   });
 }
 

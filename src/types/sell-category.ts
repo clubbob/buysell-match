@@ -5,6 +5,7 @@ export type SellCategory =
   | 'beauty'
   | 'kids'
   | 'digital'
+  | 'pet'
   | 'other';
 
 export const SELL_CATEGORY_LABELS: Record<SellCategory, string> = {
@@ -13,7 +14,8 @@ export const SELL_CATEGORY_LABELS: Record<SellCategory, string> = {
   fashion: '패션·잡화',
   beauty: '뷰티',
   kids: '유아·키즈',
-  digital: '디지털',
+  digital: '디지털·가전',
+  pet: '반려동물',
   other: '기타',
 };
 
@@ -24,6 +26,7 @@ export const SELL_CATEGORY_OPTIONS: SellCategory[] = [
   'beauty',
   'kids',
   'digital',
+  'pet',
   'other',
 ];
 

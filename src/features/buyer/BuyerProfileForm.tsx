@@ -7,9 +7,24 @@ import { useAuth } from '@/features/auth/auth-context';
 import { inputClassName } from '@/features/auth/auth-errors';
 import { useBuyerProfile } from '@/features/buyer/use-buyer-profile';
 import { formatPhoneNumber, PHONE_HYPHEN_HINT } from '@/lib/phone-number';
+import { scrollToFormField } from '@/lib/form-scroll';
 import { BUYER_DETAIL_LABEL } from '@/lib/profile-labels';
 import DefaultAddressBadge from '@/components/ui/DefaultAddressBadge';
+import { cn } from '@/lib/utils';
 import { createBuyerAddress, hasBuyerProfile, resolveDefaultAddressId, type BuyerAddress } from '@/types/buyer';
+
+function fieldInputClass(hasError: boolean) {
+  return cn(inputClassName, hasError && 'border-red-300 focus:border-red-400 focus:ring-red-300');
+}
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p className="text-sm text-danger" role="alert">
+      {message}
+    </p>
+  );
+}
 
 export default function BuyerProfileForm() {
   const router = useRouter();
@@ -19,6 +34,8 @@ export default function BuyerProfileForm() {
   const [addresses, setAddresses] = useState<BuyerAddress[]>(() => [createBuyerAddress()]);
   const [defaultAddressId, setDefaultAddressId] = useState(() => addresses[0]?.id ?? '');
   const [error, setError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [addressErrors, setAddressErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
   const [filled, setFilled] = useState(false);
   const [done, setDone] = useState<'created' | 'updated' | null>(null);
@@ -42,6 +59,12 @@ export default function BuyerProfileForm() {
 
   function updateAddress(id: string, address: string) {
     setAddresses((current) => current.map((item) => (item.id === id ? { ...item, address } : item)));
+    setAddressErrors((current) => {
+      if (!current[id]) return current;
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
   }
 
   function addAddress() {
@@ -75,8 +98,23 @@ export default function BuyerProfileForm() {
       defaultAddressId: resolveDefaultAddressId(cleaned, defaultAddressId),
     };
 
-    if (!hasBuyerProfile(next)) {
-      setError('핸드폰 번호와 배송 주소를 입력해 주세요.');
+    const nextPhoneError = buyerPhone.trim() ? null : '핸드폰 번호를 입력해 주세요.';
+    const nextAddressErrors: Record<string, string> = {};
+    if (cleaned.length === 0) {
+      const targetId = addresses[0]?.id;
+      if (targetId) nextAddressErrors[targetId] = '배송 주소를 입력해 주세요.';
+    }
+    setPhoneError(nextPhoneError);
+    setAddressErrors(nextAddressErrors);
+    if (nextPhoneError || Object.keys(nextAddressErrors).length > 0) {
+      window.requestAnimationFrame(() => {
+        if (nextPhoneError) {
+          scrollToFormField('buyer-field-phone');
+          return;
+        }
+        const firstAddressId = addresses.find((item) => nextAddressErrors[item.id])?.id;
+        if (firstAddressId) scrollToFormField(`buyer-field-address-${firstAddressId}`);
+      });
       return;
     }
 
@@ -112,19 +150,23 @@ export default function BuyerProfileForm() {
   }
 
   return (
-    <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+    <form className="mt-6 space-y-4" onSubmit={handleSubmit} noValidate>
       <label className="block space-y-1.5">
         <span className="text-sm font-semibold text-ink">핸드폰 번호</span>
         <input
+          id="buyer-field-phone"
           type="tel"
           autoComplete="tel"
           value={buyerPhone}
-          onChange={(event) => setBuyerPhone(formatPhoneNumber(event.target.value))}
-          className={inputClassName}
+          onChange={(event) => {
+            setBuyerPhone(formatPhoneNumber(event.target.value));
+            setPhoneError(null);
+          }}
+          className={fieldInputClass(Boolean(phoneError))}
           inputMode="numeric"
-          required
         />
         <span className="block text-xs text-subtle">{PHONE_HYPHEN_HINT}</span>
+        <FieldError message={phoneError ?? undefined} />
       </label>
 
       <div className="space-y-3">
@@ -148,13 +190,14 @@ export default function BuyerProfileForm() {
               ) : null}
             </div>
             <input
+              id={`buyer-field-address-${item.id}`}
               autoComplete={index === 0 ? 'street-address' : 'off'}
               value={item.address}
               onChange={(event) => updateAddress(item.id, event.target.value)}
-              className={inputClassName}
+              className={fieldInputClass(Boolean(addressErrors[item.id]))}
               placeholder="배송 받을 주소를 입력해 주세요"
-              required={index === 0}
             />
+            <FieldError message={addressErrors[item.id]} />
             <label className="flex items-center gap-2 text-sm text-ink">
               <input
                 type="radio"

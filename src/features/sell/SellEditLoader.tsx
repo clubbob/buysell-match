@@ -58,12 +58,13 @@ export default function SellEditLoader({ id }: { id: string }) {
 
   return (
     <div className="space-y-5">
-      <PageBack href="/mypage?tab=sell">← 마이페이지</PageBack>
       <PageIntro
         eyebrow="판매자"
         title="판매 상품 수정"
         description="마감 전까지 여러 번 거래할 수 있습니다. 쿠팡·스마트스토어·유튜브 주소를 각각 넣을 수 있습니다."
-      />
+      >
+        <PageBack href="/mypage?tab=sell">← 마이페이지</PageBack>
+      </PageIntro>
       <SellCreateForm listing={item} />
     </div>
   );

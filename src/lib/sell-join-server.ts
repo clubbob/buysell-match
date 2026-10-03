@@ -1,4 +1,5 @@
 import { loadAdminSellListing } from '@/lib/admin-listings-data';
+import { BUYER_DETAIL_LABEL } from '@/lib/profile-labels';
 import { formatCount, isListingClosed, isRemainingShort, joinAvailable, quantityAmount, replaceQuantityNumber } from '@/lib/sell-display';
 import {
   getAuthUser,
@@ -111,7 +112,7 @@ export async function createSellJoinForBuyer(
   const buyerData = await getDocument('buyerProfiles', buyerId);
   const buyerProfile = buyerData ? toBuyerProfile(buyerId, buyerData) : null;
   if (!hasBuyerProfile(buyerProfile)) {
-    throw new Error('구매 상세 등록이 필요합니다.');
+    throw new Error(`${BUYER_DETAIL_LABEL}이 필요합니다.`);
   }
   const delivery = defaultBuyerAddress(buyerProfile);
   if (!delivery?.address) throw new Error('주문에 쓸 배송 주소를 골라 주세요.');

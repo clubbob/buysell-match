@@ -5,6 +5,10 @@ export function mypageHref(tab: MyPageTab = 'info'): string {
   return tab === 'info' ? '/mypage' : `/mypage?tab=${tab}`;
 }
 
+export function mypageBuyInquiryHref(listingId: string): string {
+  return `/mypage?tab=buy&listingId=${encodeURIComponent(listingId)}`;
+}
+
 export function parseMyPageInquiryKind(value: string | null): MyPageInquiryKind {
   if (value === 'site' || value === 'sell') return value;
   return 'all';

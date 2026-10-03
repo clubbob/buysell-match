@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import DepositAccountNotice from '@/components/ui/DepositAccountNotice';
+import SellBuyerInquiryForm from '@/features/mypage/SellBuyerInquiryForm';
 import { sellDetailHref } from '@/lib/mypage-nav';
 import { fetchSellJoinsByBuyer } from '@/lib/sell-join-remote';
 import { formatCount } from '@/lib/sell-display';
@@ -19,14 +20,21 @@ export default function MyPageBuyJoins({
   buyerId,
   listings,
   embedded = false,
+  focusListingId,
 }: {
   buyerId: string;
   listings: SellListing[];
   embedded?: boolean;
+  focusListingId?: string | null;
 }) {
   const [items, setItems] = useState<SellJoin[]>([]);
   const [ready, setReady] = useState(false);
+  const [inquiryListingId, setInquiryListingId] = useState<string | null>(focusListingId ?? null);
   const listingMap = useMemo(() => new Map(listings.map((item) => [item.id, item])), [listings]);
+
+  useEffect(() => {
+    if (focusListingId) setInquiryListingId(focusListingId);
+  }, [focusListingId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,15 +83,16 @@ export default function MyPageBuyJoins({
     <section className={sectionClass(embedded)}>
       <div className="border-b border-line px-4 py-3 sm:px-5">
         <h2 className="text-sm font-bold text-ink">내 구매 신청</h2>
-        <p className="mt-0.5 text-xs text-muted">구매 신청·판매 확정·결제·배송 상태를 확인합니다.</p>
+        <p className="mt-0.5 text-xs text-muted">구매 신청·판매 확정·결제·배송 상태를 확인하고 상품 문의를 남깁니다.</p>
       </div>
       <div className="overflow-x-auto border-t border-line">
-        <table className="min-w-[32rem] w-full table-fixed">
+        <table className="min-w-[36rem] w-full table-fixed">
           <colgroup>
-            <col className="w-[38%]" />
-            <col className="w-[12%]" />
-            <col className="w-[24%]" />
-            <col className="w-[26%]" />
+            <col className="w-[32%]" />
+            <col className="w-[10%]" />
+            <col className="w-[22%]" />
+            <col className="w-[20%]" />
+            <col className="w-[16%]" />
           </colgroup>
           <thead>
             <tr className="border-b border-line bg-slate-50 text-left text-[11px] font-semibold tracking-wide text-subtle">
@@ -91,6 +100,7 @@ export default function MyPageBuyJoins({
               <th className="px-3 py-2">수량</th>
               <th className="px-3 py-2">신청일</th>
               <th className="px-3 py-2">상태</th>
+              <th className="px-3 py-2">문의</th>
             </tr>
           </thead>
           <tbody>
@@ -100,6 +110,7 @@ export default function MyPageBuyJoins({
               const showDeposit = join.status === 'confirmed' && !isJoinPaid(join) && listing;
               const showTracking = isJoinShipped(join) && join.trackingNumber?.trim();
               const showExtra = showDeposit || showTracking;
+              const showInquiry = inquiryListingId === join.listingId;
 
               return (
                 <Fragment key={join.id}>
@@ -117,10 +128,31 @@ export default function MyPageBuyJoins({
                       {formatMemberDateTime(join.createdAt) || '—'}
                     </td>
                     <td className="px-3 py-2.5 text-xs font-medium text-muted">{joinBuyerStatusLabel(join)}</td>
+                    <td className="px-3 py-2.5">
+                      <button
+                        type="button"
+                        className="btn-chip"
+                        onClick={() =>
+                          setInquiryListingId((current) => (current === join.listingId ? null : join.listingId))
+                        }
+                      >
+                        {showInquiry ? '닫기' : '문의'}
+                      </button>
+                    </td>
                   </tr>
+                  {showInquiry ? (
+                    <tr className="border-t border-line bg-slate-50/60">
+                      <td colSpan={5} className="px-4 py-4 sm:px-5">
+                        <h3 className="text-sm font-bold text-ink">상품 문의</h3>
+                        <div className="mt-3">
+                          <SellBuyerInquiryForm listingId={join.listingId} buyerId={buyerId} />
+                        </div>
+                      </td>
+                    </tr>
+                  ) : null}
                   {showExtra ? (
                     <tr className="border-t border-line bg-slate-50/60">
-                      <td colSpan={4} className="px-4 py-2.5 sm:px-5">
+                      <td colSpan={5} className="px-4 py-2.5 sm:px-5">
                         {showDeposit ? (
                           <DepositAccountNotice item={listing} confirmedAt={join.confirmedAt} />
                         ) : null}

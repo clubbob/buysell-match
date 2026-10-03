@@ -14,7 +14,7 @@ export default function SellerProfilePage() {
     <div className="space-y-5">
       <PageBack href="/mypage">← 마이페이지</PageBack>
       <article className="panel px-4 py-6 sm:px-6 sm:py-8">
-        <PageIntro title={SELLER_DETAIL_LABEL} description="사업장 전화는 없어도 됩니다. 사업자등록번호를 검증한 뒤 상호, 핸드폰 번호, 사업자등록증을 등록합니다. 계속사업자로 조회된 경우에만 저장할 수 있습니다." />
+        <PageIntro title={SELLER_DETAIL_LABEL} description="사업자등록번호를 검증한 뒤 상호, 핸드폰 번호, 사업자등록증을 등록합니다. 계속사업자로 조회된 경우에만 등록할 수 있습니다." />
         <Suspense fallback={<p className="mt-6 text-sm text-muted">불러오는 중…</p>}>
           <SellerProfileForm />
         </Suspense>

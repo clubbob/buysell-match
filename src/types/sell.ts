@@ -6,6 +6,7 @@ export type SellListing = {
   title: string;
   category: SellCategory;
   images: string[];
+  introImages: string[];
   sellerId: string;
   sellerName: string;
   representativeName: string;
@@ -30,6 +31,13 @@ export type SellListing = {
   deadline: string;
   closedAt: string;
   description: string;
+  composition: string;
+  specification: string;
+  origin: string;
+  certification: string;
+  shippingFee: string;
+  shippingGuide: string;
+  returnPolicy: string;
   specText: string;
   tradeText: string;
   depositBank: string;

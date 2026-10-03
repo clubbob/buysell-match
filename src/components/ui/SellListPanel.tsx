@@ -360,6 +360,7 @@ export default function SellListPanel({
   hideDeadline = false,
   from,
   mypageTab = 'sell',
+  footer,
 }: {
   title?: string;
   description?: string;
@@ -370,6 +371,7 @@ export default function SellListPanel({
   hideDeadline?: boolean;
   from?: string;
   mypageTab?: 'sell' | 'buy';
+  footer?: React.ReactNode;
 }) {
   const listingIds = items.map((item) => item.id);
   const isMypage = from === 'mypage';
@@ -484,6 +486,7 @@ export default function SellListPanel({
         ) : null}
       </header>
       {list}
+      {footer}
     </section>
   );
 }

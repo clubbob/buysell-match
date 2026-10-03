@@ -14,6 +14,7 @@ import MyPageSellPosts from '@/features/mypage/MyPageSellPosts';
 import { useSellListings } from '@/features/sell/use-sell-listings';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
 import MyPageInquiryFilters from '@/components/mypage/MyPageInquiryFilters';
+import { alertAndGoToSellerProfile, SELL_CREATE_PATH } from '@/lib/profile-gate';
 import { mypageHref, parseMyPageInquiryKind } from '@/lib/mypage-nav';
 import { cn } from '@/lib/utils';
 import { BUYER_DETAIL_LABEL, SELLER_DETAIL_LABEL } from '@/lib/profile-labels';
@@ -56,16 +57,15 @@ function SummaryRow({
   action: string;
 }) {
   return (
-    <Link
-      href={href}
-      className="-mx-4 flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-4 first:border-t-0 first:pt-0 last:pb-0 hover:bg-slate-50 sm:-mx-5 sm:px-5"
-    >
-      <div className="min-w-0">
-        <h3 className="text-sm font-bold text-ink">{title}</h3>
-        <p className="mt-1 text-sm text-muted">{detail}</p>
+    <div className="-mx-4 border-t border-line px-4 py-4 first:border-t-0 first:pt-0 last:pb-0 sm:-mx-5 sm:px-5">
+      <div className="flex items-center gap-3">
+        <h3 className="min-w-0 flex-1 text-sm font-bold text-ink">{title}</h3>
+        <Link href={href} className="btn-secondary shrink-0">
+          {action}
+        </Link>
       </div>
-      <span className="text-sm font-semibold text-ink">{action}</span>
-    </Link>
+      <p className="mt-1 text-sm text-muted">{detail}</p>
+    </div>
   );
 }
 
@@ -89,6 +89,14 @@ export default function MyPageClient() {
 
   const myListings = mine(user.uid);
   const canPostSell = profileReady && isSellerProfileComplete(profile);
+
+  function handleSellCreateClick() {
+    if (canPostSell) {
+      router.push(SELL_CREATE_PATH);
+      return;
+    }
+    alertAndGoToSellerProfile(router);
+  }
   const buyerDetail = !buyerReady
     ? '불러오는 중…'
     : hasBuyerProfile(buyerProfile)
@@ -108,7 +116,7 @@ export default function MyPageClient() {
 
   const tabDescription =
     tab === 'info'
-      ? '회원 정보와 구매·판매 상세 등록을 관리합니다.'
+      ? '회원 정보와 구매자·판매자 상세 등록을 관리합니다.'
       : tab === 'inquiries'
         ? inquiryKind === 'site'
           ? '운영팀에 남긴 서비스 문의를 확인합니다.'
@@ -117,15 +125,15 @@ export default function MyPageClient() {
             : '서비스 문의와 상품 문의를 구분해 확인합니다.'
         : tab === 'sell'
           ? '나의 판매 상품과 판매 진행 현황을 확인합니다.'
-          : '나의 구매 신청 현황을 확인합니다.';
+          : '나의 구매 신청 현황을 확인하고 상품 문의를 남깁니다.';
 
   return (
     <div className="space-y-5">
       <PageIntro title="마이페이지" description={tabDescription}>
-        {canPostSell ? (
-          <Link href="/sell/new" className="btn-primary">
+        {profileReady ? (
+          <button type="button" className="btn-primary" onClick={handleSellCreateClick}>
             판매 상품 등록
-          </Link>
+          </button>
         ) : null}
       </PageIntro>
 
@@ -194,9 +202,13 @@ export default function MyPageClient() {
           </div>
         ) : null}
 
-        {tab === 'sell' ? <MyPageSellPosts listings={myListings} ready={ready} /> : null}
+        {tab === 'sell' ? (
+          <MyPageSellPosts listings={myListings} ready={ready} onSellCreate={profileReady ? handleSellCreateClick : undefined} />
+        ) : null}
 
-        {tab === 'buy' ? <MyPageBuyJoins buyerId={user.uid} listings={items} /> : null}
+        {tab === 'buy' ? (
+          <MyPageBuyJoins buyerId={user.uid} listings={items} focusListingId={searchParams.get('listingId')} />
+        ) : null}
       </section>
       ) : null}
     </div>

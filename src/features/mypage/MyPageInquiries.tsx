@@ -70,7 +70,7 @@ export default function MyPageInquiries({
       title="상품 문의"
       tone="sell"
       status={waiting.length > 0 ? `미답변 ${waiting.length}건` : null}
-      description="판매 상품 상세에 달린 Q&A입니다. 판매자가 답변합니다."
+      description="구매자가 나의 구매 현황에서 남긴 상품 문의입니다. 판매자가 답변합니다."
     />
   );
 

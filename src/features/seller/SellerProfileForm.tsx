@@ -9,10 +9,52 @@ import { useSellerProfile } from '@/features/seller/use-seller-profile';
 import { digitsOnly, formatBusinessNumber } from '@/lib/business-number';
 import { formatPhoneNumber, PHONE_HYPHEN_HINT } from '@/lib/phone-number';
 import { SELLER_DETAIL_LABEL } from '@/lib/profile-labels';
+import { scrollToFormField } from '@/lib/form-scroll';
 import { uploadBusinessCertificate } from '@/lib/seller-remote';
+import { cn } from '@/lib/utils';
 import { hasSellerProfile } from '@/types/seller';
 
 const CERT_MAX_BYTES = 8 * 1024 * 1024;
+
+const SELLER_FIELD_ORDER: SellerField[] = [
+  'businessNumber',
+  'sellerName',
+  'representativeName',
+  'businessAddress',
+  'sellerMobile',
+  'sellerPhone',
+  'depositBank',
+  'depositAccount',
+  'depositHolder',
+  'certificate',
+];
+
+type SellerField =
+  | 'businessNumber'
+  | 'sellerName'
+  | 'representativeName'
+  | 'businessAddress'
+  | 'sellerMobile'
+  | 'sellerPhone'
+  | 'depositBank'
+  | 'depositAccount'
+  | 'depositHolder'
+  | 'certificate';
+
+type SellerFieldErrors = Partial<Record<SellerField, string>>;
+
+function fieldInputClass(hasError: boolean) {
+  return cn(inputClassName, hasError && 'border-red-300 focus:border-red-400 focus:ring-red-300');
+}
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p className="text-sm text-danger" role="alert">
+      {message}
+    </p>
+  );
+}
 
 type StatusApiResponse =
   | {
@@ -39,6 +81,7 @@ export default function SellerProfileForm() {
   const [verifiedAt, setVerifiedAt] = useState('');
   const [statusLabel, setStatusLabel] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<SellerFieldErrors>({});
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
@@ -52,6 +95,32 @@ export default function SellerProfileForm() {
   const [done, setDone] = useState<'created' | 'updated' | null>(null);
 
   const verified = digitsOnly(businessNumber) === digitsOnly(verifiedNumber) && digitsOnly(verifiedNumber).length === 10;
+
+  function clearFieldError(field: SellerField) {
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  }
+
+  function collectFieldErrors(): SellerFieldErrors {
+    const errors: SellerFieldErrors = {};
+    if (!verified) {
+      errors.businessNumber = '사업자등록번호를 검증해 주세요. 계속사업자만 등록할 수 있습니다.';
+    }
+    if (!sellerName.trim()) errors.sellerName = '상호를 입력해 주세요.';
+    if (!representativeName.trim()) errors.representativeName = '대표자를 입력해 주세요.';
+    if (!businessAddress.trim()) errors.businessAddress = '사업장 주소를 입력해 주세요.';
+    if (!sellerMobile.trim()) errors.sellerMobile = '핸드폰 번호를 입력해 주세요.';
+    if (!sellerPhone.trim()) errors.sellerPhone = '사업장 전화를 입력해 주세요.';
+    if (!depositBank.trim()) errors.depositBank = '은행을 입력해 주세요.';
+    if (!depositAccount.trim()) errors.depositAccount = '계좌번호를 입력해 주세요.';
+    if (!depositHolder.trim()) errors.depositHolder = '예금주를 입력해 주세요.';
+    if (!certificateFile && !certificateUrl) errors.certificate = '사업자등록증을 첨부해 주세요.';
+    return errors;
+  }
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login');
@@ -123,20 +192,17 @@ export default function SellerProfileForm() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setLookupError(null);
     if (!user) {
       setError('로그인 후 등록할 수 있습니다.');
       return;
     }
-    if (!verified) {
-      setLookupError('사업자등록번호를 검증해 주세요. 계속사업자만 등록할 수 있습니다.');
-      return;
-    }
-    if (!sellerName.trim() || !representativeName.trim() || !sellerMobile.trim() || !businessAddress.trim()) {
-      setError('상호, 대표자, 핸드폰 번호, 사업장 주소를 입력해 주세요.');
-      return;
-    }
-    if (!certificateFile && !certificateUrl) {
-      setError('사업자등록증을 첨부해 주세요.');
+
+    const nextFieldErrors = collectFieldErrors();
+    setFieldErrors(nextFieldErrors);
+    const firstInvalid = SELLER_FIELD_ORDER.find((field) => nextFieldErrors[field]);
+    if (firstInvalid) {
+      window.requestAnimationFrame(() => scrollToFormField(`seller-field-${firstInvalid}`));
       return;
     }
 
@@ -151,7 +217,7 @@ export default function SellerProfileForm() {
         sellerName: sellerName.trim(),
         representativeName: representativeName.trim(),
         sellerMobile: formatPhoneNumber(sellerMobile),
-        sellerPhone: sellerPhone.trim() ? formatPhoneNumber(sellerPhone) : '',
+        sellerPhone: formatPhoneNumber(sellerPhone),
         sellerEmail: user.email ?? '',
         businessAddress: businessAddress.trim(),
         businessNumber: formatBusinessNumber(verifiedNumber),
@@ -190,11 +256,12 @@ export default function SellerProfileForm() {
   }
 
   return (
-    <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+    <form className="mt-6 space-y-4" onSubmit={handleSubmit} noValidate>
       <div className="space-y-1.5">
         <span className="block text-sm font-semibold text-ink">사업자등록번호</span>
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
+            id="seller-field-businessNumber"
             inputMode="numeric"
             autoComplete="off"
             value={businessNumber}
@@ -207,10 +274,10 @@ export default function SellerProfileForm() {
                 setStatusLabel('');
               }
               setLookupError(null);
+              clearFieldError('businessNumber');
             }}
-            className={`${inputClassName} sm:flex-1`}
+            className={cn(fieldInputClass(Boolean(fieldErrors.businessNumber)), 'sm:flex-1')}
             placeholder="000-00-00000"
-            required
           />
           <button type="button" onClick={() => void handleLookup()} disabled={lookingUp} className="btn-secondary sm:shrink-0">
             {lookingUp ? '검증 중…' : '검증하기'}
@@ -218,10 +285,8 @@ export default function SellerProfileForm() {
         </div>
         {verified ? (
           <p className="text-sm text-ink">조회 결과: {statusLabel || '계속사업자'} (조회 시점 기준)</p>
-        ) : lookupError ? (
-          <p className="text-sm text-danger" role="alert">
-            {lookupError}
-          </p>
+        ) : lookupError || fieldErrors.businessNumber ? (
+          <FieldError message={lookupError ?? fieldErrors.businessNumber} />
         ) : (
           <p className="text-sm text-muted">계속사업자로 조회된 경우에만 {SELLER_DETAIL_LABEL}을 할 수 있습니다.</p>
         )}
@@ -230,87 +295,147 @@ export default function SellerProfileForm() {
 
       <label className="block space-y-1.5">
         <span className="text-sm font-semibold text-ink">상호</span>
-        <input value={sellerName} onChange={(event) => setSellerName(event.target.value)} className={inputClassName} required />
+        <input
+          id="seller-field-sellerName"
+          value={sellerName}
+          onChange={(event) => {
+            setSellerName(event.target.value);
+            clearFieldError('sellerName');
+          }}
+          className={fieldInputClass(Boolean(fieldErrors.sellerName))}
+        />
+        <FieldError message={fieldErrors.sellerName} />
       </label>
       <label className="block space-y-1.5">
         <span className="text-sm font-semibold text-ink">대표자</span>
         <input
+          id="seller-field-representativeName"
           value={representativeName}
-          onChange={(event) => setRepresentativeName(event.target.value)}
-          className={inputClassName}
-          required
+          onChange={(event) => {
+            setRepresentativeName(event.target.value);
+            clearFieldError('representativeName');
+          }}
+          className={fieldInputClass(Boolean(fieldErrors.representativeName))}
         />
+        <FieldError message={fieldErrors.representativeName} />
       </label>
       <label className="block space-y-1.5">
         <span className="text-sm font-semibold text-ink">사업장 주소</span>
         <input
+          id="seller-field-businessAddress"
           value={businessAddress}
-          onChange={(event) => setBusinessAddress(event.target.value)}
-          className={inputClassName}
+          onChange={(event) => {
+            setBusinessAddress(event.target.value);
+            clearFieldError('businessAddress');
+          }}
+          className={fieldInputClass(Boolean(fieldErrors.businessAddress))}
           placeholder="사업장 소재지를 입력해 주세요"
-          required
         />
+        <FieldError message={fieldErrors.businessAddress} />
       </label>
       <label className="block space-y-1.5">
         <span className="text-sm font-semibold text-ink">핸드폰 번호</span>
         <input
+          id="seller-field-sellerMobile"
           type="tel"
           autoComplete="tel"
           value={sellerMobile}
-          onChange={(event) => setSellerMobile(formatPhoneNumber(event.target.value))}
-          className={inputClassName}
+          onChange={(event) => {
+            setSellerMobile(formatPhoneNumber(event.target.value));
+            clearFieldError('sellerMobile');
+          }}
+          className={fieldInputClass(Boolean(fieldErrors.sellerMobile))}
           inputMode="numeric"
-          required
         />
         <span className="block text-xs text-subtle">{PHONE_HYPHEN_HINT}</span>
+        <FieldError message={fieldErrors.sellerMobile} />
       </label>
       <label className="block space-y-1.5">
         <span className="text-sm font-semibold text-ink">사업장 전화</span>
         <input
+          id="seller-field-sellerPhone"
           type="tel"
           value={sellerPhone}
-          onChange={(event) => setSellerPhone(formatPhoneNumber(event.target.value))}
-          className={inputClassName}
+          onChange={(event) => {
+            setSellerPhone(formatPhoneNumber(event.target.value));
+            clearFieldError('sellerPhone');
+          }}
+          className={fieldInputClass(Boolean(fieldErrors.sellerPhone))}
           inputMode="numeric"
         />
-        <span className="block text-xs text-subtle">없으면 비워 두세요. {PHONE_HYPHEN_HINT}</span>
+        <span className="block text-xs text-subtle">{PHONE_HYPHEN_HINT}</span>
+        <FieldError message={fieldErrors.sellerPhone} />
       </label>
 
-      <fieldset className="space-y-4 border-t border-line pt-4">
-        <legend className="text-sm font-bold text-ink">입금 계좌</legend>
-        <p className="text-sm text-muted">판매 확정 후 구매자에게 보여 줍니다. 없으면 결제·배송 안내에만 적어 주세요.</p>
+      <section className="space-y-4 border-t border-line pt-4">
+        <div className="space-y-1">
+          <h3 className="text-sm font-bold text-ink">입금 계좌</h3>
+          <p className="text-sm text-muted">판매 확정 후 구매자에게 보여 줍니다.</p>
+        </div>
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-ink">은행</span>
-          <input value={depositBank} onChange={(event) => setDepositBank(event.target.value)} className={inputClassName} placeholder="예: 국민은행" />
+          <input
+            id="seller-field-depositBank"
+            value={depositBank}
+            onChange={(event) => {
+              setDepositBank(event.target.value);
+              clearFieldError('depositBank');
+            }}
+            className={fieldInputClass(Boolean(fieldErrors.depositBank))}
+            placeholder="예: 국민은행"
+          />
+          <FieldError message={fieldErrors.depositBank} />
         </label>
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-ink">계좌번호</span>
           <input
+            id="seller-field-depositAccount"
             value={depositAccount}
-            onChange={(event) => setDepositAccount(event.target.value)}
-            className={inputClassName}
+            onChange={(event) => {
+              setDepositAccount(event.target.value);
+              clearFieldError('depositAccount');
+            }}
+            className={fieldInputClass(Boolean(fieldErrors.depositAccount))}
             inputMode="numeric"
             placeholder="숫자만 입력"
           />
+          <FieldError message={fieldErrors.depositAccount} />
         </label>
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-ink">예금주</span>
-          <input value={depositHolder} onChange={(event) => setDepositHolder(event.target.value)} className={inputClassName} />
+          <input
+            id="seller-field-depositHolder"
+            value={depositHolder}
+            onChange={(event) => {
+              setDepositHolder(event.target.value);
+              clearFieldError('depositHolder');
+            }}
+            className={fieldInputClass(Boolean(fieldErrors.depositHolder))}
+          />
+          <FieldError message={fieldErrors.depositHolder} />
         </label>
-      </fieldset>
+      </section>
 
-      <div className="space-y-1.5">
-        <span className="block text-sm font-semibold text-ink">사업자등록증</span>
-        <label className="flex min-h-40 cursor-pointer flex-col items-center justify-center border border-dashed border-line bg-slate-50">
+      <section className="space-y-3 border-t border-line pt-4">
+        <h3 className="text-sm font-bold text-ink">사업자등록증</h3>
+        <div className="space-y-1.5">
+        <label
+          id="seller-field-certificate"
+          tabIndex={-1}
+          className={cn(
+            'flex cursor-pointer flex-col items-center justify-center border border-dashed bg-slate-50 px-4 py-3 outline-none',
+            fieldErrors.certificate ? 'border-red-300' : 'border-line',
+          )}
+        >
           {certificatePreview && !certificatePreview.toLowerCase().includes('.pdf') && !certificateFile?.type.includes('pdf') ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={certificatePreview} alt="사업자등록증" className="h-40 w-full object-contain" />
+            <img src={certificatePreview} alt="사업자등록증" className="max-h-28 w-full object-contain" />
           ) : certificateFile || certificateUrl ? (
-            <span className="px-4 py-8 text-center text-sm text-ink">
+            <span className="text-center text-sm text-ink">
               {certificateFile ? certificateFile.name : '사업자등록증이 첨부되어 있습니다. 클릭하면 바꿀 수 있습니다.'}
             </span>
           ) : (
-            <span className="px-4 py-8 text-center text-sm text-subtle">클릭해서 사업자등록증 사진 또는 PDF를 첨부하세요</span>
+            <span className="text-center text-sm text-subtle">클릭해서 사업자등록증 사진 또는 PDF를 첨부하세요</span>
           )}
           <input
             type="file"
@@ -327,10 +452,13 @@ export default function SellerProfileForm() {
               setError(null);
               setCertificateFile(file);
               setCertificatePreview(file.type.includes('pdf') ? '' : URL.createObjectURL(file));
+              clearFieldError('certificate');
             }}
           />
         </label>
-      </div>
+        <FieldError message={fieldErrors.certificate} />
+        </div>
+      </section>
 
       {error ? (
         <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger" role="alert">
@@ -339,7 +467,7 @@ export default function SellerProfileForm() {
       ) : null}
 
       <div className="action-row">
-        <button type="submit" className="btn-primary" disabled={pending || !verified}>
+        <button type="submit" className="btn-primary" disabled={pending}>
           {pending ? '저장 중…' : '저장'}
         </button>
         <Link href="/mypage" className="btn-secondary">

@@ -176,7 +176,7 @@ const SELLER_CARDS: GuideCard[] = [
   {
     step: '01',
     title: '가입·상세 등록',
-    body: '이메일로 가입합니다. 판매 상품을 올리려면 마이페이지에서 판매 상세(사업자 정보)를 등록합니다.',
+    body: '이메일로 가입합니다. 판매 상품을 올리려면 마이페이지에서 판매자 상세(사업자 정보)를 등록합니다.',
     art: <GuideArtSellerSignup />,
   },
   {
@@ -197,7 +197,7 @@ const BUYER_CARDS: GuideCard[] = [
   {
     step: '01',
     title: '가입·상세 등록',
-    body: '이메일로 가입합니다. 구매 신청 전에 마이페이지에서 구매 상세(연락처·배송 주소)를 등록합니다.',
+    body: '이메일로 가입합니다. 구매 신청 전에 마이페이지에서 구매자 상세(연락처·배송 주소)를 등록합니다.',
     art: <GuideArtBuyerSignup />,
   },
   {

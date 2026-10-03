@@ -1,3 +1,4 @@
+import { composeLegacySpecText, composeLegacyTradeText, hasStructuredDetail, readProductDetail } from '@/lib/sell-product-detail';
 import type { SellListing } from '@/types/sell';
 
 export type SellGuide = {
@@ -49,7 +50,29 @@ export function parseGuideText(text: string): SellGuide {
   };
 }
 
-export function listingGuide(item: Pick<SellListing, 'description' | 'specText' | 'tradeText'>): SellGuide {
+export function listingGuide(
+  item: Pick<
+    SellListing,
+    | 'description'
+    | 'composition'
+    | 'specification'
+    | 'origin'
+    | 'certification'
+    | 'shippingFee'
+    | 'shippingGuide'
+    | 'returnPolicy'
+    | 'specText'
+    | 'tradeText'
+  >,
+): SellGuide {
+  const detail = readProductDetail(item);
+  if (hasStructuredDetail(detail)) {
+    return {
+      intro: item.description.trim(),
+      spec: composeLegacySpecText(detail),
+      trade: composeLegacyTradeText(detail),
+    };
+  }
   if (item.specText.trim() || item.tradeText.trim()) {
     return {
       intro: item.description.trim(),
@@ -60,6 +83,6 @@ export function listingGuide(item: Pick<SellListing, 'description' | 'specText' 
   return parseGuideText(item.description);
 }
 
-export function guideHasContent(guide: SellGuide) {
-  return Boolean(guide.intro || guide.spec || guide.trade);
+export function guideHasContent(guide: SellGuide, introImages: string[] = []) {
+  return Boolean(guide.intro || guide.spec || guide.trade || introImages.length > 0);
 }

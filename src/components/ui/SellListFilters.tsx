@@ -9,7 +9,7 @@ import { SELL_CATEGORY_OPTIONS, SELL_CATEGORY_LABELS } from '@/types/sell-catego
 export default function SellListFilters({
   q = '',
   category = '',
-  sort = 'deadline',
+  sort = 'newest',
   seller,
 }: {
   q?: string;
@@ -36,7 +36,7 @@ export default function SellListFilters({
     const nextSort = next?.sort ?? selectedSort;
     if (nextQ.trim()) params.set('q', nextQ.trim());
     if (nextCategory) params.set('category', nextCategory);
-    if (nextSort && nextSort !== 'deadline') params.set('sort', nextSort);
+    if (nextSort && nextSort !== 'newest') params.set('sort', nextSort);
     const href = params.toString() ? `/sell?${params.toString()}` : '/sell';
     router.push(href);
   }
@@ -89,8 +89,8 @@ export default function SellListFilters({
           }}
           className={inputClassName}
         >
-          <option value="deadline">마감 임박</option>
           <option value="newest">최신 등록</option>
+          <option value="deadline">마감 임박</option>
           <option value="price-asc">낮은 가격</option>
           <option value="price-desc">높은 가격</option>
         </select>

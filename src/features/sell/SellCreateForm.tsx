@@ -7,10 +7,21 @@ import { useAuth } from '@/features/auth/auth-context';
 import { inputClassName } from '@/features/auth/auth-errors';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
 import { loginHref } from '@/lib/auth-redirect';
+import { SellFormDisclosureField, disclosureInputClass } from '@/components/sell/SellFormDisclosureField';
+import AutoResizeTextarea from '@/components/ui/AutoResizeTextarea';
+import SellIntroAttachments, { type IntroAttachmentItem } from '@/components/sell/SellIntroAttachments';
 import { listingGuide } from '@/lib/sell-guide';
+import { DEFAULT_TRADE_DETAIL } from '@/lib/sell-trade-defaults';
+import {
+  composeLegacySpecText,
+  composeLegacyTradeText,
+  readProductDetail,
+  type SellProductDetail,
+} from '@/lib/sell-product-detail';
+import { scrollToFormField } from '@/lib/form-scroll';
 import { quantityAmount } from '@/lib/sell-display';
 import { isHttpUrl, normalizeHttpUrl, sourceTypeFromUrls, youtubeVideoId } from '@/lib/sell-source';
-import { createRemoteSellListing, resolveSellImages, updateRemoteSellListing } from '@/lib/sell-remote';
+import { createRemoteSellListing, resolveIntroImages, resolveSellImages, updateRemoteSellListing } from '@/lib/sell-remote';
 import { cn } from '@/lib/utils';
 import { isSellerProfileComplete } from '@/types/seller';
 import { SELL_CATEGORY_OPTIONS, SELL_CATEGORY_LABELS, parseSellCategory } from '@/types/sell-category';
@@ -49,6 +60,39 @@ function SpecField({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
+type DetailField = 'introAttachments' | 'shippingFee' | 'shippingGuide' | 'returnPolicy';
+
+const DETAIL_FIELD_ORDER: DetailField[] = [
+  'introAttachments',
+  'shippingFee',
+  'shippingGuide',
+  'returnPolicy',
+];
+
+function initShippingDetail(listing?: SellListing) {
+  if (!listing) return { ...DEFAULT_TRADE_DETAIL };
+
+  const detail = readProductDetail(listing);
+  if (detail.shippingFee.trim() || detail.shippingGuide.trim() || detail.returnPolicy.trim()) {
+    return {
+      shippingFee: detail.shippingFee.trim() || DEFAULT_TRADE_DETAIL.shippingFee,
+      shippingGuide: detail.shippingGuide.trim() || DEFAULT_TRADE_DETAIL.shippingGuide,
+      returnPolicy: detail.returnPolicy.trim() || DEFAULT_TRADE_DETAIL.returnPolicy,
+    };
+  }
+
+  const guide = listingGuide(listing);
+  if (guide.trade.trim()) {
+    return {
+      shippingFee: DEFAULT_TRADE_DETAIL.shippingFee,
+      shippingGuide: guide.trade,
+      returnPolicy: DEFAULT_TRADE_DETAIL.returnPolicy,
+    };
+  }
+
+  return { ...DEFAULT_TRADE_DETAIL };
+}
+
 export default function SellCreateForm({ listing }: { listing?: SellListing }) {
   const isEdit = Boolean(listing);
   const router = useRouter();
@@ -59,6 +103,9 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
   );
   const [extras, setExtras] = useState<ImageItem[]>(
     (listing?.images.slice(1) ?? []).map((url, index) => ({ id: `extra-${index}`, url, file: null })),
+  );
+  const [introAttachments, setIntroAttachments] = useState<IntroAttachmentItem[]>(
+    (listing?.introImages ?? []).map((url, index) => ({ id: `intro-${index}`, url, file: null })),
   );
   const [activeImage, setActiveImage] = useState(0);
   const [title, setTitle] = useState(listing?.title ?? '');
@@ -71,11 +118,12 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
   const [coupangUrl, setCoupangUrl] = useState(listing?.coupangUrl ?? '');
   const [smartstoreUrl, setSmartstoreUrl] = useState(listing?.smartstoreUrl ?? '');
   const [youtubeUrl, setYoutubeUrl] = useState(listing?.youtubeUrl ?? '');
-  const initialGuide = listing ? listingGuide(listing) : { intro: '', spec: '', trade: '' };
-  const [description, setDescription] = useState(initialGuide.intro);
-  const [specText, setSpecText] = useState(initialGuide.spec);
-  const [tradeText, setTradeText] = useState(initialGuide.trade);
+  const initialShipping = initShippingDetail(listing);
+  const [shippingFee, setShippingFee] = useState(initialShipping.shippingFee);
+  const [shippingGuide, setShippingGuide] = useState(initialShipping.shippingGuide);
+  const [returnPolicy, setReturnPolicy] = useState(initialShipping.returnPolicy);
   const [error, setError] = useState<string | null>(null);
+  const [detailErrors, setDetailErrors] = useState<Partial<Record<DetailField, string>>>({});
   const [pending, setPending] = useState(false);
   const pickSlot = useRef(0);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -202,10 +250,26 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
       setError('유튜브 판매상품 URL을 확인해 주세요.');
       return;
     }
-    if (!description.trim() || !specText.trim() || !tradeText.trim()) {
-      setError('소개, 구성·규격, 결제·배송·교환을 모두 입력해 주세요.');
+    const detail: SellProductDetail = {
+      composition: '',
+      specification: '',
+      origin: '',
+      certification: '',
+      shippingFee: shippingFee.trim(),
+      shippingGuide: shippingGuide.trim(),
+      returnPolicy: returnPolicy.trim(),
+    };
+    const nextDetailErrors: Partial<Record<DetailField, string>> = {};
+    if (introAttachments.length === 0) nextDetailErrors.introAttachments = '상품 소개 파일을 1개 이상 등록해 주세요.';
+    if (!detail.shippingFee) nextDetailErrors.shippingFee = '배송비를 입력해 주세요.';
+    if (!detail.shippingGuide) nextDetailErrors.shippingGuide = '배송 안내를 입력해 주세요.';
+    if (!detail.returnPolicy) nextDetailErrors.returnPolicy = '교환·반품 안내를 입력해 주세요.';
+    setDetailErrors(nextDetailErrors);
+    const firstInvalid = DETAIL_FIELD_ORDER.find((field) => nextDetailErrors[field]);
+    if (firstInvalid) {
       window.requestAnimationFrame(() => {
         guidePanel.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        scrollToFormField(firstInvalid === 'introAttachments' ? 'sell-intro-attachments' : `sell-detail-${firstInvalid}`);
       });
       return;
     }
@@ -243,22 +307,26 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
           productUrl: nextCoupangUrl || nextSmartstoreUrl,
           productUrls: [nextCoupangUrl, nextSmartstoreUrl].filter(Boolean),
           youtubeUrl: nextYoutubeUrl,
-          description: description.trim(),
-          specText: specText.trim(),
-          tradeText: tradeText.trim(),
+          description: '',
+          ...detail,
+          specText: composeLegacySpecText(detail),
+          tradeText: composeLegacyTradeText(detail),
           depositBank: profile.depositBank,
           depositAccount: profile.depositAccount,
           depositHolder: profile.depositHolder,
         };
+        const listingId = isEdit && listing ? listing.id : `u-${crypto.randomUUID()}`;
+        const introImages = await resolveIntroImages(user.uid, listingId, introAttachments);
         const item =
           isEdit && listing
             ? await updateRemoteSellListing({
                 ...listing,
                 ...payload,
                 images: await resolveSellImages(user.uid, listing.id, [cover, ...extras]),
+                introImages,
               })
             : await createRemoteSellListing(
-                { ...payload, id: `u-${crypto.randomUUID()}`, createdAt: new Date().toISOString() },
+                { ...payload, id: listingId, introImages, createdAt: new Date().toISOString() },
                 [cover.file as File, ...extras.map((entry) => entry.file as File)],
               );
         router.push(`/sell/${item.id}`);
@@ -482,45 +550,92 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
         </div>
       </article>
 
-      <section ref={guidePanel} className="panel overflow-hidden">
-        <div className="border-b border-line px-4 py-3.5 sm:px-6">
-          <h2 className="text-[15px] font-bold text-ink">상품 안내</h2>
-          <p className="mt-0.5 text-sm text-muted">소개, 구성·규격, 결제·배송·교환을 작성합니다.</p>
+      <section ref={guidePanel} className="space-y-5">
+        <div className="panel overflow-hidden">
+          <div className="border-b border-line px-4 py-3.5 sm:px-6">
+            <h2 className="text-[15px] font-bold text-ink">상품 소개</h2>
+            <p className="mt-0.5 text-sm text-muted">상품 소개용 사진 또는 PDF를 등록합니다.</p>
+          </div>
+
+          <div id="sell-intro-attachments" className="px-4 py-6 sm:px-6 sm:py-7">
+            <SellIntroAttachments
+              items={introAttachments}
+              onChange={(next) => {
+                setIntroAttachments(next);
+                if (next.length > 0) {
+                  setDetailErrors((current) => {
+                    if (!current.introAttachments) return current;
+                    const copy = { ...current };
+                    delete copy.introAttachments;
+                    return copy;
+                  });
+                }
+              }}
+              error={detailErrors.introAttachments}
+            />
+          </div>
         </div>
 
-        <div className="space-y-5 px-4 py-6 sm:px-6 sm:py-7">
-            {error?.includes('소개') ? (
-              <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger" role="alert">
-                {error}
-              </p>
-            ) : null}
-            <label className="block space-y-2">
-              <span className="text-sm font-bold text-ink">소개</span>
-              <textarea
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                className={`${inputClassName} h-28 py-3`}
-                placeholder="어떤 상품인지 한눈에 보이게 적어 주세요."
-              />
-            </label>
-            <label className="block space-y-2 border-t border-line pt-5">
-              <span className="text-sm font-bold text-ink">구성·규격</span>
-              <textarea
-                value={specText}
-                onChange={(event) => setSpecText(event.target.value)}
-                className={`${inputClassName} h-32 py-3`}
-                placeholder="구성품, 수량, 크기, 소재처럼 확인에 필요한 내용을 적습니다."
-              />
-            </label>
-            <label className="block space-y-2 border-t border-line pt-5">
-              <span className="text-sm font-bold text-ink">결제·배송·교환</span>
-              <textarea
-                value={tradeText}
-                onChange={(event) => setTradeText(event.target.value)}
-                className={`${inputClassName} h-32 py-3`}
-                placeholder="입금 방법, 배송, 교환·반품은 판매자 조건을 구체적으로 적습니다."
-              />
-            </label>
+        <div className="panel overflow-hidden">
+          <div className="border-b border-line px-4 py-3.5 sm:px-6">
+            <h2 className="text-[15px] font-bold text-ink">배송·교환·반품</h2>
+            <p className="mt-0.5 text-sm text-muted">결제는 판매 확정 후 입금 계좌로 안내합니다.</p>
+          </div>
+          <div className="px-4 py-6 sm:px-6 sm:py-7">
+            <div className="overflow-hidden border border-line">
+              <SellFormDisclosureField label="배송비" required error={detailErrors.shippingFee}>
+                <input
+                  id="sell-detail-shippingFee"
+                  value={shippingFee}
+                  onChange={(event) => {
+                    setShippingFee(event.target.value);
+                    setDetailErrors((current) => {
+                      if (!current.shippingFee) return current;
+                      const next = { ...current };
+                      delete next.shippingFee;
+                      return next;
+                    });
+                  }}
+                  className={disclosureInputClass(Boolean(detailErrors.shippingFee))}
+                  placeholder="예: 무료, 3,000원"
+                />
+              </SellFormDisclosureField>
+              <SellFormDisclosureField label="배송 안내" required error={detailErrors.shippingGuide}>
+                <AutoResizeTextarea
+                  id="sell-detail-shippingGuide"
+                  value={shippingGuide}
+                  onChange={(event) => {
+                    setShippingGuide(event.target.value);
+                    setDetailErrors((current) => {
+                      if (!current.shippingGuide) return current;
+                      const next = { ...current };
+                      delete next.shippingGuide;
+                      return next;
+                    });
+                  }}
+                  className={disclosureInputClass(Boolean(detailErrors.shippingGuide))}
+                  placeholder="배송 방법, 소요 기간, 지역 제한 등"
+                />
+              </SellFormDisclosureField>
+              <SellFormDisclosureField label="교환·반품" required error={detailErrors.returnPolicy}>
+                <AutoResizeTextarea
+                  id="sell-detail-returnPolicy"
+                  value={returnPolicy}
+                  onChange={(event) => {
+                    setReturnPolicy(event.target.value);
+                    setDetailErrors((current) => {
+                      if (!current.returnPolicy) return current;
+                      const next = { ...current };
+                      delete next.returnPolicy;
+                      return next;
+                    });
+                  }}
+                  className={disclosureInputClass(Boolean(detailErrors.returnPolicy))}
+                  placeholder="교환·반품 가능 조건, 불가 사유, 절차"
+                />
+              </SellFormDisclosureField>
+            </div>
+          </div>
         </div>
       </section>
 

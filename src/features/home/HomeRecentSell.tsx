@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { useMemo } from 'react';
 import { useSellListings } from '@/features/sell/use-sell-listings';
+import { filterSellListings } from '@/lib/sell-filters';
 import { discountRate, formatWon } from '@/lib/sell-display';
 import { listingSourceLabel } from '@/lib/sell-source';
 import { cn } from '@/lib/utils';
@@ -9,7 +11,7 @@ import { sellCoverImage } from '@/types/sell';
 
 export default function HomeRecentSell() {
   const { items, ready } = useSellListings();
-  const highlights = items.slice(0, 4);
+  const highlights = useMemo(() => filterSellListings(items, { sort: 'newest' }).slice(0, 4), [items]);
 
   return (
     <section className="panel overflow-hidden">

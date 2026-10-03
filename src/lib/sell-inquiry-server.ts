@@ -1,5 +1,6 @@
 import { loadAdminSellListing } from '@/lib/admin-listings-data';
 import { getAuthUser, getDocument, hasFirebaseAdminConfig, queryDocuments, setDocument, updateDocument } from '@/lib/firebase-rest-admin';
+import { loadJoinsForBuyer } from '@/lib/sell-join-server';
 import type { SellInquiry } from '@/types/sell-inquiry';
 
 const COLLECTION = 'sellInquiries';
@@ -54,6 +55,12 @@ export async function createSellInquiryForUser(
 
   const listing = await loadAdminSellListing(listingId);
   if (!listing) throw new Error('없는 상품입니다.');
+  if (listing.sellerId === buyerId) throw new Error('본인 상품에는 문의할 수 없습니다.');
+
+  const joins = await loadJoinsForBuyer(buyerId);
+  if (!joins.some((join) => join.listingId === listingId)) {
+    throw new Error('구매 신청한 상품만 문의할 수 있습니다.');
+  }
 
   const text = question.trim();
   if (text.length < 5) throw new Error('문의는 5자 이상 입력해 주세요.');

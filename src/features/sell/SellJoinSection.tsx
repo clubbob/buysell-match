@@ -8,6 +8,7 @@ import { inputClassName } from '@/features/auth/auth-errors';
 import { useBuyerProfile } from '@/features/buyer/use-buyer-profile';
 import { loginHref } from '@/lib/auth-redirect';
 import { BUYER_DETAIL_LABEL } from '@/lib/profile-labels';
+import { alertAndGoToBuyerProfile } from '@/lib/profile-gate';
 import { defaultBuyerAddress, hasBuyerProfile } from '@/types/buyer';
 import DepositAccountNotice from '@/components/ui/DepositAccountNotice';
 import {
@@ -123,7 +124,7 @@ export default function SellJoinSection({
     }
     if (remainingShort || deadlinePassed) return;
     if (!hasBuyerProfile(buyerProfile)) {
-      router.push(`/buyer/profile?next=${encodeURIComponent(`/sell/${item.id}`)}`);
+      alertAndGoToBuyerProfile(router, `/sell/${item.id}`);
       return;
     }
     const delivery = defaultBuyerAddress(buyerProfile);

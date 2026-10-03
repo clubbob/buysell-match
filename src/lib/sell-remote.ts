@@ -3,6 +3,7 @@ import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { getClientFirestore, getClientStorage } from '@/lib/firebase';
 import { fetchSellJoins } from '@/lib/sell-join-remote';
 import { parseSellCategory } from '@/types/sell-category';
+import { readFirestoreCreatedAt } from '@/lib/sell-listing-time';
 import { withSellSource, type SellListing } from '@/types/sell';
 
 const COLLECTION = 'sellListings';
@@ -14,6 +15,7 @@ function toListing(id: string, data: Record<string, unknown>): SellListing | nul
     title: String(data.title),
     category: parseSellCategory(data.category),
     images: data.images.map(String),
+    introImages: Array.isArray(data.introImages) ? data.introImages.map(String) : [],
     sellerId: String(data.sellerId),
     sellerName: String(data.sellerName ?? ''),
     representativeName: String(data.representativeName ?? ''),
@@ -38,12 +40,19 @@ function toListing(id: string, data: Record<string, unknown>): SellListing | nul
     deadline: String(data.deadline ?? ''),
     closedAt: String(data.closedAt ?? ''),
     description: String(data.description ?? ''),
+    composition: String(data.composition ?? ''),
+    specification: String(data.specification ?? ''),
+    origin: String(data.origin ?? ''),
+    certification: String(data.certification ?? ''),
+    shippingFee: String(data.shippingFee ?? ''),
+    shippingGuide: String(data.shippingGuide ?? ''),
+    returnPolicy: String(data.returnPolicy ?? ''),
     specText: String(data.specText ?? ''),
     tradeText: String(data.tradeText ?? ''),
     depositBank: String(data.depositBank ?? ''),
     depositAccount: String(data.depositAccount ?? ''),
     depositHolder: String(data.depositHolder ?? ''),
-    createdAt: String(data.createdAt ?? ''),
+    createdAt: readFirestoreCreatedAt(data.createdAt),
   });
 }
 
@@ -53,11 +62,40 @@ async function uploadImages(sellerId: string, listingId: string, files: File[]) 
 
   const urls: string[] = [];
   for (const [index, file] of files.entries()) {
-    const path = `sell/${sellerId}/${listingId}/${index}-${file.name}`;
+    const path = `sell/${sellerId}/${listingId}/${Date.now()}-${index}-${file.name}`;
     const fileRef = ref(storage, path);
     await uploadBytes(fileRef, file);
     urls.push(await getDownloadURL(fileRef));
   }
+  return urls;
+}
+
+async function resolveListingFiles(
+  sellerId: string,
+  listingId: string,
+  items: { url: string; file: File | null }[],
+  folder: 'images' | 'intro',
+  requireEach: boolean,
+): Promise<string[]> {
+  const storage = getClientStorage();
+  const urls: string[] = [];
+
+  for (const [index, item] of items.entries()) {
+    if (!item.file) {
+      if (!item.url) {
+        if (requireEach) throw new Error('이미지를 넣어 주세요.');
+        continue;
+      }
+      urls.push(item.url);
+      continue;
+    }
+    if (!storage) throw new Error('Storage가 연결되지 않았습니다.');
+    const path = `sell/${sellerId}/${listingId}/${folder}/${Date.now()}-${index}-${item.file.name}`;
+    const fileRef = ref(storage, path);
+    await uploadBytes(fileRef, item.file);
+    urls.push(await getDownloadURL(fileRef));
+  }
+
   return urls;
 }
 
@@ -66,23 +104,15 @@ export async function resolveSellImages(
   listingId: string,
   items: { url: string; file: File | null }[],
 ): Promise<string[]> {
-  const storage = getClientStorage();
-  const urls: string[] = [];
+  return resolveListingFiles(sellerId, listingId, items, 'images', true);
+}
 
-  for (const [index, item] of items.entries()) {
-    if (!item.file) {
-      if (!item.url) throw new Error('이미지를 넣어 주세요.');
-      urls.push(item.url);
-      continue;
-    }
-    if (!storage) throw new Error('Storage가 연결되지 않았습니다.');
-    const path = `sell/${sellerId}/${listingId}/${Date.now()}-${index}-${item.file.name}`;
-    const fileRef = ref(storage, path);
-    await uploadBytes(fileRef, item.file);
-    urls.push(await getDownloadURL(fileRef));
-  }
-
-  return urls;
+export async function resolveIntroImages(
+  sellerId: string,
+  listingId: string,
+  items: { url: string; file: File | null }[],
+): Promise<string[]> {
+  return resolveListingFiles(sellerId, listingId, items, 'intro', false);
 }
 
 export async function fetchRemoteSellListings(): Promise<SellListing[]> {

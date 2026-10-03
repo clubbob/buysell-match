@@ -39,6 +39,7 @@ export function hasSellerProfile(profile: SellerProfile | null | undefined): pro
     profile?.sellerName.trim() &&
       profile.representativeName.trim() &&
       profile.sellerMobile.trim() &&
+      profile.sellerPhone.trim() &&
       profile.businessAddress.trim() &&
       profile.businessNumber.trim() &&
       profile.businessVerified,
@@ -46,7 +47,13 @@ export function hasSellerProfile(profile: SellerProfile | null | undefined): pro
 }
 
 export function isSellerProfileComplete(profile: SellerProfile | null | undefined): profile is SellerProfile {
-  return hasSellerProfile(profile) && Boolean(profile.businessCertificateUrl.trim());
+  return (
+    hasSellerProfile(profile) &&
+    Boolean(profile.businessCertificateUrl.trim()) &&
+    Boolean(profile.depositBank.trim()) &&
+    Boolean(profile.depositAccount.trim()) &&
+    Boolean(profile.depositHolder.trim())
+  );
 }
 
 export function formatBusinessVerifiedAt(value: string): string {

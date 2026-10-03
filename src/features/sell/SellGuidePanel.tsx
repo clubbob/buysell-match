@@ -2,14 +2,34 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import SellDetailDisclosureTable from '@/components/sell/SellDetailDisclosureTable';
 import SellInquiryTab from '@/features/sell/SellInquiryTab';
-import { guideHasContent, listingGuide } from '@/lib/sell-guide';
+import { listingGuide } from '@/lib/sell-guide';
+import { hasStructuredDetail, readProductDetail, tradeDetailRows } from '@/lib/sell-product-detail';
 import { fetchSellerReviewsByListing } from '@/lib/seller-review-remote';
 import { cn } from '@/lib/utils';
 import type { SellerReview } from '@/types/review';
 import type { SellListing } from '@/types/sell';
 
-type DetailTab = 'guide' | 'reviews' | 'inquiries';
+type DetailTab = 'intro' | 'trade' | 'reviews' | 'inquiries';
+
+function parseInitialTab(readQueryTab: boolean): DetailTab {
+  if (readQueryTab && typeof window !== 'undefined') {
+    const queryTab = new URLSearchParams(window.location.search).get('tab');
+    if (queryTab === 'inquiries') return 'inquiries';
+    if (queryTab === 'trade') return 'trade';
+    if (queryTab === 'reviews') return 'reviews';
+  }
+  return 'intro';
+}
+
+function hasIntroContent(introImages: string[], intro: string) {
+  return introImages.length > 0 || Boolean(intro.trim());
+}
+
+function hasTradeContent(structured: boolean, tradeRows: { label: string; value: string }[], trade: string) {
+  return structured ? tradeRows.length > 0 : Boolean(trade.trim());
+}
 
 function GuideBlock({ title, text }: { title: string; text: string }) {
   if (!text) return null;
@@ -17,6 +37,35 @@ function GuideBlock({ title, text }: { title: string; text: string }) {
     <div className="border-t border-line pt-5 first:border-t-0 first:pt-0">
       <h3 className="text-sm font-bold text-ink">{title}</h3>
       <p className="mt-2 whitespace-pre-line text-[15px] leading-7 text-ink">{text}</p>
+    </div>
+  );
+}
+
+function IntroAttachmentsView({ urls }: { urls: string[] }) {
+  if (urls.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      {urls.map((url) => {
+        const pdf = url.toLowerCase().includes('.pdf');
+        if (pdf) {
+          return (
+            <a
+              key={url}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block border border-line bg-slate-50 px-4 py-3 text-sm font-semibold text-ink hover:bg-slate-100"
+            >
+              PDF 첨부 보기
+            </a>
+          );
+        }
+        return (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img key={url} src={url} alt="" className="w-full border border-line bg-slate-50 object-contain" />
+        );
+      })}
     </div>
   );
 }
@@ -48,27 +97,47 @@ export default function SellGuidePanel({
       cancelled = true;
     };
   }, [item.id, reviewsKey]);
-  const [tab, setTab] = useState<DetailTab>(() => {
-    if (readQueryTab && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'inquiries') {
-      return 'inquiries';
-    }
-    return 'guide';
-  });
+  const [tab, setTab] = useState<DetailTab>(() => parseInitialTab(readQueryTab));
   const [inquiryCount, setInquiryCount] = useState(0);
   const guide = listingGuide(item);
+  const detail = readProductDetail(item);
+  const structured = hasStructuredDetail(detail);
+  const tradeRows = structured ? tradeDetailRows(detail) : [];
+  const showIntro = hasIntroContent(item.introImages, guide.intro);
+  const showTrade = hasTradeContent(structured, tradeRows, guide.trade);
 
   return (
     <section className={cn('overflow-hidden', className ?? 'panel')}>
       <div className="flex border-b border-line">
         <button
           type="button"
-          onClick={() => setTab('guide')}
+          onClick={() => setTab('intro')}
           className={cn(
             'relative min-h-12 flex-1 whitespace-nowrap px-2 text-sm font-semibold sm:px-4',
-            tab === 'guide' ? 'text-ink after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-ink sm:after:inset-x-4' : 'text-muted',
+            tab === 'intro' ? 'text-ink after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-ink sm:after:inset-x-4' : 'text-muted',
           )}
         >
-          상품 안내
+          상품 소개
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('inquiries')}
+          className={cn(
+            'relative min-h-12 flex-1 whitespace-nowrap px-2 text-sm font-semibold sm:px-4',
+            tab === 'inquiries' ? 'text-ink after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-ink sm:after:inset-x-4' : 'text-muted',
+          )}
+        >
+          상품 문의 {inquiryCount}
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('trade')}
+          className={cn(
+            'relative min-h-12 flex-1 whitespace-nowrap px-2 text-sm font-semibold sm:px-4',
+            tab === 'trade' ? 'text-ink after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-ink sm:after:inset-x-4' : 'text-muted',
+          )}
+        >
+          배송·교환·반품
         </button>
         {showReviews ? (
           <button
@@ -82,33 +151,41 @@ export default function SellGuidePanel({
             구매자 후기 {reviews.length}
           </button>
         ) : null}
-        <button
-          type="button"
-          onClick={() => setTab('inquiries')}
-          className={cn(
-            'relative min-h-12 flex-1 whitespace-nowrap px-2 text-sm font-semibold sm:px-4',
-            tab === 'inquiries' ? 'text-ink after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-ink sm:after:inset-x-4' : 'text-muted',
-          )}
-        >
-          상품 문의 {inquiryCount}
-        </button>
       </div>
 
-      <div hidden={tab !== 'guide'}>
+      <div hidden={tab !== 'intro'}>
         <div className="px-4 py-6 sm:px-6 sm:py-7">
-          {guideHasContent(guide) ? (
+          {showIntro ? (
             <>
-              <div className="space-y-5">
-                <GuideBlock title="소개" text={guide.intro} />
-                <GuideBlock title="구성·규격" text={guide.spec} />
-                <GuideBlock title="결제·배송·교환" text={guide.trade} />
-              </div>
+              <IntroAttachmentsView urls={item.introImages} />
+              {item.introImages.length === 0 && guide.intro ? (
+                <p className="whitespace-pre-line text-[15px] leading-7 text-ink">{guide.intro}</p>
+              ) : null}
               <p className="mt-6 border-t border-line pt-3 text-xs leading-relaxed text-subtle">
-                이 안내는 판매자가 작성했습니다. 결제·배송·교환은 판매자 조건을 따릅니다.
+                이 안내는 판매자가 작성했습니다.
               </p>
             </>
           ) : (
-            <p className="py-8 text-center text-sm text-muted">아직 상품 안내가 없습니다.</p>
+            <p className="py-8 text-center text-sm text-muted">아직 상품 소개가 없습니다.</p>
+          )}
+        </div>
+      </div>
+
+      <div hidden={tab !== 'trade'}>
+        <div className="px-4 py-6 sm:px-6 sm:py-7">
+          {showTrade ? (
+            <>
+              {structured ? (
+                <SellDetailDisclosureTable rows={tradeRows} />
+              ) : (
+                <GuideBlock title="결제·배송·교환" text={guide.trade} />
+              )}
+              <p className="mt-6 border-t border-line pt-3 text-xs leading-relaxed text-subtle">
+                결제·배송·교환은 판매자 조건을 따릅니다.
+              </p>
+            </>
+          ) : (
+            <p className="py-8 text-center text-sm text-muted">아직 배송·교환·반품 안내가 없습니다.</p>
           )}
         </div>
       </div>
