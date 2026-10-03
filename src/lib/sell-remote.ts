@@ -4,6 +4,7 @@ import { getClientFirestore, getClientStorage } from '@/lib/firebase';
 import { fetchSellJoins } from '@/lib/sell-join-remote';
 import { parseSellCategory } from '@/types/sell-category';
 import { readFirestoreCreatedAt } from '@/lib/sell-listing-time';
+import { normalizeSellListingImage } from '@/lib/sell-listing-image';
 import { withSellSource, type SellListing } from '@/types/sell';
 
 const COLLECTION = 'sellListings';
@@ -62,9 +63,10 @@ async function uploadImages(sellerId: string, listingId: string, files: File[]) 
 
   const urls: string[] = [];
   for (const [index, file] of files.entries()) {
-    const path = `sell/${sellerId}/${listingId}/${Date.now()}-${index}-${file.name}`;
+    const uploadFile = await normalizeSellListingImage(file);
+    const path = `sell/${sellerId}/${listingId}/${Date.now()}-${index}-${uploadFile.name}`;
     const fileRef = ref(storage, path);
-    await uploadBytes(fileRef, file);
+    await uploadBytes(fileRef, uploadFile);
     urls.push(await getDownloadURL(fileRef));
   }
   return urls;
@@ -90,9 +92,10 @@ async function resolveListingFiles(
       continue;
     }
     if (!storage) throw new Error('Storage가 연결되지 않았습니다.');
-    const path = `sell/${sellerId}/${listingId}/${folder}/${Date.now()}-${index}-${item.file.name}`;
+    const uploadFile = folder === 'images' ? await normalizeSellListingImage(item.file) : item.file;
+    const path = `sell/${sellerId}/${listingId}/${folder}/${Date.now()}-${index}-${uploadFile.name}`;
     const fileRef = ref(storage, path);
-    await uploadBytes(fileRef, item.file);
+    await uploadBytes(fileRef, uploadFile);
     urls.push(await getDownloadURL(fileRef));
   }
 

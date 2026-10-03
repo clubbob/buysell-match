@@ -8,6 +8,7 @@ import { inputClassName } from '@/features/auth/auth-errors';
 import { useSellerProfile } from '@/features/seller/use-seller-profile';
 import { loginHref } from '@/lib/auth-redirect';
 import { SellFormDisclosureField, disclosureInputClass } from '@/components/sell/SellFormDisclosureField';
+import SellListingImageFrame from '@/components/sell/SellListingImageFrame';
 import AutoResizeTextarea from '@/components/ui/AutoResizeTextarea';
 import SellIntroAttachments, { type IntroAttachmentItem } from '@/components/sell/SellIntroAttachments';
 import { listingGuide } from '@/lib/sell-guide';
@@ -21,10 +22,16 @@ import {
 import { scrollToFormField } from '@/lib/form-scroll';
 import { quantityAmount } from '@/lib/sell-display';
 import { isHttpUrl, normalizeHttpUrl, sourceTypeFromUrls, youtubeVideoId } from '@/lib/sell-source';
+import { normalizeSellListingImage, SELL_LISTING_IMAGE_SIZE } from '@/lib/sell-listing-image';
 import { createRemoteSellListing, resolveIntroImages, resolveSellImages, updateRemoteSellListing } from '@/lib/sell-remote';
 import { cn } from '@/lib/utils';
 import { isSellerProfileComplete } from '@/types/seller';
-import { SELL_CATEGORY_OPTIONS, SELL_CATEGORY_LABELS, parseSellCategory } from '@/types/sell-category';
+import {
+  SELL_CATEGORY_OPTIONS,
+  SELL_CATEGORY_LABELS,
+  isSellCategory,
+  type SellCategory,
+} from '@/types/sell-category';
 import type { SellListing } from '@/types/sell';
 import {
   EXTRA_IMAGE_COUNT,
@@ -36,6 +43,9 @@ import {
   SPEC_QTY_FIELDS,
   SPEC_ROW,
 } from '@/features/sell/sell-spec-ui';
+
+const CATEGORY_UNSELECTED = '__unselected__';
+type CategoryFieldValue = SellCategory | typeof CATEGORY_UNSELECTED;
 
 type ImageItem = {
   id: string;
@@ -109,7 +119,9 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
   );
   const [activeImage, setActiveImage] = useState(0);
   const [title, setTitle] = useState(listing?.title ?? '');
-  const [category, setCategory] = useState(parseSellCategory(listing?.category));
+  const [category, setCategory] = useState<CategoryFieldValue>(
+    listing?.category && isSellCategory(listing.category) ? listing.category : CATEGORY_UNSELECTED,
+  );
   const [regularPrice, setRegularPrice] = useState(listing ? String(listing.regularPrice) : '');
   const [salePrice, setSalePrice] = useState(listing ? String(listing.salePrice) : '');
   const [minPurchaseLabel, setMinPurchaseLabel] = useState(listing?.minPurchaseLabel ?? '');
@@ -125,6 +137,7 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
   const [error, setError] = useState<string | null>(null);
   const [detailErrors, setDetailErrors] = useState<Partial<Record<DetailField, string>>>({});
   const [pending, setPending] = useState(false);
+  const [imageProcessing, setImageProcessing] = useState(false);
   const pickSlot = useRef(0);
   const fileInput = useRef<HTMLInputElement>(null);
   const guidePanel = useRef<HTMLElement>(null);
@@ -151,27 +164,37 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
     }
   }
 
-  function handlePicked(fileList: FileList | null) {
+  async function handlePicked(fileList: FileList | null) {
     const file = fileList?.[0];
     if (!file) return;
-    const slot = pickSlot.current;
-    const next = toImageItem(file);
-    if (slot <= 0) {
-      setCover(next);
-      setActiveImage(0);
-      return;
-    }
-    const extraIndex = Math.min(Math.max(slot - 1, extras.length), EXTRA_IMAGE_COUNT - 1);
-    setExtras((currentExtras) => {
-      if (currentExtras.length >= EXTRA_IMAGE_COUNT) return currentExtras;
-      if (extraIndex < currentExtras.length) {
-        const copy = [...currentExtras];
-        copy[extraIndex] = next;
-        return copy;
+
+    setImageProcessing(true);
+    setError(null);
+    try {
+      const normalized = await normalizeSellListingImage(file);
+      const slot = pickSlot.current;
+      const next = toImageItem(normalized);
+      if (slot <= 0) {
+        setCover(next);
+        setActiveImage(0);
+        return;
       }
-      return [...currentExtras, next];
-    });
-    setActiveImage(extraIndex + 1);
+      const extraIndex = Math.min(Math.max(slot - 1, extras.length), EXTRA_IMAGE_COUNT - 1);
+      setExtras((currentExtras) => {
+        if (currentExtras.length >= EXTRA_IMAGE_COUNT) return currentExtras;
+        if (extraIndex < currentExtras.length) {
+          const copy = [...currentExtras];
+          copy[extraIndex] = next;
+          return copy;
+        }
+        return [...currentExtras, next];
+      });
+      setActiveImage(extraIndex + 1);
+    } catch (pickError) {
+      setError(pickError instanceof Error ? pickError.message : '이미지를 처리할 수 없습니다.');
+    } finally {
+      setImageProcessing(false);
+    }
   }
 
   function removeCover() {
@@ -209,6 +232,10 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
     }
     if (!title.trim()) {
       setError('상품명을 입력해 주세요.');
+      return;
+    }
+    if (category === CATEGORY_UNSELECTED) {
+      setError('카테고리를 선택해 주세요.');
       return;
     }
     const regular = Number(regularPrice);
@@ -347,26 +374,26 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
 
       <article className="panel overflow-hidden">
         <div className="flex flex-col lg:flex-row">
-          <div className="w-full border-b border-line lg:w-[22rem] lg:shrink-0 lg:self-stretch lg:border-b-0 lg:border-r">
+          <div className="w-full min-w-0 overflow-hidden border-b border-line lg:w-[22rem] lg:shrink-0 lg:self-stretch lg:border-b-0 lg:border-r">
             <div className="flex h-full flex-col bg-slate-50">
               <button
                 type="button"
-                className="relative min-h-0 flex-1"
-                onClick={() => openPicker(activeImage)}
+                className="relative w-full shrink-0 overflow-hidden"
+                onClick={() => !imageProcessing && openPicker(activeImage)}
+                disabled={imageProcessing}
               >
-                {current ? (
-                  <img
-                    src={current.url}
-                    alt=""
-                    className="aspect-square w-full bg-slate-50 object-contain p-3 lg:absolute lg:inset-0 lg:aspect-auto lg:h-full lg:w-full"
-                  />
-                ) : (
-                  <span className="flex aspect-square w-full items-center justify-center px-4 text-center text-sm text-subtle lg:absolute lg:inset-0 lg:aspect-auto">
-                    클릭해서 대표 사진을 넣으세요
+                <SellListingImageFrame
+                  src={current?.url}
+                  alt={title || '상품 사진'}
+                  emptyLabel="클릭해서 대표 사진을 넣으세요"
+                />
+                {imageProcessing ? (
+                  <span className="absolute inset-0 z-20 flex items-center justify-center bg-white/80 text-sm text-muted">
+                    사진 맞추는 중…
                   </span>
-                )}
+                ) : null}
                 {current && activeImage === 0 ? (
-                  <span className="absolute left-3 top-3 bg-ink px-2 py-1 text-[11px] font-semibold text-white">대표</span>
+                  <span className="absolute left-3 top-3 z-10 bg-ink px-2 py-1 text-[11px] font-semibold text-white">대표</span>
                 ) : null}
               </button>
               <ul className="grid shrink-0 grid-cols-5 gap-px border-t border-line bg-line">
@@ -379,12 +406,12 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
                           <button
                             type="button"
                             className={cn(
-                              'relative block w-full bg-white',
+                              'relative block w-full overflow-hidden bg-white',
                               slot === activeImage ? 'ring-2 ring-inset ring-ink' : 'opacity-80 hover:opacity-100',
                             )}
                             onClick={() => setActiveImage(slot)}
                           >
-                            <img src={item.url} alt="" className="aspect-square w-full object-contain bg-white p-1" />
+                            <SellListingImageFrame src={item.url} alt="" />
                             {slot === 0 ? (
                               <span className="absolute left-1 top-1 bg-ink px-1.5 py-0.5 text-[10px] font-semibold text-white">
                                 대표
@@ -416,6 +443,9 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
                   );
                 })}
               </ul>
+              <p className="border-t border-line px-3 py-2 text-xs leading-relaxed text-muted">
+                사진 전체가 정사각형(1:1, {SELL_LISTING_IMAGE_SIZE}px) 안에 맞춰 저장됩니다. 잘리지 않습니다.
+              </p>
             </div>
           </div>
 
@@ -431,7 +461,16 @@ export default function SellCreateForm({ listing }: { listing?: SellListing }) {
                 />
               </SpecField>
               <SpecField label="카테고리">
-                <select value={category} onChange={(event) => setCategory(parseSellCategory(event.target.value))} className={inputClassName}>
+                <select
+                  value={category}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setCategory(isSellCategory(value) ? value : CATEGORY_UNSELECTED);
+                  }}
+                  className={inputClassName}
+                  autoComplete="off"
+                >
+                  <option value={CATEGORY_UNSELECTED} disabled>선택</option>
                   {SELL_CATEGORY_OPTIONS.map((item) => (
                     <option key={item} value={item}>
                       {SELL_CATEGORY_LABELS[item]}

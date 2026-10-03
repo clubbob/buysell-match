@@ -3,38 +3,22 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSellJoinsByListings } from '@/features/sell/use-sell-joins-by-listings';
-import { useSellJoinTotals } from '@/features/sell/use-sell-join-totals';
 import {
   deadlineParts,
   discountRate,
-  formatConfirmedJoinSummary,
-  formatJoinParticipants,
   formatQuantityNumber,
   formatWon,
   isRemainingShort,
   listingProgressStatus,
   listingProgressStatusLabel,
-  quantityAmount,
 } from '@/lib/sell-display';
 import { buildJoinTimeline, formatTimelineAt, formatTimelineQuantity } from '@/lib/sell-join-timeline';
 import { sellCategoryLabel } from '@/lib/sell-filters';
 import { sellDetailHref } from '@/lib/mypage-nav';
 import { listingSourceLabel } from '@/lib/sell-source';
+import SellProductCardGrid from '@/components/sell/SellProductCardGrid';
 import { sellCoverImage, type SellListing } from '@/types/sell';
-import type { JoinListSummary, SellJoin } from '@/types/sell-join';
-
-function JoinNotes({ summary }: { summary?: JoinListSummary }) {
-  if (!summary) return null;
-  const openText = formatJoinParticipants(summary.open.buyers, summary.open.quantity);
-  const confirmedText = formatConfirmedJoinSummary(summary.confirmed.buyers, summary.confirmed.quantity);
-  if (!openText && !confirmedText) return null;
-  return (
-    <span className="mt-0.5 block text-xs font-medium text-muted">
-      {openText ? <span className="block">{openText}</span> : null}
-      {confirmedText ? <span className="block">{confirmedText}</span> : null}
-    </span>
-  );
-}
+import type { SellJoin } from '@/types/sell-join';
 
 function MypageJoinTimelineTable({ item, joins = [] }: { item: SellListing; joins?: SellJoin[] }) {
   const { initialRemaining, currentRemaining, steps } = buildJoinTimeline(item, joins);
@@ -199,123 +183,66 @@ function listingHref(id: string, from?: string, mypageTab: 'sell' | 'buy' = 'sel
 
 function DesktopRow({
   item,
-  join,
   joins,
-  showDeadline,
-  showStatusColumn,
   from,
   mypageTab,
 }: {
   item: SellListing;
-  join?: JoinListSummary;
   joins?: SellJoin[];
-  showDeadline?: boolean;
-  showStatusColumn?: boolean;
   from?: string;
   mypageTab?: 'sell' | 'buy';
 }) {
   const router = useRouter();
-  const rate = discountRate(item.regularPrice, item.salePrice);
-  const deadline = deadlineParts(item.deadline);
-  const sourceLabel = listingSourceLabel(item);
-  const categoryLabel = sellCategoryLabel(item.category);
-
-  if (showStatusColumn) {
-    return (
-      <tr
-        className="cursor-pointer border-t border-line hover:bg-slate-50"
-        onClick={() => router.push(listingHref(item.id, from, mypageTab))}
-      >
-        <td className="px-4 py-3 align-middle">
-          <MypageProductCell item={item} />
-        </td>
-        <td className="px-3 py-3 align-middle">
-          <MypagePriceCell item={item} />
-        </td>
-        <td className="px-3 py-3 align-middle text-sm tabular-nums text-ink">
-          {formatQuantityNumber(item.minPurchaseLabel)}
-        </td>
-        <td className="px-3 py-3 align-middle">
-          <MypageDeadlineCell item={item} />
-        </td>
-        <td className="px-3 py-3 align-middle">
-          <MypageJoinTimelineTable item={item} joins={joins} />
-        </td>
-      </tr>
-    );
-  }
 
   return (
     <tr
       className="cursor-pointer border-t border-line hover:bg-slate-50"
       onClick={() => router.push(listingHref(item.id, from, mypageTab))}
     >
-      <td className="px-4 py-3 align-middle text-sm font-semibold text-ink">
-        {item.title}
-        <span className="mt-0.5 block text-xs font-medium text-muted">{categoryLabel}</span>
-        {sourceLabel ? <span className="mt-0.5 block text-xs font-medium text-muted">{sourceLabel}</span> : null}
+      <td className="px-4 py-3 align-middle">
+        <MypageProductCell item={item} />
       </td>
-      <td className="py-3 align-middle">
-        <PhotoSlot src={sellCoverImage(item)} alt={item.title} />
-      </td>
-      <td className="px-3 py-3 align-middle text-sm text-ink">{item.sellerName}</td>
-      <td className="px-3 py-3 align-middle text-sm text-subtle line-through tabular-nums">{formatWon(item.regularPrice)}</td>
-      <td className="px-3 py-3 align-middle text-sm text-ink tabular-nums">
-        <span className="font-semibold">{formatWon(item.salePrice)}</span>
-        {rate > 0 ? <span className="mt-0.5 block text-xs font-medium text-muted">(할인율 {rate}%)</span> : null}
+      <td className="px-3 py-3 align-middle">
+        <MypagePriceCell item={item} />
       </td>
       <td className="px-3 py-3 align-middle text-sm tabular-nums text-ink">
-        <span>{formatQuantityNumber(item.minPurchaseLabel)}</span>
-        <JoinNotes summary={join} />
+        {formatQuantityNumber(item.minPurchaseLabel)}
       </td>
-      <td className="px-3 py-3 align-middle text-sm text-ink">
-        <span className="tabular-nums">{formatQuantityNumber(item.remainingLabel)}</span>
-        {isRemainingShort(item.minPurchaseLabel, item.remainingLabel) ? (
-          <span className="mt-0.5 block text-xs font-medium text-muted">잔여 부족</span>
-        ) : null}
+      <td className="px-3 py-3 align-middle">
+        <MypageDeadlineCell item={item} />
       </td>
-      {showDeadline ? (
-        <td className="px-4 py-3 align-middle text-sm text-ink">
-          <span className="tabular-nums">{deadline.date}</span>
-          <span className="mt-0.5 block text-xs font-medium text-muted">{deadline.note}</span>
-        </td>
-      ) : null}
+      <td className="px-3 py-3 align-middle">
+        <MypageJoinTimelineTable item={item} joins={joins} />
+      </td>
     </tr>
   );
 }
 
 function MobileRow({
   item,
-  join,
   joins,
-  showDeadline,
-  showStatusColumn,
   from,
   mypageTab,
 }: {
   item: SellListing;
-  join?: JoinListSummary;
   joins?: SellJoin[];
-  showDeadline?: boolean;
-  showStatusColumn?: boolean;
   from?: string;
   mypageTab?: 'sell' | 'buy';
 }) {
   const rate = discountRate(item.regularPrice, item.salePrice);
-  const deadline = deadlineParts(item.deadline);
-  const sourceLabel = listingSourceLabel(item);
   const categoryLabel = sellCategoryLabel(item.category);
+  const sourceLabel = listingSourceLabel(item);
 
   return (
     <li className="border-t border-line">
       <Link href={listingHref(item.id, from, mypageTab)} className="block px-4 py-3">
         <p className="text-sm font-semibold text-ink">{item.title}</p>
-        <p className="mt-0.5 text-xs font-medium text-muted">{categoryLabel}</p>
-        {sourceLabel ? <p className="mt-0.5 text-xs font-medium text-muted">{sourceLabel}</p> : null}
+        <p className="mt-0.5 text-xs font-medium text-muted">
+          {[categoryLabel, sourceLabel].filter(Boolean).join(' · ')}
+        </p>
         <div className="mt-2 flex gap-3">
           <PhotoSlot src={sellCoverImage(item)} alt={item.title} />
           <div className="min-w-0 space-y-1">
-            {showStatusColumn ? null : <p className="text-sm text-muted">{item.sellerName}</p>}
             <p className="text-sm">
               <span className="text-subtle line-through tabular-nums">{formatWon(item.regularPrice)}</span>
               <span className="ml-2 font-semibold text-ink tabular-nums">{formatWon(item.salePrice)}</span>
@@ -323,26 +250,16 @@ function MobileRow({
             </p>
             <p className="text-sm text-ink">
               {item.minPurchaseLabel ? `모집 최소 수량 ${formatQuantityNumber(item.minPurchaseLabel)}` : null}
-              {showStatusColumn ? null : <JoinNotes summary={join} />}
               {item.minPurchaseLabel ? <span className="mx-1.5 text-subtle">·</span> : null}
               {formatQuantityNumber(item.remainingLabel)}
               {isRemainingShort(item.minPurchaseLabel, item.remainingLabel) ? (
                 <span className="ml-1 text-xs font-medium text-muted">잔여 부족</span>
               ) : null}
-              {showDeadline ? (
-                <>
-                  <span className="mx-1.5 text-subtle">·</span>
-                  {deadline.date}
-                  <span className="ml-1 text-xs font-medium text-muted">{deadline.note}</span>
-                </>
-              ) : null}
             </p>
-            {showStatusColumn ? (
-              <div className="space-y-2 pt-2">
-                <MypageDeadlineCell item={item} />
-                <MypageJoinTimelineTable item={item} joins={joins} />
-              </div>
-            ) : null}
+            <div className="space-y-2 pt-2">
+              <MypageDeadlineCell item={item} />
+              <MypageJoinTimelineTable item={item} joins={joins} />
+            </div>
           </div>
         </div>
       </Link>
@@ -375,15 +292,14 @@ export default function SellListPanel({
 }) {
   const listingIds = items.map((item) => item.id);
   const isMypage = from === 'mypage';
-  const joinTotals = useSellJoinTotals(isMypage ? [] : listingIds);
   const joinsByListing = useSellJoinsByListings(isMypage ? listingIds : []);
   const showDeadline = !hideDeadline;
   const showStatusColumn = isMypage;
   const list =
     items.length > 0 ? (
-      <>
-        <table className="hidden w-full table-fixed lg:table">
-          {showStatusColumn ? (
+      showStatusColumn ? (
+        <>
+          <table className="hidden w-full table-fixed lg:table">
             <colgroup>
               <col className="w-[32%]" />
               <col className="w-[11%]" />
@@ -391,77 +307,57 @@ export default function SellListPanel({
               <col className="w-[13%]" />
               <col className="w-[40%]" />
             </colgroup>
-          ) : (
-            <colgroup>
-              <col className="w-[15%]" />
-              <col className="w-[5.5rem]" />
-              <col className="w-[10%]" />
-              <col className="w-[10%]" />
-              <col className="w-[11%]" />
-              <col className="w-[14%]" />
-              <col className="w-[9%]" />
-              {showDeadline ? <col className="w-[12%]" /> : null}
-            </colgroup>
-          )}
-          <thead>
-            <tr className="border-b border-line bg-slate-50 text-left text-[11px] font-semibold tracking-wide text-subtle">
-              {showStatusColumn ? (
-                <>
-                  <th className="px-4 py-2">상품</th>
-                  <th className="px-3 py-2">가격</th>
-                  <th className="px-3 py-2">모집 최소 수량</th>
-                  <th className="px-3 py-2">마감</th>
-                  <th className="px-3 py-2">판매 진행</th>
-                </>
-              ) : (
-                <>
-                  <th className="px-4 py-2">상품</th>
-                  <th className="py-2">사진</th>
-                  <th className="px-3 py-2">판매자</th>
-                  <th className="px-3 py-2">정상 가격</th>
-                  <th className="px-3 py-2">특판 가격</th>
-                  <th className="px-3 py-2">모집 최소 수량</th>
-                  <th className="px-3 py-2">잔여 수량</th>
-                  {showDeadline ? <th className="px-4 py-2">마감</th> : null}
-                </>
-              )}
-            </tr>
-          </thead>
-          <tbody>
+            <thead>
+              <tr className="border-b border-line bg-slate-50 text-left text-[11px] font-semibold tracking-wide text-subtle">
+                <th className="px-4 py-2">상품</th>
+                <th className="px-3 py-2">가격</th>
+                <th className="px-3 py-2">모집 최소 수량</th>
+                <th className="px-3 py-2">마감</th>
+                <th className="px-3 py-2">판매 진행</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <DesktopRow
+                  key={item.id}
+                  item={item}
+                  joins={joinsByListing[item.id]}
+                  from={from}
+                  mypageTab={mypageTab}
+                />
+              ))}
+            </tbody>
+          </table>
+
+          <ul className="lg:hidden">
             {items.map((item) => (
-              <DesktopRow
+              <MobileRow
                 key={item.id}
                 item={item}
-                join={joinTotals[item.id]}
                 joins={joinsByListing[item.id]}
-                showDeadline={showDeadline}
-                showStatusColumn={showStatusColumn}
                 from={from}
                 mypageTab={mypageTab}
               />
             ))}
-          </tbody>
-        </table>
-
-        <ul className="lg:hidden">
-          {items.map((item) => (
-            <MobileRow
-              key={item.id}
-              item={item}
-              join={joinTotals[item.id]}
-              joins={joinsByListing[item.id]}
-              showDeadline={showDeadline}
-              showStatusColumn={showStatusColumn}
-              from={from}
-              mypageTab={mypageTab}
-            />
-          ))}
-        </ul>
-      </>
+          </ul>
+        </>
+      ) : (
+        <SellProductCardGrid
+          items={items}
+          showDeadline={showDeadline}
+          hrefForItem={(id) => listingHref(id, from, mypageTab)}
+        />
+      )
     ) : (
       <p className="px-4 py-12 text-center text-sm text-muted">
-        아직 올라온 글이 없습니다.
-        <span className="mt-1 block text-subtle">상품 사진과 판매자가 함께 표시됩니다.</span>
+        {showStatusColumn ? (
+          <>
+            아직 올라온 글이 없습니다.
+            <span className="mt-1 block text-subtle">상품 사진과 판매자가 함께 표시됩니다.</span>
+          </>
+        ) : (
+          '아직 올라온 판매 상품이 없습니다.'
+        )}
       </p>
     );
 
